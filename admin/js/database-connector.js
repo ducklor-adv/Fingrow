@@ -269,19 +269,35 @@ class BrowserDatabaseProxy {
     // Browser-compatible database operations
     async fetchFromNode(method, params = {}) {
         try {
-            // Check if we're in a browser environment
-            if (typeof window !== 'undefined' && typeof require === 'undefined') {
-                // Browser environment - use mock data directly
-                return this.getMockData(method, params);
+            // Use API endpoints instead of mock data
+            const apiBase = 'http://localhost:3001/api';
+
+            switch (method) {
+                case 'getAllUsers':
+                    const response = await fetch(`${apiBase}/users`);
+                    const result = await response.json();
+                    if (result.success) {
+                        return result; // Return the full response object with data array
+                    }
+                    break;
+
+                case 'deleteUser':
+                    const deleteResponse = await fetch(`${apiBase}/users/${params.userId}`, {
+                        method: 'DELETE'
+                    });
+                    return await deleteResponse.json();
+
+                default:
+                    console.warn(`API method ${method} not implemented yet, using mock data`);
+                    break;
             }
 
-            // Try to use Node.js modules if available
-            const { default: AdminDatabaseService } = await import('../api/database-api.js');
-            const service = new AdminDatabaseService();
-            return await service[method](...Object.values(params));
+            // Fallback to mock data if API method not implemented
+            return this.getMockData(method, params);
 
         } catch (error) {
-            // Always fallback to mock data on any error
+            console.error(`API error for ${method}:`, error);
+            // Fallback to mock data on any error
             return this.getMockData(method, params);
         }
     }

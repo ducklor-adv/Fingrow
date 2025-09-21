@@ -2419,11 +2419,11 @@
         </a>
     </div>
 
-    <!-- Load MockDatabase -->
-    <script src="../admin/js/mockDatabase.js"></script>
+    <!-- Load API Client -->
+    <script src="js/api-client.js"></script>
 
     <script>
-        // Initialize Database
+        // Initialize Database (using API Client instead of MockDatabase)
         let database = null;
         let allProducts = [];
         let filteredProducts = [];
@@ -2486,38 +2486,9 @@
         // Initialize database and load products
         async function initializeMarketplace() {
             try {
-                // Check if MockDatabase class is available
-                if (typeof MockDatabase === 'undefined') {
-                    throw new Error('MockDatabase class not found! Check if mockDatabase.js is loaded correctly.');
-                }
-
-                // Initialize database (only clear data if first time)
-                if (!localStorage.getItem('fingrow_initialized')) {
-                    localStorage.removeItem('fingrow_users');
-                    localStorage.removeItem('fingrow_products');
-                    localStorage.removeItem('fingrow_orders');
-                    localStorage.setItem('fingrow_initialized', 'true');
-                }
-
-                // Clear old localStorage data to force fresh load with structured fields
-                const currentTime = Date.now();
-                const dbVersion = localStorage.getItem('dbVersion');
-
-                // Force refresh if version is old or missing
-                if (!dbVersion || dbVersion !== '1.2') {
-                    console.log('🔄 Clearing ALL localStorage to force fresh database load with structured fields');
-                    // Save current user session if exists
-                    const currentUserData = localStorage.getItem('currentUser');
-                    // Clear everything
-                    localStorage.clear();
-                    // Restore user session if existed
-                    if (currentUserData) {
-                        localStorage.setItem('currentUser', currentUserData);
-                    }
-                    localStorage.setItem('dbVersion', '1.2');
-                }
-
-                database = new MockDatabase();
+                // Initialize API Client
+                database = new ApiClient();
+                console.log('✅ API Client initialized successfully');
 
                 await loadProducts();
                 console.log('✅ Marketplace initialized with', allProducts.length, 'products');
@@ -4121,13 +4092,21 @@
                 return;
             }
 
+
+            // Clear any old localStorage data that might interfere
+            console.log('[Debug] Clearing localStorage...');
+            localStorage.clear();
+
+            // Ensure database is initialized
             if (!database) {
-                alert('❌ ระบบยังไม่พร้อมใช้งาน กรุณาลองใหม่อีกครั้ง');
-                return;
+                database = new ApiClient();
+                console.log('⚠️ Database initialized in handleLogin');
             }
 
+            console.log('[Debug] Login data:', { username, password: '***' });
+
             try {
-                const result = await database.login(username, password);
+                const result = await database.login({ username, password });
 
                 if (result.success) {
                     // Ensure user has all structured address fields from database
@@ -4497,6 +4476,12 @@
             console.log('[Mobile] Registering user with data:', userData);
             console.log('[Mobile] Referral code being sent:', referralCode);
 
+            // Ensure database is initialized
+            if (!database) {
+                database = new ApiClient();
+                console.log('⚠️ Database initialized in handleRegister');
+            }
+
             try {
                 const result = await database.register(userData);
 
@@ -4656,11 +4641,13 @@
                 // Update wallet information
                 const profileThbBalance = document.getElementById('profileThbBalance');
                 if (profileThbBalance) {
-                    profileThbBalance.textContent = `฿${currentUser.wallet_balance.toLocaleString()}`;
+                    const balance = currentUser.wallet_balance || 0;
+                    profileThbBalance.textContent = `฿${Number(balance).toLocaleString()}`;
                 }
                 const profileWldBalance = document.getElementById('profileWldBalance');
                 if (profileWldBalance) {
-                    profileWldBalance.textContent = `${currentUser.wld_balance} WLD`;
+                    const wldBalance = currentUser.wld_balance || 0;
+                    profileWldBalance.textContent = `${wldBalance} WLD`;
                 }
 
                 // Update sales statistics

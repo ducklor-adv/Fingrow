@@ -506,7 +506,8 @@ class FingrowAdmin {
     }
 
     async loadUsersContent() {
-        const users = await this.fetchUsers();
+        const result = await this.fetchUsers();
+        const users = result.data || [];
 
         return `
             <div class="mb-6">
@@ -617,7 +618,15 @@ class FingrowAdmin {
     }
 
     async fetchUsers() {
-        return await this.db.getAllUsers();
+        const result = await this.db.getAllUsers();
+
+        // Check if result and result.data exist
+        if (!result || !result.data || !Array.isArray(result.data)) {
+            console.error('[Admin] Invalid users data structure:', result);
+            return { data: [], total: 0 };
+        }
+
+        return result;
     }
 
     async loadProductsContent() {
@@ -2184,6 +2193,13 @@ class FingrowAdmin {
 
         // Find user data (use getAllUsers to avoid pagination issues)
         this.db.getAllUsers().then(result => {
+            // Check if result and result.data exist
+            if (!result || !result.data || !Array.isArray(result.data)) {
+                console.error('[Admin] Invalid users data structure:', result);
+                this.showError('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้');
+                return;
+            }
+
             console.log('[Admin] Got users data:', {
                 total: result.total,
                 dataLength: result.data.length,
@@ -2392,8 +2408,15 @@ class FingrowAdmin {
     toggleUserStatus(userId) {
         console.log('Toggle user status:', userId);
         // Find and toggle user status
-        this.db.getAllUsers().then(users => {
-            const user = users.find(u => u.id == userId);
+        this.db.getAllUsers().then(result => {
+            // Check if result and result.data exist
+            if (!result || !result.data || !Array.isArray(result.data)) {
+                console.error('[Admin] Invalid users data structure:', result);
+                this.showError('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้');
+                return;
+            }
+
+            const user = result.data.find(u => u.id == userId);
             if (user) {
                 const newStatus = user.is_active ? 0 : 1;
                 this.db.updateUser(userId, { is_active: newStatus }).then(() => {
@@ -2750,7 +2773,13 @@ class FingrowAdmin {
     async loadEarningsData() {
         try {
             // Get all users with referral data
-            const allUsers = await this.db.getAllUsers();
+            const result = await this.db.getAllUsers();
+
+            // Check if result and result.data exist
+            if (!result || !result.data || !Array.isArray(result.data)) {
+                console.error('[Admin] Invalid users data structure:', result);
+                throw new Error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+            }
 
             // Calculate totals
             let totalEarnings = 0;
@@ -2758,7 +2787,7 @@ class FingrowAdmin {
             let referralEarnings = 0;
             let salesEarnings = 0;
 
-            allUsers.forEach(user => {
+            result.data.forEach(user => {
                 if (user.stats && user.stats.earnings) {
                     totalEarnings += user.stats.earnings.total;
                     referralEarnings += user.stats.earnings.fromReferrals;
@@ -2786,7 +2815,15 @@ class FingrowAdmin {
 
     async loadUsersReferralTable(page = 1, pageSize = 10, searchTerm = '') {
         try {
-            let users = await this.db.getAllUsers();
+            const result = await this.db.getAllUsers();
+
+            // Check if result and result.data exist
+            if (!result || !result.data || !Array.isArray(result.data)) {
+                console.error('[Admin] Invalid users data structure:', result);
+                throw new Error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+            }
+
+            let users = result.data;
 
             // Search filter
             if (searchTerm) {
@@ -2809,12 +2846,16 @@ class FingrowAdmin {
                     let referrerInfo = null;
                     if (user.referred_by) {
                         console.log(`[Admin] User ${user.username} has referred_by: ${user.referred_by} (type: ${typeof user.referred_by})`);
-                        const allUsersData = await this.db.getAllUsers();
-                        referrerInfo = allUsersData.find(u => {
+                        const allUsersResult = await this.db.getAllUsers();
+
+                        // Check if result and result.data exist
+                        if (allUsersResult && allUsersResult.data && Array.isArray(allUsersResult.data)) {
+                            referrerInfo = allUsersResult.data.find(u => {
                             const match = u.id == user.referred_by; // Use loose equality
                             console.log(`[Admin] Checking referrer ID ${u.id} (${u.username}) == ${user.referred_by}: ${match}`);
                             return match;
                         });
+                        }
                         console.log(`[Admin] Found referrer info for ${user.username}:`, referrerInfo ? referrerInfo.username : 'NOT FOUND');
                     } else {
                         console.log(`[Admin] User ${user.username} has no referred_by`);
