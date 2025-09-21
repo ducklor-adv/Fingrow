@@ -3,7 +3,7 @@ class FingrowAdmin {
     constructor() {
         this.currentUser = null;
         this.stats = {};
-        this.mockDB = new MockDatabase();
+        this.db = new DatabaseConnector();
         this.init();
     }
 
@@ -93,7 +93,149 @@ class FingrowAdmin {
     }
 
     async fetchDashboardStats() {
-        return await this.mockDB.getDashboardStats();
+        return await this.db.getDashboardStats();
+    }
+
+    async loadDashboardContent() {
+        const stats = await this.fetchDashboardStats();
+
+        return `
+            <!-- Dashboard Content -->
+            <div id="dashboard-content">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">ผู้ใช้งานทั้งหมด</p>
+                                <p class="text-2xl font-bold text-white" id="totalUsers">${stats.totalUsers || 0}</p>
+                            </div>
+                            <i class="fas fa-users text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">สินค้าทั้งหมด</p>
+                                <p class="text-2xl font-bold text-white" id="totalProducts">${stats.totalProducts || 0}</p>
+                            </div>
+                            <i class="fas fa-box text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">ออเดอร์ทั้งหมด</p>
+                                <p class="text-2xl font-bold text-white" id="totalOrders">${stats.totalOrders || 0}</p>
+                            </div>
+                            <i class="fas fa-shopping-cart text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">รายได้รวม</p>
+                                <p class="text-2xl font-bold text-white" id="totalRevenue">฿${(stats.totalRevenue || 0).toLocaleString()}</p>
+                            </div>
+                            <i class="fas fa-chart-line text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts and Additional Info -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">ยอดขายรายเดือน</h3>
+                        <canvas id="salesChart" width="400" height="200"></canvas>
+                    </div>
+
+                    <div class="card rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-white mb-4">ผู้ใช้งานใหม่</h3>
+                        <div class="text-center">
+                            <div class="text-4xl font-bold text-emerald-500 mb-2">${stats.newUsersThisMonth || 0}</div>
+                            <p class="text-gray-400">ผู้ใช้งานใหม่เดือนนี้</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="mt-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="card rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-white mb-4">ออเดอร์ล่าสุด</h3>
+                            <div id="recent-orders">
+                                <p class="text-gray-400 text-center py-4">กำลังโหลด...</p>
+                            </div>
+                        </div>
+
+                        <div class="card rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-white mb-4">ผู้ขายยอดเยี่ยม</h3>
+                            <div id="top-sellers">
+                                <p class="text-gray-400 text-center py-4">กำลังโหลด...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadEarningsContent() {
+        return `
+            <!-- Earnings Content -->
+            <div id="earnings-content">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2">รายได้และค่าคอมมิชชั่น</h2>
+                    <p class="text-gray-400">จัดการและติดตามรายได้จากระบบ referral</p>
+                </div>
+
+                <!-- Earnings Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">รายได้รวมทั้งหมด</p>
+                                <p class="text-2xl font-bold text-white">฿0</p>
+                            </div>
+                            <i class="fas fa-coins text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">ค่าคอมมิชชั่น</p>
+                                <p class="text-2xl font-bold text-white">฿0</p>
+                            </div>
+                            <i class="fas fa-percentage text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+
+                    <div class="stat-card rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">ผู้ใช้ที่มี referral</p>
+                                <p class="text-2xl font-bold text-white">0</p>
+                            </div>
+                            <i class="fas fa-users text-emerald-500 text-3xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Earnings Table -->
+                <div class="card rounded-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-white">รายการรายได้</h3>
+                    </div>
+                    <div id="referrals-table">
+                        <p class="text-gray-400 text-center py-8">ยังไม่มีข้อมูลรายได้</p>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     updateDashboardStats() {
@@ -242,11 +384,11 @@ class FingrowAdmin {
     }
 
     async fetchSalesData() {
-        return await this.mockDB.getSalesData();
+        return await this.db.getSalesData();
     }
 
     async fetchUserData() {
-        return await this.mockDB.getUserData();
+        return await this.db.getUserData();
     }
 
     setupEventListeners() {
@@ -290,12 +432,28 @@ class FingrowAdmin {
 
             switch(section) {
                 case 'dashboard':
-                    document.getElementById('dashboard-content').style.display = 'block';
+                    const dashboardElement = document.getElementById('dashboard-content');
+                    if (dashboardElement) {
+                        dashboardElement.style.display = 'block';
+                    } else {
+                        console.error('dashboard-content element not found');
+                        // Fallback: show dashboard in content area
+                        const contentArea = document.getElementById('content-area');
+                        contentArea.innerHTML = await this.loadDashboardContent();
+                    }
                     break;
                 case 'earnings':
-                    document.getElementById('earnings-content').style.display = 'block';
-                    // Load earnings data when showing the page
-                    await this.loadEarningsData();
+                    const earningsElement = document.getElementById('earnings-content');
+                    if (earningsElement) {
+                        earningsElement.style.display = 'block';
+                        // Load earnings data when showing the page
+                        await this.loadEarningsData();
+                    } else {
+                        console.error('earnings-content element not found');
+                        // Fallback: show earnings in content area
+                        const contentArea = document.getElementById('content-area');
+                        contentArea.innerHTML = await this.loadEarningsContent();
+                    }
                     break;
                 case 'users':
                 case 'products':
@@ -459,8 +617,7 @@ class FingrowAdmin {
     }
 
     async fetchUsers() {
-        const result = await this.mockDB.getUsersWithStats();
-        return result.data; // Return user array with stats
+        return await this.db.getAllUsers();
     }
 
     async loadProductsContent() {
@@ -556,7 +713,7 @@ class FingrowAdmin {
                         </div>
                         <div>
                             <p class="text-white font-medium">${product.title}</p>
-                            <p class="text-gray-400 text-sm">${product.description.substring(0, 50)}...</p>
+                            <p class="text-gray-400 text-sm">${product.description ? product.description.substring(0, 50) + '...' : 'ไม่มีรายละเอียด'}</p>
                         </div>
                     </div>
                 </td>
@@ -585,8 +742,7 @@ class FingrowAdmin {
     }
 
     async fetchProducts() {
-        const result = await this.mockDB.getProducts();
-        return result.data; // Return product array
+        return await this.db.getAllProducts();
     }
 
     async loadOrdersContent() {
@@ -731,8 +887,7 @@ class FingrowAdmin {
     }
 
     async fetchOrders() {
-        const result = await this.mockDB.getOrders();
-        return result.data; // Return order array
+        return await this.db.getAllOrders();
     }
 
     formatDateTime(dateTimeString) {
@@ -873,7 +1028,7 @@ class FingrowAdmin {
     }
 
     async fetchReviews() {
-        const result = await this.mockDB.getReviews();
+        const result = await this.db.getReviews();
         return result.data; // Return review array
     }
 
@@ -1095,13 +1250,13 @@ class FingrowAdmin {
     async fetchEarnings() {
         // In a real app, this would be a MockDatabase method
         // For now, we'll use the earnings data directly
-        return this.mockDB.earnings || [];
+        return this.db.earnings || [];
     }
 
     async fetchReferrals() {
         // In a real app, this would be a MockDatabase method
         // For now, we'll use the referrals data directly
-        return this.mockDB.referrals || [];
+        return this.db.referrals || [];
     }
 
     async loadReportsContent() {
@@ -2028,7 +2183,7 @@ class FingrowAdmin {
         console.log('[Admin] Converted userId:', numericUserId);
 
         // Find user data (use getAllUsers to avoid pagination issues)
-        this.mockDB.getAllUsers().then(result => {
+        this.db.getAllUsers().then(result => {
             console.log('[Admin] Got users data:', {
                 total: result.total,
                 dataLength: result.data.length,
@@ -2070,7 +2225,7 @@ class FingrowAdmin {
 
         try {
             // Call delete API
-            const result = await this.mockDB.deleteUser(numericUserId);
+            const result = await this.db.deleteUser(numericUserId);
 
             if (result.success) {
                 this.showSuccess(`ลบผู้ใช้ ${result.deletedUser.username} สำเร็จ`);
@@ -2214,7 +2369,7 @@ class FingrowAdmin {
 
         try {
             // Update user in MockDatabase
-            await this.mockDB.updateUser(this.currentEditUserId, updatedUser);
+            await this.db.updateUser(this.currentEditUserId, updatedUser);
 
             // Show success message
             this.showSuccess('อัพเดทข้อมูลผู้ใช้เรียบร้อยแล้ว');
@@ -2237,12 +2392,12 @@ class FingrowAdmin {
     toggleUserStatus(userId) {
         console.log('Toggle user status:', userId);
         // Find and toggle user status
-        this.mockDB.getUsers().then(result => {
-            const user = result.data.find(u => u.id == userId);
+        this.db.getAllUsers().then(users => {
+            const user = users.find(u => u.id == userId);
             if (user) {
-                const newStatus = user.status === 'active' ? 'inactive' : 'active';
-                this.mockDB.updateUser(userId, { status: newStatus }).then(() => {
-                    this.showSuccess(`เปลี่ยนสถานะผู้ใช้เป็น ${newStatus === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
+                const newStatus = user.is_active ? 0 : 1;
+                this.db.updateUser(userId, { is_active: newStatus }).then(() => {
+                    this.showSuccess(`เปลี่ยนสถานะผู้ใช้เป็น ${newStatus ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
 
                     // Refresh users list if we're on users page
                     const contentArea = document.getElementById('content-area');
@@ -2257,19 +2412,19 @@ class FingrowAdmin {
     toggleProductStatus(productId) {
         console.log('Toggle product status:', productId);
         // Find and toggle product status
-        this.mockDB.getProducts().then(result => {
-            const product = result.data.find(p => p.id == productId);
+        this.db.getAllProducts().then(products => {
+            const product = products.find(p => p.id == productId);
             if (product) {
                 const newStatus = product.status === 'active' ? 'inactive' : 'active';
-                // Update product status in mockDB (need to implement updateProduct method)
-                product.status = newStatus;
-                this.showSuccess(`เปลี่ยนสถานะสินค้าเป็น ${newStatus === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
+                this.db.updateProductStatus(productId, newStatus).then(() => {
+                    this.showSuccess(`เปลี่ยนสถานะสินค้าเป็น ${newStatus === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
 
-                // Refresh products list if we're on products page
-                const contentArea = document.getElementById('content-area');
-                if (contentArea.innerHTML.includes('จัดการสินค้า')) {
-                    this.loadContent('products');
-                }
+                    // Refresh products list if we're on products page
+                    const contentArea = document.getElementById('content-area');
+                    if (contentArea.innerHTML.includes('จัดการสินค้า')) {
+                        this.loadContent('products');
+                    }
+                });
             }
         });
     }
@@ -2419,7 +2574,7 @@ class FingrowAdmin {
 
     async loadRecentOrders() {
         try {
-            const recentOrders = await this.mockDB.getRecentOrders(5);
+            const recentOrders = await this.db.getRecentOrders(5);
             const ordersContainer = document.getElementById('recent-orders');
 
             ordersContainer.innerHTML = recentOrders.map(order => {
@@ -2452,7 +2607,7 @@ class FingrowAdmin {
 
     async loadTopSellers() {
         try {
-            const topSellers = await this.mockDB.getTopSellers(5);
+            const topSellers = await this.db.getTopSellers(5);
             const sellersContainer = document.getElementById('top-sellers');
 
             sellersContainer.innerHTML = topSellers.map((seller, index) => {
@@ -2595,8 +2750,7 @@ class FingrowAdmin {
     async loadEarningsData() {
         try {
             // Get all users with referral data
-            const usersWithStats = await this.mockDB.getUsersWithStats();
-            const allUsers = usersWithStats.data;
+            const allUsers = await this.db.getAllUsers();
 
             // Calculate totals
             let totalEarnings = 0;
@@ -2632,8 +2786,7 @@ class FingrowAdmin {
 
     async loadUsersReferralTable(page = 1, pageSize = 10, searchTerm = '') {
         try {
-            const usersWithStats = await this.mockDB.getUsersWithStats();
-            let users = usersWithStats.data;
+            let users = await this.db.getAllUsers();
 
             // Search filter
             if (searchTerm) {
@@ -2656,8 +2809,8 @@ class FingrowAdmin {
                     let referrerInfo = null;
                     if (user.referred_by) {
                         console.log(`[Admin] User ${user.username} has referred_by: ${user.referred_by} (type: ${typeof user.referred_by})`);
-                        const allUsersData = await this.mockDB.getUsers(1, 1000);
-                        referrerInfo = allUsersData.data.find(u => {
+                        const allUsersData = await this.db.getAllUsers();
+                        referrerInfo = allUsersData.find(u => {
                             const match = u.id == user.referred_by; // Use loose equality
                             console.log(`[Admin] Checking referrer ID ${u.id} (${u.username}) == ${user.referred_by}: ${match}`);
                             return match;

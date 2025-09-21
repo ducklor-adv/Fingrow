@@ -1,153 +1,199 @@
-import { supabase, TABLES, dbHelpers } from '../lib/supabase';
+import { initDatabase, getDatabase, TABLES, dbHelpers } from '../lib/database.js';
+
+// Initialize database on service import
+let dbInitialized = false;
+
+const ensureDbInitialized = async () => {
+  if (!dbInitialized) {
+    await initDatabase();
+    dbInitialized = true;
+  }
+};
 
 // User service
 export const userService = {
-  async getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+  async getCurrentUser(worldId) {
+    await ensureDbInitialized();
 
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .select('*')
-      .eq('world_id', user.id)
-      .single();
+    const { data, error } = await dbHelpers.select(
+      TABLES.USERS,
+      '*',
+      { world_id: worldId }
+    );
 
-    return error ? null : data;
+    return { data: data?.[0] || null, error };
   },
 
   async createUser(userData) {
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .insert({
-        ...userData,
-        referral_code: generateReferralCode(userData.username),
-      })
-      .select()
-      .single();
+    await ensureDbInitialized();
 
-    return { data, error };
+    const userToInsert = {
+      ...userData,
+      referral_code: generateReferralCode(userData.username),
+    };
+
+    return await dbHelpers.insert(TABLES.USERS, userToInsert);
   },
 
   async updateUser(userId, updates) {
-    return dbHelpers.update(TABLES.USERS, updates, { id: userId });
+    await ensureDbInitialized();
+    return await dbHelpers.update(TABLES.USERS, updates, { id: userId });
   },
 
   async getUserByReferralCode(referralCode) {
-    const { data, error } = await supabase
-      .from(TABLES.USERS)
-      .select('id, username, referral_code')
-      .eq('referral_code', referralCode)
-      .single();
+    await ensureDbInitialized();
 
-    return { data, error };
+    const { data, error } = await dbHelpers.select(
+      TABLES.USERS,
+      'id, username, referral_code',
+      { referral_code: referralCode }
+    );
+
+    return { data: data?.[0] || null, error };
   },
 
   async getUserReferrals(userId) {
-    return dbHelpers.select(TABLES.REFERRALS, '*', { referrer_id: userId });
+    await ensureDbInitialized();
+    return await dbHelpers.select(TABLES.REFERRALS, '*', { referrer_id: userId });
   },
 };
 
 // Product service
 export const productService = {
   async getProducts(filters = {}, options = {}) {
-    let query = supabase
-      .from(TABLES.PRODUCTS)
-      .select(`
-        *,
-        seller:users!seller_id(id, username, trust_score, is_verified),
-        category:categories!category_id(name, name_th, slug)
-      `)
-      .eq('status', 'active')
-      .eq('is_available', true);
+    await ensureDbInitialized();
+
+    let queryFilters = {
+      status: 'active',
+      is_available: 1
+    };
 
     if (filters.category_id) {
-      query = query.eq('category_id', filters.category_id);
+      queryFilters.category_id = filters.category_id;
     }
 
-    if (filters.condition) {
-      query = query.in('condition', filters.condition);
+    if (filters.condition && Array.isArray(filters.condition)) {
+      queryFilters.condition = filters.condition;
     }
 
     if (filters.price_min && filters.price_max) {
-      query = query.gte('price_local', filters.price_min).lte('price_local', filters.price_max);
+      queryFilters.price_local = {
+        operator: 'gte',
+        value: filters.price_min
+      };
     }
 
-    if (filters.location) {
-      // Basic location filter - could be enhanced with PostGIS
-      query = query.ilike('location->city', `%${filters.location}%`);
+    // For SQLite, we'll handle complex joins differently
+    const { data: products, error } = await dbHelpers.select(
+      TABLES.PRODUCTS,
+      '*',
+      queryFilters,
+      options
+    );
+
+    if (error || !products) return { data: null, error };
+
+    // Get seller and category info separately
+    for (let product of products) {
+      const { data: seller } = await dbHelpers.select(
+        TABLES.USERS,
+        'id, username, trust_score, is_verified',
+        { id: product.seller_id }
+      );
+
+      const { data: category } = await dbHelpers.select(
+        TABLES.CATEGORIES,
+        'name, name_th, slug',
+        { id: product.category_id }
+      );
+
+      product.seller = seller?.[0] || null;
+      product.category = category?.[0] || null;
     }
 
-    if (filters.search) {
-      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-    }
-
-    // Sorting
-    if (options.sortBy) {
-      const ascending = options.sortOrder !== 'desc';
-      switch (options.sortBy) {
-        case 'price':
-          query = query.order('price_local', { ascending });
-          break;
-        case 'newest':
-          query = query.order('created_at', { ascending: false });
-          break;
-        case 'popular':
-          query = query.order('view_count', { ascending: false });
-          break;
-        default:
-          query = query.order('created_at', { ascending: false });
-      }
-    } else {
-      query = query.order('created_at', { ascending: false });
-    }
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    return query;
+    return { data: products, error: null };
   },
 
   async getProduct(productId) {
-    const { data, error } = await supabase
-      .from(TABLES.PRODUCTS)
-      .select(`
-        *,
-        seller:users!seller_id(*),
-        category:categories!category_id(*),
-        images:product_images(*),
-        reviews:reviews(rating, comment, reviewer:users!reviewer_id(username))
-      `)
-      .eq('id', productId)
-      .single();
+    await ensureDbInitialized();
 
-    return { data, error };
+    const { data: products, error } = await dbHelpers.select(
+      TABLES.PRODUCTS,
+      '*',
+      { id: productId }
+    );
+
+    if (error || !products?.[0]) return { data: null, error };
+
+    const product = products[0];
+
+    // Get related data
+    const { data: seller } = await dbHelpers.select(
+      TABLES.USERS, '*', { id: product.seller_id }
+    );
+
+    const { data: category } = await dbHelpers.select(
+      TABLES.CATEGORIES, '*', { id: product.category_id }
+    );
+
+    const { data: images } = await dbHelpers.select(
+      TABLES.PRODUCT_IMAGES, '*', { product_id: productId }
+    );
+
+    const { data: reviews } = await dbHelpers.select(
+      TABLES.REVIEWS, '*', { product_id: productId }
+    );
+
+    // Add reviewer info to reviews
+    for (let review of reviews || []) {
+      const { data: reviewer } = await dbHelpers.select(
+        TABLES.USERS, 'username', { id: review.reviewer_id }
+      );
+      review.reviewer = reviewer?.[0] || null;
+    }
+
+    product.seller = seller?.[0] || null;
+    product.category = category?.[0] || null;
+    product.images = images || [];
+    product.reviews = reviews || [];
+
+    return { data: product, error: null };
   },
 
   async createProduct(productData) {
-    const { data, error } = await supabase
-      .from(TABLES.PRODUCTS)
-      .insert(productData)
-      .select()
-      .single();
-
-    return { data, error };
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.PRODUCTS, productData);
   },
 
   async updateProduct(productId, updates) {
-    return dbHelpers.update(TABLES.PRODUCTS, updates, { id: productId });
+    await ensureDbInitialized();
+    return await dbHelpers.update(TABLES.PRODUCTS, updates, { id: productId });
   },
 
   async incrementViewCount(productId) {
-    const { data, error } = await supabase.rpc('increment_view_count', {
-      product_id: productId
-    });
+    await ensureDbInitialized();
 
-    return { data, error };
+    // Get current view count
+    const { data } = await dbHelpers.select(
+      TABLES.PRODUCTS,
+      'view_count',
+      { id: productId }
+    );
+
+    const currentCount = data?.[0]?.view_count || 0;
+
+    return await dbHelpers.update(
+      TABLES.PRODUCTS,
+      { view_count: currentCount + 1 },
+      { id: productId }
+    );
   },
 
   async getUserProducts(userId, status = 'active') {
-    return dbHelpers.select(TABLES.PRODUCTS, '*',
+    await ensureDbInitialized();
+    return await dbHelpers.select(
+      TABLES.PRODUCTS,
+      '*',
       { seller_id: userId, status },
       { orderBy: { column: 'created_at', ascending: false } }
     );
@@ -157,63 +203,84 @@ export const productService = {
 // Category service
 export const categoryService = {
   async getCategories(parentId = null) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+    return await dbHelpers.select(
       TABLES.CATEGORIES,
       '*',
-      { parent_id: parentId, is_active: true },
+      { parent_id: parentId, is_active: 1 },
       { orderBy: { column: 'sort_order' } }
     );
   },
 
   async getCategoryById(categoryId) {
-    const { data, error } = await supabase
-      .from(TABLES.CATEGORIES)
-      .select('*')
-      .eq('id', categoryId)
-      .single();
+    await ensureDbInitialized();
+    const { data, error } = await dbHelpers.select(
+      TABLES.CATEGORIES,
+      '*',
+      { id: categoryId }
+    );
 
-    return { data, error };
+    return { data: data?.[0] || null, error };
   },
 };
 
 // Order service
 export const orderService = {
   async createOrder(orderData) {
-    const orderNumber = generateOrderNumber();
+    await ensureDbInitialized();
 
-    const { data, error } = await supabase
-      .from(TABLES.ORDERS)
-      .insert({
-        ...orderData,
-        order_number: orderNumber,
-      })
-      .select()
-      .single();
+    const orderToInsert = {
+      ...orderData,
+      order_number: generateOrderNumber(),
+    };
 
-    return { data, error };
+    return await dbHelpers.insert(TABLES.ORDERS, orderToInsert);
   },
 
   async createOrderItems(orderItems) {
-    return dbHelpers.insert(TABLES.ORDER_ITEMS, orderItems);
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.ORDER_ITEMS, orderItems);
   },
 
   async getUserOrders(userId, type = 'buyer') {
+    await ensureDbInitialized();
+
     const filterField = type === 'buyer' ? 'buyer_id' : 'seller_id';
 
-    return dbHelpers.select(
+    const { data: orders, error } = await dbHelpers.select(
       TABLES.ORDERS,
-      `
-        *,
-        order_items:order_items(*),
-        buyer:users!buyer_id(username),
-        seller:users!seller_id(username)
-      `,
+      '*',
       { [filterField]: userId },
       { orderBy: { column: 'order_date', ascending: false } }
     );
+
+    if (error || !orders) return { data: null, error };
+
+    // Get order items and user info
+    for (let order of orders) {
+      const { data: orderItems } = await dbHelpers.select(
+        TABLES.ORDER_ITEMS, '*', { order_id: order.id }
+      );
+
+      const { data: buyer } = await dbHelpers.select(
+        TABLES.USERS, 'username', { id: order.buyer_id }
+      );
+
+      const { data: seller } = await dbHelpers.select(
+        TABLES.USERS, 'username', { id: order.seller_id }
+      );
+
+      order.order_items = orderItems || [];
+      order.buyer = buyer?.[0] || null;
+      order.seller = seller?.[0] || null;
+    }
+
+    return { data: orders, error: null };
   },
 
   async updateOrderStatus(orderId, status) {
+    await ensureDbInitialized();
+
     const updates = { status };
 
     // Add timestamp based on status
@@ -233,186 +300,301 @@ export const orderService = {
         break;
     }
 
-    return dbHelpers.update(TABLES.ORDERS, updates, { id: orderId });
+    return await dbHelpers.update(TABLES.ORDERS, updates, { id: orderId });
   },
 };
 
 // Favorites service
 export const favoriteService = {
   async getUserFavorites(userId) {
-    const { data, error } = await supabase
-      .from(TABLES.FAVORITES)
-      .select(`
-        *,
-        product:products!product_id(
-          *,
-          seller:users!seller_id(username, trust_score)
-        )
-      `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    await ensureDbInitialized();
 
-    return { data, error };
+    const { data: favorites, error } = await dbHelpers.select(
+      TABLES.FAVORITES,
+      '*',
+      { user_id: userId },
+      { orderBy: { column: 'created_at', ascending: false } }
+    );
+
+    if (error || !favorites) return { data: null, error };
+
+    // Get product info for each favorite
+    for (let favorite of favorites) {
+      const { data: products } = await dbHelpers.select(
+        TABLES.PRODUCTS, '*', { id: favorite.product_id }
+      );
+
+      if (products?.[0]) {
+        const { data: seller } = await dbHelpers.select(
+          TABLES.USERS, 'username, trust_score', { id: products[0].seller_id }
+        );
+
+        products[0].seller = seller?.[0] || null;
+        favorite.product = products[0];
+      }
+    }
+
+    return { data: favorites, error: null };
   },
 
   async addToFavorites(userId, productId) {
-    const { data, error } = await supabase
-      .from(TABLES.FAVORITES)
-      .insert({ user_id: userId, product_id: productId })
-      .select()
-      .single();
-
-    return { data, error };
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.FAVORITES, {
+      user_id: userId,
+      product_id: productId
+    });
   },
 
   async removeFromFavorites(userId, productId) {
-    return dbHelpers.delete(TABLES.FAVORITES, {
+    await ensureDbInitialized();
+    return await dbHelpers.delete(TABLES.FAVORITES, {
       user_id: userId,
       product_id: productId
     });
   },
 
   async isFavorite(userId, productId) {
-    const { data, error } = await supabase
-      .from(TABLES.FAVORITES)
-      .select('id')
-      .eq('user_id', userId)
-      .eq('product_id', productId)
-      .single();
+    await ensureDbInitialized();
+    const { data, error } = await dbHelpers.select(
+      TABLES.FAVORITES,
+      'id',
+      { user_id: userId, product_id: productId }
+    );
 
-    return { isFavorite: !!data, error };
+    return { isFavorite: !!data?.[0], error };
   },
 };
 
 // Chat service
 export const chatService = {
   async getChatRooms(userId) {
-    const { data, error } = await supabase
-      .from(TABLES.CHATS)
-      .select(`
-        *,
-        product:products!product_id(title, price_local, currency_code, images),
-        buyer:users!buyer_id(username, avatar_url),
-        seller:users!seller_id(username, avatar_url),
-        last_message:messages!chat_room_id(content, created_at)
-      `)
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-      .eq('is_active', true)
-      .order('last_message_at', { ascending: false });
+    await ensureDbInitialized();
 
-    return { data, error };
+    // SQLite doesn't support OR in our helper, so we'll need to do two queries
+    const { data: buyerRooms } = await dbHelpers.select(
+      TABLES.CHAT_ROOMS, '*', { buyer_id: userId, is_active: 1 }
+    );
+
+    const { data: sellerRooms } = await dbHelpers.select(
+      TABLES.CHAT_ROOMS, '*', { seller_id: userId, is_active: 1 }
+    );
+
+    const allRooms = [...(buyerRooms || []), ...(sellerRooms || [])];
+
+    // Get related data for each room
+    for (let room of allRooms) {
+      const { data: product } = await dbHelpers.select(
+        TABLES.PRODUCTS,
+        'title, price_local, currency_code, images',
+        { id: room.product_id }
+      );
+
+      const { data: buyer } = await dbHelpers.select(
+        TABLES.USERS,
+        'username, avatar_url',
+        { id: room.buyer_id }
+      );
+
+      const { data: seller } = await dbHelpers.select(
+        TABLES.USERS,
+        'username, avatar_url',
+        { id: room.seller_id }
+      );
+
+      const { data: lastMessage } = await dbHelpers.select(
+        TABLES.MESSAGES,
+        'content, created_at',
+        { chat_room_id: room.id },
+        { orderBy: { column: 'created_at', ascending: false }, limit: 1 }
+      );
+
+      room.product = product?.[0] || null;
+      room.buyer = buyer?.[0] || null;
+      room.seller = seller?.[0] || null;
+      room.last_message = lastMessage?.[0] || null;
+    }
+
+    // Sort by last_message_at
+    allRooms.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
+
+    return { data: allRooms, error: null };
   },
 
   async getChatRoom(productId, buyerId, sellerId) {
-    const { data, error } = await supabase
-      .from(TABLES.CHATS)
-      .select('*')
-      .eq('product_id', productId)
-      .eq('buyer_id', buyerId)
-      .eq('seller_id', sellerId)
-      .single();
+    await ensureDbInitialized();
 
-    return { data, error };
+    const { data, error } = await dbHelpers.select(
+      TABLES.CHAT_ROOMS,
+      '*',
+      {
+        product_id: productId,
+        buyer_id: buyerId,
+        seller_id: sellerId
+      }
+    );
+
+    return { data: data?.[0] || null, error };
   },
 
   async createChatRoom(productId, buyerId, sellerId) {
-    const { data, error } = await supabase
-      .from(TABLES.CHATS)
-      .insert({
-        product_id: productId,
-        buyer_id: buyerId,
-        seller_id: sellerId,
-      })
-      .select()
-      .single();
+    await ensureDbInitialized();
 
-    return { data, error };
+    return await dbHelpers.insert(TABLES.CHAT_ROOMS, {
+      product_id: productId,
+      buyer_id: buyerId,
+      seller_id: sellerId,
+    });
   },
 
   async getMessages(chatRoomId, limit = 50) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+
+    const { data: messages, error } = await dbHelpers.select(
       TABLES.MESSAGES,
-      `
-        *,
-        sender:users!sender_id(username, avatar_url)
-      `,
-      { chat_room_id: chatRoomId, is_deleted: false },
+      '*',
+      { chat_room_id: chatRoomId, is_deleted: 0 },
       {
         orderBy: { column: 'created_at', ascending: false },
         limit
       }
     );
+
+    if (error || !messages) return { data: null, error };
+
+    // Get sender info for each message
+    for (let message of messages) {
+      const { data: sender } = await dbHelpers.select(
+        TABLES.USERS,
+        'username, avatar_url',
+        { id: message.sender_id }
+      );
+
+      message.sender = sender?.[0] || null;
+    }
+
+    return { data: messages, error: null };
   },
 
   async sendMessage(messageData) {
-    const { data, error } = await supabase
-      .from(TABLES.MESSAGES)
-      .insert(messageData)
-      .select()
-      .single();
+    await ensureDbInitialized();
+
+    const result = await dbHelpers.insert(TABLES.MESSAGES, messageData);
 
     // Update chat room last message time
-    if (data) {
-      await supabase
-        .from(TABLES.CHATS)
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', messageData.chat_room_id);
+    if (result.data) {
+      await dbHelpers.update(
+        TABLES.CHAT_ROOMS,
+        { last_message_at: new Date().toISOString() },
+        { id: messageData.chat_room_id }
+      );
     }
 
-    return { data, error };
+    return result;
   },
 
   async markMessagesAsRead(chatRoomId, userId) {
-    return dbHelpers.update(
+    await ensureDbInitialized();
+
+    // Get unread messages from other users
+    const { data: messages } = await dbHelpers.select(
       TABLES.MESSAGES,
-      { is_read: true, read_at: new Date().toISOString() },
+      'id',
       {
         chat_room_id: chatRoomId,
-        is_read: false,
-        sender_id: { operator: 'neq', value: userId }
+        is_read: 0
       }
     );
+
+    // Filter out messages from the current user
+    const messagesToUpdate = messages?.filter(msg => msg.sender_id !== userId) || [];
+
+    // Update each message
+    for (let message of messagesToUpdate) {
+      await dbHelpers.update(
+        TABLES.MESSAGES,
+        { is_read: 1, read_at: new Date().toISOString() },
+        { id: message.id }
+      );
+    }
+
+    return { data: { updated: messagesToUpdate.length }, error: null };
   },
 };
 
 // Review service
 export const reviewService = {
   async createReview(reviewData) {
-    return dbHelpers.insert(TABLES.REVIEWS, reviewData);
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.REVIEWS, reviewData);
   },
 
   async getUserReviews(userId, type = 'received') {
+    await ensureDbInitialized();
+
     const filterField = type === 'received' ? 'reviewed_user_id' : 'reviewer_id';
 
-    return dbHelpers.select(
+    const { data: reviews, error } = await dbHelpers.select(
       TABLES.REVIEWS,
-      `
-        *,
-        reviewer:users!reviewer_id(username, avatar_url),
-        product:products!product_id(title, images)
-      `,
-      { [filterField]: userId, is_visible: true },
+      '*',
+      { [filterField]: userId, is_visible: 1 },
       { orderBy: { column: 'created_at', ascending: false } }
     );
+
+    if (error || !reviews) return { data: null, error };
+
+    // Get reviewer and product info
+    for (let review of reviews) {
+      const { data: reviewer } = await dbHelpers.select(
+        TABLES.USERS,
+        'username, avatar_url',
+        { id: review.reviewer_id }
+      );
+
+      const { data: product } = await dbHelpers.select(
+        TABLES.PRODUCTS,
+        'title, images',
+        { id: review.product_id }
+      );
+
+      review.reviewer = reviewer?.[0] || null;
+      review.product = product?.[0] || null;
+    }
+
+    return { data: reviews, error: null };
   },
 
   async getProductReviews(productId) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+
+    const { data: reviews, error } = await dbHelpers.select(
       TABLES.REVIEWS,
-      `
-        *,
-        reviewer:users!reviewer_id(username, avatar_url)
-      `,
-      { product_id: productId, is_visible: true },
+      '*',
+      { product_id: productId, is_visible: 1 },
       { orderBy: { column: 'created_at', ascending: false } }
     );
+
+    if (error || !reviews) return { data: null, error };
+
+    // Get reviewer info
+    for (let review of reviews) {
+      const { data: reviewer } = await dbHelpers.select(
+        TABLES.USERS,
+        'username, avatar_url',
+        { id: review.reviewer_id }
+      );
+
+      review.reviewer = reviewer?.[0] || null;
+    }
+
+    return { data: reviews, error: null };
   },
 };
 
 // Earnings service
 export const earningsService = {
   async getUserEarnings(userId) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+    return await dbHelpers.select(
       TABLES.EARNINGS,
       '*',
       { user_id: userId },
@@ -421,21 +603,24 @@ export const earningsService = {
   },
 
   async createEarning(earningData) {
-    return dbHelpers.insert(TABLES.EARNINGS, earningData);
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.EARNINGS, earningData);
   },
 
   async getTotalEarnings(userId) {
-    const { data, error } = await supabase
-      .from(TABLES.EARNINGS)
-      .select('amount_wld, amount_local, currency_code, earning_type')
-      .eq('user_id', userId)
-      .eq('status', 'confirmed');
+    await ensureDbInitialized();
 
-    if (error) return { data: null, error };
+    const { data: earnings, error } = await dbHelpers.select(
+      TABLES.EARNINGS,
+      'amount_wld, amount_local, currency_code, earning_type',
+      { user_id: userId, status: 'confirmed' }
+    );
 
-    const totals = data.reduce((acc, earning) => {
-      acc.total_wld += parseFloat(earning.amount_wld);
-      acc.total_local += parseFloat(earning.amount_local);
+    if (error || !earnings) return { data: null, error };
+
+    const totals = earnings.reduce((acc, earning) => {
+      acc.total_wld += parseFloat(earning.amount_wld || 0);
+      acc.total_local += parseFloat(earning.amount_local || 0);
 
       if (!acc.by_type[earning.earning_type]) {
         acc.by_type[earning.earning_type] = {
@@ -445,8 +630,8 @@ export const earningsService = {
         };
       }
 
-      acc.by_type[earning.earning_type].wld += parseFloat(earning.amount_wld);
-      acc.by_type[earning.earning_type].local += parseFloat(earning.amount_local);
+      acc.by_type[earning.earning_type].wld += parseFloat(earning.amount_wld || 0);
+      acc.by_type[earning.earning_type].local += parseFloat(earning.amount_local || 0);
       acc.by_type[earning.earning_type].count++;
 
       return acc;
@@ -463,7 +648,8 @@ export const earningsService = {
 // Notification service
 export const notificationService = {
   async getUserNotifications(userId, limit = 20) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+    return await dbHelpers.select(
       TABLES.NOTIFICATIONS,
       '*',
       { user_id: userId },
@@ -475,22 +661,25 @@ export const notificationService = {
   },
 
   async createNotification(notificationData) {
-    return dbHelpers.insert(TABLES.NOTIFICATIONS, notificationData);
+    await ensureDbInitialized();
+    return await dbHelpers.insert(TABLES.NOTIFICATIONS, notificationData);
   },
 
   async markAsRead(notificationId) {
-    return dbHelpers.update(
+    await ensureDbInitialized();
+    return await dbHelpers.update(
       TABLES.NOTIFICATIONS,
-      { is_read: true, read_at: new Date().toISOString() },
+      { is_read: 1, read_at: new Date().toISOString() },
       { id: notificationId }
     );
   },
 
   async markAllAsRead(userId) {
-    return dbHelpers.update(
+    await ensureDbInitialized();
+    return await dbHelpers.update(
       TABLES.NOTIFICATIONS,
-      { is_read: true, read_at: new Date().toISOString() },
-      { user_id: userId, is_read: false }
+      { is_read: 1, read_at: new Date().toISOString() },
+      { user_id: userId, is_read: 0 }
     );
   },
 };
@@ -498,50 +687,58 @@ export const notificationService = {
 // Address service
 export const addressService = {
   async getUserAddresses(userId) {
-    return dbHelpers.select(
+    await ensureDbInitialized();
+    return await dbHelpers.select(
       TABLES.ADDRESSES,
       '*',
-      { user_id: userId, is_active: true },
+      { user_id: userId, is_active: 1 },
       { orderBy: { column: 'is_default', ascending: false } }
     );
   },
 
   async createAddress(addressData) {
+    await ensureDbInitialized();
+
     // If this is the default address, unset others
     if (addressData.is_default) {
-      await supabase
-        .from(TABLES.ADDRESSES)
-        .update({ is_default: false })
-        .eq('user_id', addressData.user_id);
+      await dbHelpers.update(
+        TABLES.ADDRESSES,
+        { is_default: 0 },
+        { user_id: addressData.user_id }
+      );
     }
 
-    return dbHelpers.insert(TABLES.ADDRESSES, addressData);
+    return await dbHelpers.insert(TABLES.ADDRESSES, addressData);
   },
 
   async updateAddress(addressId, updates) {
+    await ensureDbInitialized();
+
     // If setting as default, unset others
     if (updates.is_default) {
-      const { data: address } = await supabase
-        .from(TABLES.ADDRESSES)
-        .select('user_id')
-        .eq('id', addressId)
-        .single();
+      const { data } = await dbHelpers.select(
+        TABLES.ADDRESSES,
+        'user_id',
+        { id: addressId }
+      );
 
-      if (address) {
-        await supabase
-          .from(TABLES.ADDRESSES)
-          .update({ is_default: false })
-          .eq('user_id', address.user_id);
+      if (data?.[0]) {
+        await dbHelpers.update(
+          TABLES.ADDRESSES,
+          { is_default: 0 },
+          { user_id: data[0].user_id }
+        );
       }
     }
 
-    return dbHelpers.update(TABLES.ADDRESSES, updates, { id: addressId });
+    return await dbHelpers.update(TABLES.ADDRESSES, updates, { id: addressId });
   },
 
   async deleteAddress(addressId) {
-    return dbHelpers.update(
+    await ensureDbInitialized();
+    return await dbHelpers.update(
       TABLES.ADDRESSES,
-      { is_active: false },
+      { is_active: 0 },
       { id: addressId }
     );
   },

@@ -1,51 +1,63 @@
-import { supabase, TABLES, dbHelpers } from '../lib/supabase';
+import { initDatabase, getDatabase, TABLES, dbHelpers } from '../lib/database.js';
+
+// Initialize database on service import
+let dbInitialized = false;
+
+const ensureDbInitialized = async () => {
+  if (!dbInitialized) {
+    await initDatabase();
+    dbInitialized = true;
+  }
+};
 
 // Admin Dashboard Service
 export const adminService = {
   // Dashboard Statistics
   async getDashboardStats() {
+    await ensureDbInitialized();
+
     try {
-      const [
-        usersResult,
-        productsResult,
-        ordersResult,
-        earningsResult
-      ] = await Promise.all([
-        supabase.from(TABLES.USERS).select('id, created_at').eq('is_active', true),
-        supabase.from(TABLES.PRODUCTS).select('id, created_at').eq('status', 'active'),
-        supabase.from(TABLES.ORDERS).select('total_amount, currency_code, order_date'),
-        supabase.from(TABLES.EARNINGS).select('amount_wld').eq('status', 'confirmed')
+      const [usersResult, productsResult, ordersResult, earningsResult] = await Promise.all([
+        dbHelpers.select(TABLES.USERS, 'id, created_at', { is_active: 1 }),
+        dbHelpers.select(TABLES.PRODUCTS, 'id, created_at', { status: 'active' }),
+        dbHelpers.select(TABLES.ORDERS, 'total_amount, currency_code, order_date'),
+        dbHelpers.select(TABLES.EARNINGS, 'amount_wld', { status: 'confirmed' })
       ]);
 
+      const users = usersResult.data || [];
+      const products = productsResult.data || [];
+      const orders = ordersResult.data || [];
+      const earnings = earningsResult.data || [];
+
       // Calculate total sales in THB (assuming average rate)
-      const totalSales = ordersResult.data?.reduce((sum, order) => {
+      const totalSales = orders.reduce((sum, order) => {
         return sum + parseFloat(order.total_amount || 0);
-      }, 0) || 0;
+      }, 0);
 
       // Calculate total WLD pool
-      const totalWLD = earningsResult.data?.reduce((sum, earning) => {
+      const totalWLD = earnings.reduce((sum, earning) => {
         return sum + parseFloat(earning.amount_wld || 0);
-      }, 0) || 0;
+      }, 0);
 
       // Get monthly growth
       const currentMonth = new Date().getMonth();
       const lastMonth = currentMonth - 1;
 
-      const thisMonthUsers = usersResult.data?.filter(user =>
+      const thisMonthUsers = users.filter(user =>
         new Date(user.created_at).getMonth() === currentMonth
-      ).length || 0;
+      ).length;
 
-      const lastMonthUsers = usersResult.data?.filter(user =>
+      const lastMonthUsers = users.filter(user =>
         new Date(user.created_at).getMonth() === lastMonth
-      ).length || 0;
+      ).length;
 
       const userGrowth = lastMonthUsers > 0 ?
         ((thisMonthUsers - lastMonthUsers) / lastMonthUsers * 100).toFixed(1) : 0;
 
       return {
         data: {
-          totalUsers: usersResult.data?.length || 0,
-          totalProducts: productsResult.data?.length || 0,
+          totalUsers: users.length,
+          totalProducts: products.length,
           totalSales: totalSales,
           totalWLD: totalWLD,
           userGrowth: parseFloat(userGrowth),
@@ -61,32 +73,60 @@ export const adminService = {
 
   // User Management
   async getAllUsers(page = 1, limit = 20, search = '') {
+    await ensureDbInitialized();
+
     try {
-      let query = supabase
-        .from(TABLES.USERS)
-        .select(`
-          *,
-          referrals_count:referrals!referrer_id(count),
-          total_orders:orders!buyer_id(count)
-        `)
-        .eq('is_active', true);
+      let filters = { is_active: 1 };
+
+      // Basic search implementation for SQLite
+      const { data: allUsers, error } = await dbHelpers.select(
+        TABLES.USERS,
+        '*',
+        filters
+      );
+
+      if (error) return { data: [], error };
+
+      let filteredUsers = allUsers;
 
       if (search) {
-        query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%,full_name.ilike.%${search}%`);
+        const searchLower = search.toLowerCase();
+        filteredUsers = allUsers.filter(user =>
+          (user.username && user.username.toLowerCase().includes(searchLower)) ||
+          (user.email && user.email.toLowerCase().includes(searchLower)) ||
+          (user.full_name && user.full_name.toLowerCase().includes(searchLower))
+        );
       }
 
-      query = query
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+      // Sort by created_at desc
+      filteredUsers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      const { data, error, count } = await query;
+      // Pagination
+      const totalCount = filteredUsers.length;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+      // Get referral counts for each user
+      for (let user of paginatedUsers) {
+        const { data: referrals } = await dbHelpers.select(
+          TABLES.REFERRALS, '*', { referrer_id: user.id }
+        );
+
+        const { data: orders } = await dbHelpers.select(
+          TABLES.ORDERS, '*', { buyer_id: user.id }
+        );
+
+        user.referrals_count = referrals?.length || 0;
+        user.total_orders = orders?.length || 0;
+      }
 
       return {
-        data: data || [],
-        error,
-        totalCount: count,
+        data: paginatedUsers,
+        error: null,
+        totalCount,
         currentPage: page,
-        totalPages: Math.ceil(count / limit)
+        totalPages: Math.ceil(totalCount / limit)
       };
     } catch (error) {
       return { data: [], error };
@@ -94,12 +134,14 @@ export const adminService = {
   },
 
   async updateUserStatus(userId, updates) {
-    return dbHelpers.update(TABLES.USERS, updates, { id: userId });
+    await ensureDbInitialized();
+    return await dbHelpers.update(TABLES.USERS, updates, { id: userId });
   },
 
   async banUser(userId, reason) {
-    return dbHelpers.update(TABLES.USERS, {
-      is_suspended: true,
+    await ensureDbInitialized();
+    return await dbHelpers.update(TABLES.USERS, {
+      is_suspended: 1,
       admin_notes: reason,
       updated_at: new Date().toISOString()
     }, { id: userId });
@@ -107,32 +149,57 @@ export const adminService = {
 
   // Product Management
   async getAllProducts(status = 'all', page = 1, limit = 20) {
+    await ensureDbInitialized();
+
     try {
-      let query = supabase
-        .from(TABLES.PRODUCTS)
-        .select(`
-          *,
-          seller:users!seller_id(username, email, trust_score),
-          category:categories!category_id(name, name_th),
-          order_count:order_items(count)
-        `);
+      let filters = {};
 
       if (status !== 'all') {
-        query = query.eq('status', status);
+        filters.status = status;
       }
 
-      query = query
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+      const { data: products, error } = await dbHelpers.select(
+        TABLES.PRODUCTS,
+        '*',
+        filters
+      );
 
-      const { data, error, count } = await query;
+      if (error) return { data: [], error };
+
+      // Sort by created_at desc
+      products.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      // Pagination
+      const totalCount = products.length;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedProducts = products.slice(startIndex, endIndex);
+
+      // Get seller, category, and order count info
+      for (let product of paginatedProducts) {
+        const { data: seller } = await dbHelpers.select(
+          TABLES.USERS, 'username, email, trust_score', { id: product.seller_id }
+        );
+
+        const { data: category } = await dbHelpers.select(
+          TABLES.CATEGORIES, 'name, name_th', { id: product.category_id }
+        );
+
+        const { data: orderItems } = await dbHelpers.select(
+          TABLES.ORDER_ITEMS, '*', { product_id: product.id }
+        );
+
+        product.seller = seller?.[0] || null;
+        product.category = category?.[0] || null;
+        product.order_count = orderItems?.length || 0;
+      }
 
       return {
-        data: data || [],
-        error,
-        totalCount: count,
+        data: paginatedProducts,
+        error: null,
+        totalCount,
         currentPage: page,
-        totalPages: Math.ceil(count / limit)
+        totalPages: Math.ceil(totalCount / limit)
       };
     } catch (error) {
       return { data: [], error };
@@ -140,6 +207,8 @@ export const adminService = {
   },
 
   async updateProductStatus(productId, status, reason = '') {
+    await ensureDbInitialized();
+
     const updates = {
       status,
       updated_at: new Date().toISOString()
@@ -149,50 +218,93 @@ export const adminService = {
       updates.admin_notes = reason;
     }
 
-    return dbHelpers.update(TABLES.PRODUCTS, updates, { id: productId });
+    return await dbHelpers.update(TABLES.PRODUCTS, updates, { id: productId });
   },
 
   async getReportedProducts() {
-    // This would typically come from a reports table
-    // For now, return products that might need attention
-    return dbHelpers.select(TABLES.PRODUCTS, `
-      *,
-      seller:users!seller_id(username, trust_score),
-      reports_count
-    `, { status: 'reported' });
+    await ensureDbInitialized();
+
+    const { data: products, error } = await dbHelpers.select(
+      TABLES.PRODUCTS, '*', { status: 'reported' }
+    );
+
+    if (error || !products) return { data: [], error };
+
+    // Get seller info
+    for (let product of products) {
+      const { data: seller } = await dbHelpers.select(
+        TABLES.USERS, 'username, trust_score', { id: product.seller_id }
+      );
+
+      product.seller = seller?.[0] || null;
+      product.reports_count = 1; // Placeholder
+    }
+
+    return { data: products, error: null };
   },
 
   // Order Management
   async getAllOrders(page = 1, limit = 20, status = 'all') {
+    await ensureDbInitialized();
+
     try {
-      let query = supabase
-        .from(TABLES.ORDERS)
-        .select(`
-          *,
-          buyer:users!buyer_id(username, email),
-          seller:users!seller_id(username, email),
-          order_items:order_items(
-            *,
-            product:products!product_id(title, images)
-          )
-        `);
+      let filters = {};
 
       if (status !== 'all') {
-        query = query.eq('status', status);
+        filters.status = status;
       }
 
-      query = query
-        .order('order_date', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+      const { data: orders, error } = await dbHelpers.select(
+        TABLES.ORDERS,
+        '*',
+        filters
+      );
 
-      const { data, error, count } = await query;
+      if (error) return { data: [], error };
+
+      // Sort by order_date desc
+      orders.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+
+      // Pagination
+      const totalCount = orders.length;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedOrders = orders.slice(startIndex, endIndex);
+
+      // Get buyer, seller, and order items info
+      for (let order of paginatedOrders) {
+        const { data: buyer } = await dbHelpers.select(
+          TABLES.USERS, 'username, email', { id: order.buyer_id }
+        );
+
+        const { data: seller } = await dbHelpers.select(
+          TABLES.USERS, 'username, email', { id: order.seller_id }
+        );
+
+        const { data: orderItems } = await dbHelpers.select(
+          TABLES.ORDER_ITEMS, '*', { order_id: order.id }
+        );
+
+        // Get product info for each order item
+        for (let item of orderItems || []) {
+          const { data: product } = await dbHelpers.select(
+            TABLES.PRODUCTS, 'title, images', { id: item.product_id }
+          );
+
+          item.product = product?.[0] || null;
+        }
+
+        order.buyer = buyer?.[0] || null;
+        order.seller = seller?.[0] || null;
+        order.order_items = orderItems || [];
+      }
 
       return {
-        data: data || [],
-        error,
-        totalCount: count,
+        data: paginatedOrders,
+        error: null,
+        totalCount,
         currentPage: page,
-        totalPages: Math.ceil(count / limit)
+        totalPages: Math.ceil(totalCount / limit)
       };
     } catch (error) {
       return { data: [], error };
@@ -200,6 +312,8 @@ export const adminService = {
   },
 
   async updateOrderStatus(orderId, status) {
+    await ensureDbInitialized();
+
     const updates = {
       status,
       updated_at: new Date().toISOString()
@@ -222,19 +336,22 @@ export const adminService = {
         break;
     }
 
-    return dbHelpers.update(TABLES.ORDERS, updates, { id: orderId });
+    return await dbHelpers.update(TABLES.ORDERS, updates, { id: orderId });
   },
 
   // Earnings and Referral Management
   async getEarningsOverview() {
+    await ensureDbInitialized();
+
     try {
-      const { data, error } = await supabase
-        .from(TABLES.EARNINGS)
-        .select('earning_type, amount_wld, amount_local, currency_code, status, created_at');
+      const { data: earnings, error } = await dbHelpers.select(
+        TABLES.EARNINGS,
+        'earning_type, amount_wld, amount_local, currency_code, status, created_at'
+      );
 
-      if (error) return { data: null, error };
+      if (error || !earnings) return { data: null, error };
 
-      const overview = data.reduce((acc, earning) => {
+      const overview = earnings.reduce((acc, earning) => {
         const type = earning.earning_type;
 
         if (!acc[type]) {
@@ -261,11 +378,11 @@ export const adminService = {
       }, {});
 
       // Calculate community pool
-      const totalCommunityFees = data
+      const totalCommunityFees = earnings
         .filter(e => e.earning_type === 'community_share')
         .reduce((sum, e) => sum + parseFloat(e.amount_wld), 0);
 
-      const totalPaidCommissions = data
+      const totalPaidCommissions = earnings
         .filter(e => e.earning_type === 'referral_commission' && e.status === 'confirmed')
         .reduce((sum, e) => sum + parseFloat(e.amount_wld), 0);
 
@@ -286,17 +403,38 @@ export const adminService = {
   },
 
   async getPendingEarnings() {
-    return dbHelpers.select(TABLES.EARNINGS, `
-      *,
-      user:users!user_id(username, email),
-      source_order:orders!source_order_id(order_number, total_amount)
-    `, { status: 'pending' }, {
-      orderBy: { column: 'created_at', ascending: false }
-    });
+    await ensureDbInitialized();
+
+    const { data: earnings, error } = await dbHelpers.select(
+      TABLES.EARNINGS,
+      '*',
+      { status: 'pending' },
+      { orderBy: { column: 'created_at', ascending: false } }
+    );
+
+    if (error || !earnings) return { data: [], error };
+
+    // Get user and order info
+    for (let earning of earnings) {
+      const { data: user } = await dbHelpers.select(
+        TABLES.USERS, 'username, email', { id: earning.user_id }
+      );
+
+      const { data: order } = await dbHelpers.select(
+        TABLES.ORDERS, 'order_number, total_amount', { id: earning.source_order_id }
+      );
+
+      earning.user = user?.[0] || null;
+      earning.source_order = order?.[0] || null;
+    }
+
+    return { data: earnings, error: null };
   },
 
   async approveEarning(earningId) {
-    return dbHelpers.update(TABLES.EARNINGS, {
+    await ensureDbInitialized();
+
+    return await dbHelpers.update(TABLES.EARNINGS, {
       status: 'confirmed',
       paid_at: new Date().toISOString()
     }, { id: earningId });
@@ -304,22 +442,29 @@ export const adminService = {
 
   // Analytics and Reporting
   async getSalesAnalytics(period = '6months') {
+    await ensureDbInitialized();
+
     try {
       const months = period === '6months' ? 6 : 12;
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - months);
 
-      const { data, error } = await supabase
-        .from(TABLES.ORDERS)
-        .select('total_amount, currency_code, order_date, status')
-        .gte('order_date', startDate.toISOString())
-        .eq('status', 'completed');
+      const { data: orders, error } = await dbHelpers.select(
+        TABLES.ORDERS,
+        'total_amount, currency_code, order_date, status',
+        { status: 'completed' }
+      );
 
-      if (error) return { data: null, error };
+      if (error || !orders) return { data: null, error };
+
+      // Filter by date
+      const filteredOrders = orders.filter(order =>
+        new Date(order.order_date) >= startDate
+      );
 
       // Group by month
       const monthlyData = {};
-      data.forEach(order => {
+      filteredOrders.forEach(order => {
         const date = new Date(order.order_date);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
@@ -344,21 +489,28 @@ export const adminService = {
   },
 
   async getUserGrowthAnalytics(period = '6months') {
+    await ensureDbInitialized();
+
     try {
       const months = period === '6months' ? 6 : 12;
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - months);
 
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .select('created_at')
-        .gte('created_at', startDate.toISOString());
+      const { data: users, error } = await dbHelpers.select(
+        TABLES.USERS,
+        'created_at'
+      );
 
-      if (error) return { data: null, error };
+      if (error || !users) return { data: null, error };
+
+      // Filter by date
+      const filteredUsers = users.filter(user =>
+        new Date(user.created_at) >= startDate
+      );
 
       // Group by month
       const monthlyData = {};
-      data.forEach(user => {
+      filteredUsers.forEach(user => {
         const date = new Date(user.created_at);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
@@ -381,27 +533,33 @@ export const adminService = {
   },
 
   async getCategoryStats() {
+    await ensureDbInitialized();
+
     try {
-      const { data, error } = await supabase
-        .from(TABLES.PRODUCTS)
-        .select(`
-          category_id,
-          category:categories!category_id(name, name_th)
-        `)
-        .eq('status', 'active');
+      const { data: products, error } = await dbHelpers.select(
+        TABLES.PRODUCTS,
+        'category_id',
+        { status: 'active' }
+      );
 
-      if (error) return { data: null, error };
+      if (error || !products) return { data: null, error };
 
-      const categoryStats = data.reduce((acc, product) => {
-        const categoryName = product.category?.name_th || product.category?.name || 'ไม่ระบุ';
+      const categoryStats = {};
 
-        if (!acc[categoryName]) {
-          acc[categoryName] = 0;
+      // Get category info for each product
+      for (let product of products) {
+        const { data: category } = await dbHelpers.select(
+          TABLES.CATEGORIES, 'name, name_th', { id: product.category_id }
+        );
+
+        const categoryName = category?.[0]?.name_th || category?.[0]?.name || 'ไม่ระบุ';
+
+        if (!categoryStats[categoryName]) {
+          categoryStats[categoryName] = 0;
         }
 
-        acc[categoryName]++;
-        return acc;
-      }, {});
+        categoryStats[categoryName]++;
+      }
 
       // Sort by count
       const sortedStats = Object.entries(categoryStats)
@@ -416,32 +574,57 @@ export const adminService = {
 
   // Review Management
   async getAllReviews(page = 1, limit = 20, status = 'all') {
+    await ensureDbInitialized();
+
     try {
-      let query = supabase
-        .from(TABLES.REVIEWS)
-        .select(`
-          *,
-          reviewer:users!reviewer_id(username, avatar_url),
-          reviewed_user:users!reviewed_user_id(username),
-          product:products!product_id(title, images)
-        `);
+      let filters = {};
 
       if (status !== 'all') {
-        query = query.eq('is_visible', status === 'visible');
+        filters.is_visible = status === 'visible' ? 1 : 0;
       }
 
-      query = query
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+      const { data: reviews, error } = await dbHelpers.select(
+        TABLES.REVIEWS,
+        '*',
+        filters
+      );
 
-      const { data, error, count } = await query;
+      if (error) return { data: [], error };
+
+      // Sort by created_at desc
+      reviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      // Pagination
+      const totalCount = reviews.length;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedReviews = reviews.slice(startIndex, endIndex);
+
+      // Get reviewer, reviewed_user, and product info
+      for (let review of paginatedReviews) {
+        const { data: reviewer } = await dbHelpers.select(
+          TABLES.USERS, 'username, avatar_url', { id: review.reviewer_id }
+        );
+
+        const { data: reviewedUser } = await dbHelpers.select(
+          TABLES.USERS, 'username', { id: review.reviewed_user_id }
+        );
+
+        const { data: product } = await dbHelpers.select(
+          TABLES.PRODUCTS, 'title, images', { id: review.product_id }
+        );
+
+        review.reviewer = reviewer?.[0] || null;
+        review.reviewed_user = reviewedUser?.[0] || null;
+        review.product = product?.[0] || null;
+      }
 
       return {
-        data: data || [],
-        error,
-        totalCount: count,
+        data: paginatedReviews,
+        error: null,
+        totalCount,
         currentPage: page,
-        totalPages: Math.ceil(count / limit)
+        totalPages: Math.ceil(totalCount / limit)
       };
     } catch (error) {
       return { data: [], error };
@@ -449,8 +632,10 @@ export const adminService = {
   },
 
   async updateReviewStatus(reviewId, isVisible) {
-    return dbHelpers.update(TABLES.REVIEWS, {
-      is_visible: isVisible,
+    await ensureDbInitialized();
+
+    return await dbHelpers.update(TABLES.REVIEWS, {
+      is_visible: isVisible ? 1 : 0,
       updated_at: new Date().toISOString()
     }, { id: reviewId });
   },

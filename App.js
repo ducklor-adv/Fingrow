@@ -18,6 +18,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { initDatabase, productService, userService, categoryService } from './services/databaseService';
 
 // ===== Constants & Config =====
 const COINGECKO_ID = "worldcoin-wld";
@@ -73,19 +74,16 @@ const formatNumber = (number, locale) =>
 
 const toWLD = (localPrice, rate) => (rate ? localPrice / rate : 0);
 
-// ===== Mock Data =====
-const seedProducts = [
-  { id: "p1", title: "เก้าอี้ไม้โอ๊ค", priceLocal: 1200, seller: "@ananya", pct: 3, condition: "ดีมาก", image: "https://via.placeholder.com/150" },
-  { id: "p2", title: "โต๊ะทำงาน", priceLocal: 4500, seller: "@bank", pct: 5, condition: "ดี", image: "https://via.placeholder.com/150" },
-  { id: "p3", title: "โน้ตบุ๊กมือสอง", priceLocal: 14500, seller: "@mild", pct: 4, condition: "ดี", image: "https://via.placeholder.com/150" },
-  { id: "p4", title: "ไมโครเวฟ", priceLocal: 1800, seller: "@pong", pct: 2, condition: "ปานกลาง", image: "https://via.placeholder.com/150" },
-];
+// Database will be initialized when app starts
+let dbInitialized = false;
 
-const initialMyListings = [
-  { id: "m1", title: "พัดลมตั้งโต๊ะ", priceLocal: 900, pct: 2, status: "ออนไลน์", date: "2025-09-05" },
-  { id: "m2", title: "รองเท้ากีฬา", priceLocal: 1800, pct: 3, status: "ขายแล้ว", date: "2025-08-29" },
-  { id: "m3", title: "หูฟังไร้สาย", priceLocal: 1200, pct: 1, status: "ออนไลน์", date: "2025-08-20" },
-];
+const ensureDatabase = async () => {
+  if (!dbInitialized) {
+    await initDatabase();
+    dbInitialized = true;
+    console.log('Database initialized successfully');
+  }
+};
 
 // ===== Reusable Components =====
 const Card = ({ children, style }) => (
@@ -124,34 +122,68 @@ const PercentagePills = ({ selectedPct, onSelect }) => (
 // ===== Marketplace Screen =====
 const MarketplaceScreen = ({ navigation }) => {
   const currency = useCurrency();
-  const [products] = useState(seedProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      await ensureDatabase();
+      const { data, error } = await productService.getProducts();
+      if (error) {
+        console.error('Error loading products:', error);
+        Alert.alert('Error', 'Failed to load products');
+      } else {
+        setProducts(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadProducts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderProduct = ({ item }) => {
-    const wldPrice = toWLD(item.priceLocal, currency.rate);
+    const wldPrice = toWLD(item.price_local, currency.rate);
+    const images = typeof item.images === 'string' ? JSON.parse(item.images) : item.images;
+    const imageUrl = images && images.length > 0 ? images[0] : 'https://via.placeholder.com/150';
 
     return (
       <TouchableOpacity
         style={styles.productCard}
         onPress={() => navigation.navigate('ProductDetail', { product: item })}
       >
-        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <Image source={{ uri: imageUrl }} style={styles.productImage} />
         <View style={styles.productInfo}>
           <Text style={styles.productTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.productCondition}>สภาพ: {item.condition} • {item.seller}</Text>
+          <Text style={styles.productCondition}>สภาพ: {item.condition} • @{item.seller?.username || 'Unknown'}</Text>
           <View style={styles.priceContainer}>
             <View>
               <Text style={styles.currencyLabel}>{currency.code}</Text>
-              <Text style={styles.price}>{formatNumber(item.priceLocal, currency.locale)}</Text>
+              <Text style={styles.price}>{formatNumber(item.price_local, currency.locale)}</Text>
             </View>
             <View style={styles.priceRight}>
               <Text style={styles.wldPrice}>≈ {formatNumber(wldPrice, currency.locale)} WLD</Text>
-              <Text style={styles.communityPct}>ชุมชน {item.pct}%</Text>
+              <Text style={styles.communityPct}>ชุมชน {item.community_percentage}%</Text>
             </View>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centeredCard}>
+          <Text style={styles.screenTitle}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -176,6 +208,8 @@ const MarketplaceScreen = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.productList}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={loadProducts}
       />
     </SafeAreaView>
   );
@@ -185,8 +219,11 @@ const MarketplaceScreen = ({ navigation }) => {
 const ProductDetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
   const currency = useCurrency();
-  const wldPrice = toWLD(product.priceLocal, currency.rate);
-  const commission = wldPrice * (product.pct / 100);
+  const wldPrice = toWLD(product.price_local, currency.rate);
+  const commission = wldPrice * (product.community_percentage / 100);
+
+  const images = typeof product.images === 'string' ? JSON.parse(product.images) : product.images;
+  const imageUrl = images && images.length > 0 ? images[0] : 'https://via.placeholder.com/400';
 
   const handleBuy = () => {
     Alert.alert("เดโม", `Checkout → ${product.title}`, [{ text: "OK" }]);
@@ -204,18 +241,18 @@ const ProductDetailScreen = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Card>
-          <Image source={{ uri: product.image }} style={styles.productDetailImage} />
+          <Image source={{ uri: imageUrl }} style={styles.productDetailImage} />
         </Card>
 
         <View style={styles.detailInfo}>
           <Text style={styles.detailTitle}>{product.title}</Text>
-          <Text style={styles.detailSubtitle}>ผู้ขาย {product.seller} • สภาพ {product.condition}</Text>
+          <Text style={styles.detailSubtitle}>ผู้ขาย @{product.seller?.username || 'Unknown'} • สภาพ {product.condition}</Text>
 
           <Card style={{ marginTop: 16 }}>
             <View style={styles.priceBreakdown}>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>ราคา ({currency.code})</Text>
-                <Text style={styles.priceValue}>{formatNumber(product.priceLocal, currency.locale)}</Text>
+                <Text style={styles.priceValue}>{formatNumber(product.price_local, currency.locale)}</Text>
               </View>
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>≈ ราคา (WLD)</Text>
@@ -224,7 +261,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
               <View style={styles.priceRow}>
                 <Text style={styles.priceLabel}>แบ่งให้ชุมชน</Text>
                 <Text style={styles.communityValue}>
-                  {product.pct}% ≈ {formatNumber(commission, currency.locale)} WLD
+                  {product.community_percentage}% ≈ {formatNumber(commission, currency.locale)} WLD
                 </Text>
               </View>
               <View style={styles.priceRow}>
@@ -252,7 +289,8 @@ const ProductDetailScreen = ({ route, navigation }) => {
 const CreateListingScreen = () => {
   const currency = useCurrency();
   const [showForm, setShowForm] = useState(false);
-  const [myListings, setMyListings] = useState(initialMyListings);
+  const [myListings, setMyListings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -262,6 +300,27 @@ const CreateListingScreen = () => {
     pct: 3,
   });
 
+  useEffect(() => {
+    loadMyListings();
+  }, []);
+
+  const loadMyListings = async () => {
+    try {
+      await ensureDatabase();
+      // Get products for current user (assuming user-user is the main user)
+      const { data, error } = await productService.getUserProducts('user-user');
+      if (error) {
+        console.error('Error loading my listings:', error);
+      } else {
+        setMyListings(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadMyListings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const wldPrice = useMemo(() => toWLD(Number(form.priceLocal || 0), currency.rate), [form.priceLocal, currency.rate]);
   const commission = wldPrice * (form.pct / 100);
 
@@ -269,53 +328,75 @@ const CreateListingScreen = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.title || Number(form.priceLocal) <= 0) {
       Alert.alert("ข้อผิดพลาด", "กรุณากรอกชื่อและราคาสินค้าให้ถูกต้อง");
       return;
     }
 
-    const newItem = {
-      id: `m${Date.now()}`,
-      title: form.title,
-      priceLocal: Number(form.priceLocal),
-      pct: form.pct,
-      status: "ออนไลน์",
-      date: new Date().toISOString().slice(0, 10),
-    };
+    try {
+      await ensureDatabase();
+      const productData = {
+        seller_id: 'user-user',
+        category_id: 'cat-general',
+        title: form.title,
+        description: form.description,
+        condition: form.condition,
+        price_local: Number(form.priceLocal),
+        currency_code: 'THB',
+        location: JSON.stringify({ city: 'Bangkok', district: 'Central' }),
+        images: JSON.stringify(['https://via.placeholder.com/150']),
+        community_percentage: form.pct
+      };
 
-    setMyListings(prev => [newItem, ...prev]);
-    setForm({ ...form, title: "", description: "", priceLocal: "", pct: 3 });
-    setShowForm(false);
-    Alert.alert("สำเร็จ", "เพิ่มรายการขายเรียบร้อย");
+      const { data, error } = await productService.createProduct(productData);
+      if (error) {
+        console.error('Error creating product:', error);
+        Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเพิ่มรายการขาย');
+      } else {
+        setForm({ ...form, title: "", description: "", priceLocal: "", pct: 3 });
+        setShowForm(false);
+        Alert.alert("สำเร็จ", "เพิ่มรายการขายเรียบร้อย");
+        loadMyListings(); // Refresh listings
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      Alert.alert('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการบันทึก');
+    }
   };
 
-  const renderMyListing = ({ item }) => (
-    <Card style={styles.listingCard}>
-      <View style={styles.listingHeader}>
-        <Text style={styles.listingTitle} numberOfLines={1}>{item.title}</Text>
-        <View style={[styles.statusBadge, item.status === "ขายแล้ว" ? styles.soldBadge : styles.onlineBadge]}>
-          <Text style={styles.statusText}>{item.status}</Text>
+  const renderMyListing = ({ item }) => {
+    const statusText = item.status === 'sold' ? 'ขายแล้ว' : (item.status === 'active' ? 'ออนไลน์' : item.status);
+    const isSold = item.status === 'sold';
+    const createdDate = new Date(item.created_at).toISOString().slice(0, 10);
+
+    return (
+      <Card style={styles.listingCard}>
+        <View style={styles.listingHeader}>
+          <Text style={styles.listingTitle} numberOfLines={1}>{item.title}</Text>
+          <View style={[styles.statusBadge, isSold ? styles.soldBadge : styles.onlineBadge]}>
+            <Text style={styles.statusText}>{statusText}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.listingDetails}>
-        <View style={styles.listingRow}>
-          <Text style={styles.listingLabel}>ราคา</Text>
-          <Text style={styles.listingValue}>
-            {formatNumber(item.priceLocal, currency.locale)} {currency.code} • ≈ {formatNumber(toWLD(item.priceLocal, currency.rate), currency.locale)} WLD
-          </Text>
+        <View style={styles.listingDetails}>
+          <View style={styles.listingRow}>
+            <Text style={styles.listingLabel}>ราคา</Text>
+            <Text style={styles.listingValue}>
+              {formatNumber(item.price_local, currency.locale)} {currency.code} • ≈ {formatNumber(toWLD(item.price_local, currency.rate), currency.locale)} WLD
+            </Text>
+          </View>
+          <View style={styles.listingRow}>
+            <Text style={styles.listingLabel}>ชุมชน</Text>
+            <Text style={styles.communityPercentage}>{item.community_percentage}%</Text>
+          </View>
+          <View style={styles.listingRow}>
+            <Text style={styles.listingLabel}>วันที่</Text>
+            <Text style={styles.listingValue}>{createdDate}</Text>
+          </View>
         </View>
-        <View style={styles.listingRow}>
-          <Text style={styles.listingLabel}>ชุมชน</Text>
-          <Text style={styles.communityPercentage}>{item.pct}%</Text>
-        </View>
-        <View style={styles.listingRow}>
-          <Text style={styles.listingLabel}>วันที่</Text>
-          <Text style={styles.listingValue}>{item.date}</Text>
-        </View>
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>

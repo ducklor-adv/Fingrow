@@ -27,6 +27,12 @@
     "web": {
       "bundler": "webpack"
     },
+    "cli": {
+      "appVersionSource": "remote"
+    },
+    "developmentClient": {
+      "silentLaunch": true
+    },
     "plugins": [
       "expo-camera"
     ]
