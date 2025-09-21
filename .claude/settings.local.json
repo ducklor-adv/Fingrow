@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start http://localhost:19002)",
+      "Bash(npx expo start:*)",
+      "Bash(npx expo install:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm install:*)",
+      "Bash(python:*)",
+      "Bash(start:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

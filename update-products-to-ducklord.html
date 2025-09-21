@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Products to Ducklord</title>
+</head>
+<body>
+    <h1>Update Products to Ducklord</h1>
+    <button onclick="updateProducts()" style="padding: 10px 20px; font-size: 16px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Update All Products
+    </button>
+    <pre id="output" style="background: #f5f5f5; padding: 10px; margin-top: 20px; border-radius: 5px;"></pre>
+
+    <script>
+        function updateProducts() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                // Get current data
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                const products = JSON.parse(localStorage.getItem('fingrow_products') || '[]');
+
+                result += '=== FINDING DUCKLORD USER ===\n';
+
+                // Find ducklord user
+                const ducklord = users.find(u =>
+                    u.username.toLowerCase().includes('ducklord') ||
+                    u.full_name?.toLowerCase().includes('ducklord')
+                );
+
+                if (!ducklord) {
+                    result += 'ERROR: Ducklord user not found!\n';
+                    result += 'Available users:\n';
+                    users.forEach(u => {
+                        result += `  - ID: ${u.id}, Username: ${u.username}, Name: ${u.full_name}\n`;
+                    });
+                    output.textContent = result;
+                    return;
+                }
+
+                result += `Found Ducklord: ID ${ducklord.id}, Username: ${ducklord.username}\n\n`;
+
+                result += '=== UPDATING PRODUCTS ===\n';
+                result += `Total products: ${products.length}\n`;
+
+                // Update all products to belong to ducklord
+                let updatedCount = 0;
+                products.forEach((product, index) => {
+                    const oldSellerId = product.seller_id;
+                    product.seller_id = ducklord.id;
+                    if (oldSellerId !== ducklord.id) {
+                        updatedCount++;
+                        result += `Product ${index + 1}: "${product.title}" - Changed seller from ID ${oldSellerId} to ${ducklord.id}\n`;
+                    }
+                });
+
+                // Save updated products
+                localStorage.setItem('fingrow_products', JSON.stringify(products));
+
+                result += `\n=== COMPLETED ===\n`;
+                result += `Updated ${updatedCount} products to belong to ${ducklord.username}\n`;
+                result += `All ${products.length} products now belong to Ducklord (ID: ${ducklord.id})\n`;
+
+                console.log('Products updated successfully:', { ducklordId: ducklord.id, totalProducts: products.length });
+
+            } catch (error) {
+                result += `ERROR: ${error.message}\n`;
+                console.error('Update error:', error);
+            }
+
+            output.textContent = result;
+        }
+    </script>
+</body>
+</html>

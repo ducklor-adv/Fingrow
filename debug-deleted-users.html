@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Deleted Users</title>
+</head>
+<body>
+    <h1>Debug Deleted Users Issue</h1>
+    <button onclick="debugDeletedUsers()">Debug Users Data</button>
+    <button onclick="forceDeleteUsers()">Force Delete User 12 & 13</button>
+    <pre id="output"></pre>
+
+    <script>
+        function debugDeletedUsers() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                // Check all localStorage keys
+                result += '=== LOCALSTORAGE KEYS ===\n';
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.includes('user')) {
+                        result += `${key}: ${localStorage.getItem(key).substring(0, 100)}...\n`;
+                    }
+                }
+
+                result += '\n=== FINGROW_USERS DATA ===\n';
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += `Total users: ${users.length}\n`;
+
+                users.forEach((u, index) => {
+                    result += `${index + 1}. ID: ${u.id} (${typeof u.id}) - ${u.username} - ${u.full_name}\n`;
+                });
+
+                result += '\n=== LOOKING FOR USER ID 12 & 13 ===\n';
+                const user12 = users.find(u => parseInt(u.id) === 12);
+                const user13 = users.find(u => parseInt(u.id) === 13);
+
+                result += `User 12: ${user12 ? `Found: ${user12.username}` : 'Not found'}\n`;
+                result += `User 13: ${user13 ? `Found: ${user13.username}` : 'Not found'}\n`;
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+            console.log(result);
+        }
+
+        function forceDeleteUsers() {
+            try {
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                const originalLength = users.length;
+
+                // Filter out users with ID 12 or 13
+                const filteredUsers = users.filter(u => {
+                    const id = parseInt(u.id);
+                    return id !== 12 && id !== 13;
+                });
+
+                localStorage.setItem('fingrow_users', JSON.stringify(filteredUsers));
+
+                const output = document.getElementById('output');
+                output.textContent = `Force deletion completed!\nOriginal users: ${originalLength}\nRemaining users: ${filteredUsers.length}\nDeleted: ${originalLength - filteredUsers.length} users`;
+
+                console.log('Force deletion completed');
+
+            } catch (error) {
+                console.error('Error in force deletion:', error);
+                document.getElementById('output').textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

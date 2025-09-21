@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cleanup Users - Keep Only Ducklord</title>
+</head>
+<body>
+    <h1>Cleanup Users - Keep Only Ducklord</h1>
+    <button onclick="cleanupUsers()" style="padding: 10px 20px; font-size: 16px; background: #ef4444; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Delete Users 1-13 (Keep Only Ducklord)
+    </button>
+    <pre id="output" style="background: #f5f5f5; padding: 10px; margin-top: 20px; border-radius: 5px;"></pre>
+
+    <script>
+        function cleanupUsers() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                result += '=== BEFORE CLEANUP ===\n';
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += `Total users: ${users.length}\n`;
+
+                result += '\n=== CURRENT USERS ===\n';
+                users.forEach((u, index) => {
+                    result += `${index + 1}. ID: ${u.id} - ${u.username} - ${u.full_name}\n`;
+                });
+
+                // Find Ducklord user
+                const ducklord = users.find(u =>
+                    u.username.toLowerCase().includes('ducklord') ||
+                    u.full_name?.toLowerCase().includes('ducklord')
+                );
+
+                if (!ducklord) {
+                    result += '\n❌ ERROR: Ducklord user not found!\n';
+                    output.textContent = result;
+                    return;
+                }
+
+                result += `\n=== FOUND DUCKLORD ===\n`;
+                result += `ID: ${ducklord.id}, Username: ${ducklord.username}, Name: ${ducklord.full_name}\n`;
+
+                // Keep only Ducklord (remove users with ID 1-13)
+                const filteredUsers = users.filter(u => {
+                    const id = parseInt(u.id);
+                    return id > 13 || u.username.toLowerCase().includes('ducklord');
+                });
+
+                result += `\n=== CLEANUP PROCESS ===\n`;
+                result += `Users to keep: ${filteredUsers.length}\n`;
+                result += `Users to delete: ${users.length - filteredUsers.length}\n`;
+
+                // Save filtered users
+                localStorage.setItem('fingrow_users', JSON.stringify(filteredUsers));
+
+                result += `\n=== AFTER CLEANUP ===\n`;
+                result += `Remaining users:\n`;
+                filteredUsers.forEach((u, index) => {
+                    result += `${index + 1}. ID: ${u.id} - ${u.username} - ${u.full_name}\n`;
+                });
+
+                result += `\n✅ SUCCESS: Cleanup completed!\n`;
+                result += `Kept ${filteredUsers.length} user(s), deleted ${users.length - filteredUsers.length} user(s)\n`;
+                result += `Only Ducklord (ID: ${ducklord.id}) remains in the system.\n`;
+
+                console.log('User cleanup completed successfully');
+
+            } catch (error) {
+                result += `\n❌ ERROR: ${error.message}\n`;
+                console.error('Cleanup error:', error);
+            }
+
+            output.textContent = result;
+        }
+    </script>
+</body>
+</html>

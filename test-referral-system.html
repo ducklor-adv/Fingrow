@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Referral System</title>
+</head>
+<body>
+    <h1>Test Referral System</h1>
+    <button onclick="testReferralSystem()">Test Referral System</button>
+    <button onclick="checkCurrentUsers()">Check Current Users</button>
+    <button onclick="checkReferralData()">Check Referral Data</button>
+    <pre id="output" style="background: #f5f5f5; padding: 10px; margin-top: 20px; border-radius: 5px;"></pre>
+
+    <script>
+        function testReferralSystem() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                result += '=== TESTING REFERRAL SYSTEM ===\n';
+
+                // Check existing users
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += `Current users: ${users.length}\n\n`;
+
+                // Find ducklord
+                const ducklord = users.find(u => u.username.toLowerCase().includes('ducklord'));
+                if (ducklord) {
+                    result += `Found ducklord:\n`;
+                    result += `- ID: ${ducklord.id}\n`;
+                    result += `- Username: ${ducklord.username}\n`;
+                    result += `- Referral Code: ${ducklord.referral_code}\n\n`;
+                } else {
+                    result += 'Ducklord not found!\n';
+                }
+
+                // Check for test users referred by ducklord
+                const testUsers = users.filter(u =>
+                    u.referred_by && parseInt(u.referred_by) === parseInt(ducklord?.id || 0)
+                );
+
+                result += `Users referred by ducklord: ${testUsers.length}\n`;
+                testUsers.forEach((user, index) => {
+                    result += `${index + 1}. ${user.username} (ID: ${user.id}) - Referred by: ${user.referred_by}\n`;
+                });
+
+                // Check referrals table
+                const referrals = JSON.parse(localStorage.getItem('fingrow_referrals') || '[]');
+                result += `\nReferral records: ${referrals.length}\n`;
+
+                if (ducklord) {
+                    const ducklordReferrals = referrals.filter(r => parseInt(r.referrer_id) === parseInt(ducklord.id));
+                    result += `Referrals by ducklord: ${ducklordReferrals.length}\n`;
+                    ducklordReferrals.forEach((ref, index) => {
+                        result += `${index + 1}. Referred ID: ${ref.referred_id}, Status: ${ref.status}\n`;
+                    });
+                }
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+            console.log(result);
+        }
+
+        function checkCurrentUsers() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += '=== CURRENT USERS ===\n';
+                result += `Total: ${users.length}\n\n`;
+
+                users.forEach((user, index) => {
+                    result += `${index + 1}. ${user.username} (ID: ${user.id})\n`;
+                    result += `   - Full Name: ${user.full_name}\n`;
+                    result += `   - Referral Code: ${user.referral_code}\n`;
+                    result += `   - Referred By: ${user.referred_by || 'None'}\n`;
+                    result += `   - Created: ${user.created_at}\n\n`;
+                });
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+        }
+
+        function checkReferralData() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                result += '=== REFERRAL RECORDS ===\n';
+
+                const referrals = JSON.parse(localStorage.getItem('fingrow_referrals') || '[]');
+                result += `Total referral records: ${referrals.length}\n\n`;
+
+                referrals.forEach((ref, index) => {
+                    result += `${index + 1}. Referrer ID: ${ref.referrer_id} -> Referred ID: ${ref.referred_id}\n`;
+                    result += `   - Level: ${ref.level}, Status: ${ref.status}\n`;
+                    result += `   - Commission: ${ref.commission_rate}, Earnings: ฿${ref.total_earnings}\n`;
+                    result += `   - Created: ${ref.created_at}\n\n`;
+                });
+
+                if (referrals.length === 0) {
+                    result += 'No referral records found.\n';
+                    result += 'This means the referral system is not creating records properly.\n';
+                }
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+        }
+    </script>
+</body>
+</html>

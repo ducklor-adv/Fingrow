@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Current User</title>
+</head>
+<body>
+    <h1>Debug Current User</h1>
+    <button onclick="debugCurrentUser()">Debug Current User</button>
+    <pre id="output"></pre>
+
+    <script>
+        function debugCurrentUser() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                result += '=== CURRENT USER CHECK ===\n';
+
+                // Check fingrow_currentUser
+                const currentUserRaw = localStorage.getItem('fingrow_currentUser');
+                result += `fingrow_currentUser (raw): ${currentUserRaw}\n`;
+
+                if (currentUserRaw) {
+                    const currentUser = JSON.parse(currentUserRaw);
+                    result += `Parsed currentUser:\n${JSON.stringify(currentUser, null, 2)}\n`;
+                    result += `User ID: ${currentUser.id} (type: ${typeof currentUser.id})\n`;
+                } else {
+                    result += 'No fingrow_currentUser found\n';
+                }
+
+                result += '\n=== ALL LOCALSTORAGE KEYS ===\n';
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.includes('fingrow')) {
+                        result += `${key}: ${localStorage.getItem(key).substring(0, 100)}...\n`;
+                    }
+                }
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+            console.log(result);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug User Issue</title>
+</head>
+<body>
+    <h1>Debug User Issue</h1>
+    <button onclick="debugUsers()">Debug Users</button>
+    <pre id="output"></pre>
+
+    <script>
+        function debugUsers() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                // Check localStorage data
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += '=== USER DATA CHECK ===\n';
+                result += `Total users: ${users.length}\n`;
+
+                users.forEach((u, index) => {
+                    result += `${index + 1}. ID: ${u.id} (${typeof u.id}) - ${u.username} - Status: ${u.status}\n`;
+                });
+
+                result += '\n=== LOOKING FOR USER ID 13 ===\n';
+                const user13 = users.find(u => parseInt(u.id) === 13);
+                result += user13 ? `Found: ${user13.username}` : 'Not found';
+
+                result += '\n\n=== ID TYPES ===\n';
+                const idTypes = users.map(u => ({ id: u.id, type: typeof u.id }));
+                result += JSON.stringify(idTypes, null, 2);
+
+            } catch (error) {
+                result += `Error: ${error.message}`;
+            }
+
+            output.textContent = result;
+            console.log(result);
+        }
+    </script>
+</body>
+</html>

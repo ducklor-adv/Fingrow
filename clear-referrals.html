@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Referral Data</title>
+</head>
+<body>
+    <h1>Clear Referral Data</h1>
+    <button onclick="clearAllReferrals()">Clear All Referral Records</button>
+    <button onclick="checkData()">Check Current Data</button>
+    <button onclick="fixMissingReferrals()" style="background-color: #f59e0b; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">🔧 Fix Missing Referrals</button>
+    <pre id="output" style="background: #f5f5f5; padding: 10px; margin-top: 20px; border-radius: 5px;"></pre>
+
+    <script>
+        function clearAllReferrals() {
+            const output = document.getElementById('output');
+            try {
+                // Clear referral records
+                const oldReferrals = localStorage.getItem('fingrow_referrals');
+                localStorage.setItem('fingrow_referrals', JSON.stringify([]));
+
+                output.textContent = `Cleared referral records.\nOld data: ${oldReferrals ? JSON.parse(oldReferrals).length : 0} records\nNew data: 0 records`;
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function fixMissingReferrals() {
+            const output = document.getElementById('output');
+            try {
+                const referrals = JSON.parse(localStorage.getItem('fingrow_referrals') || '[]');
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+
+                let result = `=== FIXING MISSING REFERRALS ===\n`;
+                let fixed = 0;
+
+                users.forEach(user => {
+                    if (user.referred_by && user.referred_by !== 'N/A') {
+                        // Check if referral record already exists
+                        const existingRecord = referrals.find(ref =>
+                            ref.referrer_id == user.referred_by && ref.referred_id == user.id
+                        );
+
+                        if (!existingRecord) {
+                            // Create missing referral record
+                            const newRecord = {
+                                id: referrals.length + 1,
+                                referrer_id: user.referred_by,
+                                referred_id: user.id,
+                                level: 1,
+                                commission_rate: 0.02,
+                                total_earnings: 0.00,
+                                status: 'active',
+                                created_at: new Date().toISOString().split('T')[0]
+                            };
+
+                            referrals.push(newRecord);
+                            fixed++;
+
+                            const referrer = users.find(u => u.id == user.referred_by);
+                            result += `Created: ${referrer?.username || user.referred_by} -> ${user.username}\n`;
+                        }
+                    }
+                });
+
+                if (fixed > 0) {
+                    localStorage.setItem('fingrow_referrals', JSON.stringify(referrals));
+                    result += `\n✅ Fixed ${fixed} missing referral records`;
+                } else {
+                    result += `\n✅ No missing referral records found`;
+                }
+
+                output.textContent = result;
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function checkData() {
+            const output = document.getElementById('output');
+            try {
+                const referrals = JSON.parse(localStorage.getItem('fingrow_referrals') || '[]');
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+
+                let result = `=== CURRENT DATA ===\n`;
+                result += `Users: ${users.length}\n`;
+                result += `Referral records: ${referrals.length}\n\n`;
+
+                result += `=== USER LIST ===\n`;
+                users.forEach((user, index) => {
+                    result += `${index + 1}. ID: ${user.id}, Username: ${user.username || 'N/A'}, Referred by: ${user.referred_by || 'N/A'}\n`;
+                });
+
+                result += `\n=== REFERRAL RECORDS ===\n`;
+                referrals.forEach((ref, index) => {
+                    const referrer = users.find(u => u.id == ref.referrer_id);
+                    const referred = users.find(u => u.id == ref.referred_id);
+                    result += `${index + 1}. ${referrer?.username || ref.referrer_id} (ID:${ref.referrer_id}) -> ${referred?.username || ref.referred_id} (ID:${ref.referred_id})\n`;
+                });
+
+                result += `\n=== FOLLOWER COUNT BY USER ===\n`;
+                users.forEach(user => {
+                    const followerCount = referrals.filter(ref => ref.referrer_id == user.id).length;
+                    result += `${user.username || user.id}: ${followerCount} followers\n`;
+                });
+
+                output.textContent = result;
+            } catch (error) {
+                output.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

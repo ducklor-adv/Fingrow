@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Referral Codes</title>
+</head>
+<body>
+    <h1>Update Referral Codes to Username-Based</h1>
+    <button onclick="updateReferralCodes()" style="padding: 10px 20px; font-size: 16px; background: #10b981; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Update All Referral Codes
+    </button>
+    <pre id="output" style="background: #f5f5f5; padding: 10px; margin-top: 20px; border-radius: 5px;"></pre>
+
+    <script>
+        function createSafeReferralCode(username) {
+            // Function to convert Thai/other languages to safe ASCII
+            const thaiToEnglishMap = {
+                'ก': 'k', 'ข': 'kh', 'ค': 'kh', 'ง': 'ng',
+                'จ': 'j', 'ฉ': 'ch', 'ช': 'ch', 'ซ': 's',
+                'ญ': 'y', 'ด': 'd', 'ต': 't', 'ถ': 'th',
+                'ท': 'th', 'ธ': 'th', 'น': 'n', 'บ': 'b',
+                'ป': 'p', 'ผ': 'ph', 'ฝ': 'f', 'พ': 'ph',
+                'ฟ': 'f', 'ภ': 'ph', 'ม': 'm', 'ย': 'y',
+                'ร': 'r', 'ล': 'l', 'ว': 'w', 'ศ': 's',
+                'ษ': 's', 'ส': 's', 'ห': 'h', 'ฬ': 'l',
+                'อ': 'o', 'ฮ': 'h'
+            };
+
+            let safeName = '';
+            for (let char of username.toLowerCase()) {
+                if (thaiToEnglishMap[char]) {
+                    safeName += thaiToEnglishMap[char];
+                } else if (/[a-z0-9]/.test(char)) {
+                    safeName += char;
+                }
+                // Skip other characters (symbols, spaces, etc.)
+            }
+
+            // If no valid characters found, use 'user'
+            if (!safeName) {
+                safeName = 'user';
+            }
+
+            // Take first 8 characters and add random number to avoid duplicates
+            const baseCode = safeName.substring(0, 8);
+            const randomNum = Math.floor(Math.random() * 100);
+
+            return baseCode + randomNum;
+        }
+
+        function updateReferralCodes() {
+            const output = document.getElementById('output');
+            let result = '';
+
+            try {
+                result += '=== UPDATING REFERRAL CODES ===\n';
+
+                // Get current users
+                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
+                result += `Total users: ${users.length}\n\n`;
+
+                if (users.length === 0) {
+                    result += 'No users found!\n';
+                    output.textContent = result;
+                    return;
+                }
+
+                result += '=== BEFORE UPDATE ===\n';
+                users.forEach((user, index) => {
+                    result += `${index + 1}. ${user.username} -> ${user.referral_code}\n`;
+                });
+
+                result += '\n=== UPDATING CODES ===\n';
+                let updatedCount = 0;
+
+                users.forEach(user => {
+                    const oldCode = user.referral_code;
+                    const newCode = createSafeReferralCode(user.username);
+
+                    user.referral_code = newCode;
+                    updatedCount++;
+
+                    result += `${user.username}: ${oldCode} -> ${newCode}\n`;
+                });
+
+                // Save updated users
+                localStorage.setItem('fingrow_users', JSON.stringify(users));
+
+                // Update currentUser if exists
+                const currentUser = localStorage.getItem('currentUser');
+                if (currentUser) {
+                    const parsedCurrentUser = JSON.parse(currentUser);
+                    const updatedCurrentUser = users.find(u => u.id === parsedCurrentUser.id);
+                    if (updatedCurrentUser) {
+                        localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
+                        result += `\n✅ Current user referral code updated to: ${updatedCurrentUser.referral_code}\n`;
+                    }
+                }
+
+                result += `\n=== COMPLETED ===\n`;
+                result += `Successfully updated ${updatedCount} referral codes\n`;
+                result += `All codes are now based on usernames and support Thai characters!\n`;
+
+                console.log('Referral codes updated successfully');
+
+            } catch (error) {
+                result += `\n❌ ERROR: ${error.message}\n`;
+                console.error('Update error:', error);
+            }
+
+            output.textContent = result;
+        }
+    </script>
+</body>
+</html>

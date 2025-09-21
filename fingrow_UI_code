@@ -1,0 +1,939 @@
+// Fingrow MVP UI – Compact (React) — Mobile‑first + Global Currency
+// Fix: pass live-rate fetching status via CurrencyContext to avoid ReferenceError in Profile.
+// Keep tests; add a tiny extra test (type check for fetchWLD).
+
+import React, { useContext, useEffect, useMemo, useState } from "react";
+
+// ===== Market Data (live WLD → Local) =====
+const COINGECKO_ID = "worldcoin-wld"; // per CoinGecko page API ID
+const fetchWLD = async (ccy: string): Promise<number | null> => {
+  try {
+    const vs = (ccy || "USD").toLowerCase();
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_ID}&vs_currencies=${encodeURIComponent(vs)}`;
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    const val = j?.[COINGECKO_ID]?.[vs];
+    return typeof val === "number" ? val : null;
+  } catch {
+    return null;
+  }
+};
+
+// ===== Currency =====
+// Demo presets (1 WLD ≈ rate in local)
+const PRESET: Record<string, { locale: string; rate: number; label: string }> = {
+  THB: { locale: "th-TH", rate: 100, label: "THB • บาท" },
+  USD: { locale: "en-US", rate: 3, label: "USD • US$" },
+  EUR: { locale: "de-DE", rate: 2.8, label: "EUR • €" },
+  JPY: { locale: "ja-JP", rate: 400, label: "JPY • ¥" },
+};
+
+// ===== ISO 4217 codes =====
+// FIX: wrap the whole concatenated string before split → returns string[] correctly
+const ISO_CODES: string[] = (
+  "AED,AFN,ALL,AMD,ANG,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BMD,BND,BOB,BRL,BSD,BTN,BWP,BYN,BZD," +
+  "CAD,CDF,CHF,CLP,CNY,COP,CRC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,GBP,GEL,GHS,GIP,GMD,GNF,GTQ,GYD," +
+  "HKD,HNL,HRK,HTG,HUF,IDR,ILS,INR,IQD,IRR,ISK,JMD,JOD,JPY,KES,KGS,KHR,KMF,KPW,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD," +
+  "MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRU,MUR,MVR,MWK,MXN,MYR,MZN,NAD,NGN,NIO,NOK,NPR,NZD,OMR,PAB,PEN,PGK,PHP,PKR,PLN,PYG," +
+  "QAR,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLE,SLL,SOS,SRD,SSP,STN,SVC,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TWD,TZS," +
+  "UAH,UGX,USD,UYU,UZS,VED,VES,VND,VUV,WST,XAF,XCD,XDR,XOF,XPF,YER,ZAR,ZMW,ZWL"
+).split(",");
+
+// ===== Context =====
+type CurrencyInfo = {
+  code: string;
+  locale: string;
+  rate: number;
+  isCustom: boolean;
+  // NEW: include live-rate state so children (e.g., Profile) can display fetch status safely
+  fetching: boolean;
+  lastUpdated: string | null;
+  setCurrency: (c: string) => void;
+  setCustomRate: (n: number) => void;
+  setCustomLocale: (s: string) => void;
+};
+const CurrencyContext = React.createContext<CurrencyInfo>({
+  code: "THB",
+  locale: "th-TH",
+  rate: 100,
+  isCustom: false,
+  fetching: false,
+  lastUpdated: null,
+  setCurrency: () => {},
+  setCustomRate: () => {},
+  setCustomLocale: () => {},
+});
+const useCurrency = () => useContext(CurrencyContext);
+
+// ===== Mock Data =====
+const seedProducts = [
+  { id: "p1", title: "เก้าอี้ไม้โอ๊ค", priceLocal: 1200, seller: "@ananya", pct: 3, condition: "ดีมาก" },
+  { id: "p2", title: "โต๊ะทำงาน", priceLocal: 4500, seller: "@bank", pct: 5, condition: "ดี" },
+  { id: "p3", title: "โน้ตบุ๊กมือสอง", priceLocal: 14500, seller: "@mild", pct: 4, condition: "ดี" },
+  { id: "p4", title: "ไมโครเวฟ", priceLocal: 1800, seller: "@pong", pct: 2, condition: "ปานกลาง" },
+];
+const initialMyListings = [
+  { id: "m1", title: "พัดลมตั้งโต๊ะ", priceLocal: 900, pct: 2, status: "ออนไลน์", date: "2025-09-05" },
+  { id: "m2", title: "รองเท้ากีฬา", priceLocal: 1800, pct: 3, status: "ขายแล้ว", date: "2025-08-29" },
+  { id: "m3", title: "หูฟังไร้สาย", priceLocal: 1200, pct: 1, status: "ออนไลน์", date: "2025-08-20" },
+];
+
+// ===== Utils & Primitives =====
+const fmt = (n: number, locale: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n);
+const toWLD = (local: number, rate: number) => (rate ? local / rate : 0);
+const Card: React.FC<{ className?: string }> = ({ className = "", children }) => (
+  <div className={`rounded-2xl border border-zinc-800 bg-zinc-900/70 shadow-sm ${className}`}>{children}</div>
+);
+const Title: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => (
+  <div className="mb-3">
+    <h2 className="text-lg font-semibold">{title}</h2>
+    {sub && <p className="text-xs text-zinc-400 mt-0.5">{sub}</p>}
+  </div>
+);
+const Pills: React.FC<{ v: number; on: (n: number) => void }> = ({ v, on }) => (
+  <div className="flex flex-wrap gap-2">
+    {[1, 2, 3, 4, 5, 6, 7].map((p) => (
+      <button
+        key={p}
+        onClick={() => on(p)}
+        className={`h-11 px-3 rounded-full text-sm border ${
+          v === p ? "bg-emerald-500 text-emerald-950 border-emerald-400" : "border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+        }`}
+      >
+        {p}% ชุมชน
+      </button>
+    ))}
+  </div>
+);
+const Row: React.FC<{ l: string; r: React.ReactNode }> = ({ l, r }) => (
+  <div className="grid grid-cols-2 gap-2 text-sm">
+    <div className="text-zinc-400">{l}</div>
+    <div className="text-right">{r}</div>
+  </div>
+);
+
+const TopBar = () => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  return (
+    <div className="sticky top-0 z-30 border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur">
+      <div className="mx-auto max-w-md px-3 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-emerald-500/20 grid place-items-center text-emerald-400 font-bold">FG</div>
+          <div className="text-base font-semibold">Fingrow</div>
+        </div>
+        <div className="text-[11px] text-zinc-400">
+          <span className="hidden sm:inline">ราคาตลาด</span> 1 WLD ≈ <span className="text-zinc-200 font-medium">{F(cur.rate)}</span> <span className="text-zinc-400">{cur.code}</span>
+          <span className="ml-1 text-[10px] text-emerald-400">· live</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+const BottomNav: React.FC<{ cur: string; set: (k: string) => void }> = ({ cur, set }) => {
+  const tabs = ["market", "create", "orders", "referral", "earnings", "profile"] as const;
+  const names: Record<(typeof tabs)[number], string> = {
+    market: "ตลาด",
+    create: "ขาย",
+    orders: "ออเดอร์",
+    referral: "เชิญ",
+    earnings: "รายได้",
+    profile: "ฉัน",
+  };
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto max-w-md grid grid-cols-6">
+        {tabs.map((k) => (
+          <button key={k} onClick={() => set(k)} className={`h-12 text-[11px] ${cur === k ? "text-emerald-400" : "text-zinc-300"}`}>
+            {names[k]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ===== Screens =====
+const Marketplace: React.FC<{ items: any[]; onPick: (p: any) => void }> = ({ items, onPick }) => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  return (
+    <div className="space-y-3">
+      {items.map((p) => (
+        <Card key={p.id}>
+          <button onClick={() => onPick(p)} className="p-3 w-full text-left">
+            <div className="flex gap-3">
+              <div className="h-20 w-20 shrink-0 rounded-xl bg-zinc-800 grid place-items-center text-zinc-500 text-xs">ภาพ</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{p.title}</div>
+                <div className="text-xs text-zinc-400">สภาพ: {p.condition} • {p.seller}</div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-zinc-400">{cur.code}</div>
+                    <div className="text-base font-semibold">{F(p.priceLocal)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-zinc-400">≈ {F(toWLD(p.priceLocal, cur.rate))} WLD</div>
+                    <div className="text-xs text-emerald-400">ชุมชน {p.pct}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+const ProductDetail: React.FC<{ item: any; back: () => void; buy: (i: any) => void }> = ({ item, back, buy }) => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  const w = toWLD(item.priceLocal, cur.rate);
+  const comm = w * (item.pct / 100);
+  return (
+    <div className="space-y-4">
+      <button onClick={back} className="text-sm text-zinc-300">← ย้อนกลับ</button>
+      <Card>
+        <div className="p-3">
+          <div className="h-56 rounded-xl bg-zinc-900 grid place-items-center text-zinc-500">ภาพสินค้า</div>
+        </div>
+      </Card>
+      <div>
+        <Title title={item.title} sub={`ผู้ขาย ${item.seller} • สภาพ ${item.condition}`} />
+        <Card>
+          <div className="p-3 grid grid-cols-2 gap-3 text-sm">
+            <Row l={`ราคา (${cur.code})`} r={<span className="font-semibold">{F(item.priceLocal)}</span>} />
+            <Row l="≈ ราคา (WLD)" r={<span className="font-semibold">{F(w)} WLD</span>} />
+            <Row l="แบ่งให้ชุมชน" r={<span className="text-emerald-400 font-medium">{item.pct}% ≈ {F(comm)} WLD</span>} />
+            <Row l="ผู้ขายได้รับสุทธิ" r={<span className="font-medium">{F(w - comm)} WLD</span>} />
+          </div>
+        </Card>
+      </div>
+      <div className="h-16" />
+      <div className="fixed bottom-14 left-0 right-0 z-20">
+        <div className="mx-auto max-w-md px-3">
+          <button onClick={() => buy(item)} className="h-12 w-full rounded-2xl bg-emerald-500 text-emerald-950 font-medium shadow hover:bg-emerald-400">ซื้อด้วย WLD</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Create/Sell (single state + map-driven fields)
+const CreateListing: React.FC<{ mine: any[]; setMine: (x: any[]) => void }> = ({ mine, setMine }) => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  const [show, setShow] = useState(false);
+  const [form, set] = useState<any>({
+    title: "",
+    description: "",
+    category: "ทั่วไป",
+    condition: "ดี",
+    priceLocal: 0,
+    pct: 3,
+    sku: "",
+    quantity: 1,
+    mpn: "",
+    upc: "",
+    serial: "",
+    color: "",
+    size: "",
+    material: "",
+    lengthCm: "",
+    widthCm: "",
+    heightCm: "",
+    weightKg: "",
+    year: "",
+    warranty: "",
+    compatibility: "",
+    shipCity: "",
+    shipProvince: "",
+    shippingMethod: "ขนส่งปกติ",
+    shippingCost: 0,
+    handlingDays: 2,
+    freeShipping: false,
+    localPickup: false,
+    returnsAccepted: true,
+    returnWindow: 7,
+    restockPct: 0,
+    returnBy: "ผู้ซื้อ",
+    acceptOffers: false,
+    minOfferLocal: 0,
+    autoAcceptLocal: 0,
+    photos: [] as string[],
+  });
+  const u = (k: string, v: any) => set((s: any) => ({ ...s, [k]: v }));
+  const w = useMemo(() => toWLD(Number(form.priceLocal || 0), cur.rate), [form.priceLocal, cur.rate]);
+  const comm = w * (Number(form.pct) / 100);
+
+  const pairsBasic = [
+    {
+      k: "title",
+      label: "ชื่อสินค้า",
+      node: (
+        <input
+          value={form.title}
+          onChange={(e) => u("title", (e.target as HTMLInputElement).value)}
+          className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+          placeholder="เช่น เก้าอี้ไม้โอ๊ค"
+        />
+      ),
+    },
+    {
+      k: "description",
+      label: "คำอธิบายสินค้า",
+      node: (
+        <textarea
+          value={form.description}
+          onChange={(e) => u("description", (e.target as HTMLTextAreaElement).value)}
+          rows={4}
+          className="mt-1 w-full rounded-xl bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+          placeholder="สภาพ/ตำหนิ/อุปกรณ์ที่ให้มา"
+        />
+      ),
+    },
+  ];
+  const grid2 = [
+    {
+      k: "category",
+      label: "หมวดหมู่",
+      node: (
+        <select
+          value={form.category}
+          onChange={(e) => u("category", (e.target as HTMLSelectElement).value)}
+          className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm"
+        >
+          {["ทั่วไป", "อิเล็กทรอนิกส์", "คอมพิวเตอร์", "เฟอร์นิเจอร์", "แฟชั่น", "กีฬา", "บ้านและสวน"].map((x) => (
+            <option key={x}>{x}</option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      k: "condition",
+      label: "สภาพสินค้า",
+      node: (
+        <select
+          value={form.condition}
+          onChange={(e) => u("condition", (e.target as HTMLSelectElement).value)}
+          className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm"
+        >
+          {["ใหม่", "สภาพเหมือนใหม่", "ดีมาก", "ดี", "พอใช้"].map((x) => (
+            <option key={x}>{x}</option>
+          ))}
+        </select>
+      ),
+    },
+  ];
+  const grid3 = [
+    { k: "sku", label: "SKU", node: <input value={form.sku} onChange={(e) => u("sku", (e.target as HTMLInputElement).value)} className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3" /> },
+    {
+      k: "quantity",
+      label: "จำนวน (Qty)",
+      node: (
+        <input
+          type="number"
+          min={1}
+          value={form.quantity}
+          onChange={(e) => u("quantity", Number((e.target as HTMLInputElement).value || 1))}
+          className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+        />
+      ),
+    },
+    {
+      k: "priceLocal",
+      label: `ราคา (${cur.code})`,
+      node: (
+        <input
+          type="number"
+          value={form.priceLocal}
+          onChange={(e) => u("priceLocal", Number((e.target as HTMLInputElement).value || 0))}
+          className="mt-1 w-full h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+          placeholder="เช่น 1200"
+        />
+      ),
+    },
+  ];
+  const specifics = [
+    ["mpn", "MPN"],
+    ["upc", "UPC/EAN"],
+    ["serial", "Serial"],
+    ["color", "สี"],
+    ["size", "ขนาด"],
+    ["material", "วัสดุ"],
+  ];
+  const dims = [
+    ["lengthCm", "ยาว (ซม.)"],
+    ["widthCm", "กว้าง (ซม.)"],
+    ["heightCm", "สูง (ซม.)"],
+    ["weightKg", "น้ำหนัก (กก.)"],
+  ];
+
+  const submit = () => {
+    if (!form.title || Number(form.priceLocal) <= 0) return alert("กรุณากรอกชื่อและราคาสินค้าให้ถูกต้อง");
+    const item = {
+      id: `m${Date.now()}`,
+      title: form.title,
+      priceLocal: Number(form.priceLocal),
+      pct: form.pct,
+      status: "ออนไลน์",
+      date: new Date().toISOString().slice(0, 10),
+      meta: { category: form.category, condition: form.condition, currency: cur.code },
+    };
+    setMine([item, ...mine]);
+    set({ ...form, title: "", description: "", priceLocal: 0, pct: 3 });
+    setShow(false);
+    alert("เพิ่มรายการขายเรียบร้อย (เดโม)");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Title title="ขาย" sub="เพิ่มรายการขายใหม่ (ฟอร์มแบบ eBay) และดูประวัติการขายของคุณ" />
+        <button onClick={() => setShow(!show)} className="h-10 px-3 rounded-xl bg-emerald-500 text-emerald-950 text-sm font-medium">{show ? "ซ่อนฟอร์ม" : "+ เพิ่มรายการ"}</button>
+      </div>
+
+      {show && (
+        <>
+          <Card>
+            <div className="p-4 space-y-4">
+              <Title title="รายละเอียดพื้นฐาน" />
+              {pairsBasic.map((x) => (
+                <div key={x.k}>
+                  <label className="text-xs text-zinc-400">{x.label}</label>
+                  {x.node}
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-3">
+                {grid2.map((x) => (
+                  <div key={x.k}>
+                    <label className="text-xs text-zinc-400">{x.label}</label>
+                    {x.node}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {grid3.map((x) => (
+                  <div key={x.k}>
+                    <label className="text-xs text-zinc-400">{x.label}</label>
+                    {x.node}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">เลือก % แบ่งให้ชุมชน (1–7%)</label>
+                <div className="mt-2">
+                  <Pills v={form.pct} on={(n) => u("pct", n)} />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-4 space-y-3">
+              <Title title="คุณลักษณะสินค้า (Item specifics)" />
+              <div className="grid grid-cols-2 gap-3">
+                {specifics.map(([k, lab]) => (
+                  <div key={k as string}>
+                    <label className="text-xs text-zinc-400">{lab}</label>
+                    <input
+                      value={form[k as string] || ""}
+                      onChange={(e) => u(k as string, (e.target as HTMLInputElement).value)}
+                      className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {dims.map(([k, lab]) => (
+                  <div key={k as string}>
+                    <label className="text-xs text-zinc-400">{lab}</label>
+                    <input
+                      type="number"
+                      value={form[k as string] || ""}
+                      onChange={(e) => u(k as string, (e.target as HTMLInputElement).value)}
+                      className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400">ปีที่ผลิต</label>
+                  <input type="number" value={form.year} onChange={(e) => u("year", (e.target as HTMLInputElement).value)} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400">การรับประกัน</label>
+                  <input value={form.warranty} onChange={(e) => u("warranty", (e.target as HTMLInputElement).value)} placeholder="เช่น 30 วัน" className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">ความเข้ากันได้ (Compatibility)</label>
+                <input value={form.compatibility} onChange={(e) => u("compatibility", (e.target as HTMLInputElement).value)} placeholder="เช่น ใช้ได้กับ iPhone 12/13" className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-4 space-y-3">
+              <Title title="รูปภาพ" sub="อัปโหลดหลายไฟล์ (เดโม: แสดงชื่อไฟล์)" />
+              <input type="file" multiple onChange={(e) => u("photos", Array.from((e.target as HTMLInputElement).files || []).map((f) => (f as File).name))} className="w-full text-sm" />
+              <div className="flex gap-2 overflow-x-auto">
+                {(form.photos || []).length === 0 ? (
+                  <div className="text-xs text-zinc-400">ยังไม่มีรูปที่เลือก</div>
+                ) : (
+                  form.photos.map((n: string, i: number) => (
+                    <div key={i} className="min-w-[96px] h-20 rounded-xl bg-zinc-800 grid place-items-center text-[11px] text-zinc-400 px-2">{n}</div>
+                  ))
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-4 space-y-4">
+              <Title title="การจัดส่ง" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400">จัดส่งจากเมือง</label>
+                  <input value={form.shipCity} onChange={(e) => u("shipCity", (e.target as HTMLInputElement).value)} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400">จังหวัด</label>
+                  <input value={form.shipProvince} onChange={(e) => u("shipProvince", (e.target as HTMLInputElement).value)} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400">วิธีจัดส่ง</label>
+                  <select value={form.shippingMethod} onChange={(e) => u("shippingMethod", (e.target as HTMLSelectElement).value)} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm">
+                    <option>ขนส่งปกติ</option>
+                    <option>ขนส่งด่วน</option>
+                    <option>รับเอง (Local pickup)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400">ค่าจัดส่ง ({cur.code})</label>
+                  <input type="number" value={form.shippingCost} onChange={(e) => u("shippingCost", Number((e.target as HTMLInputElement).value || 0))} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400">เวลาจัดเตรียม (วัน)</label>
+                  <input type="number" value={form.handlingDays} onChange={(e) => u("handlingDays", Number((e.target as HTMLInputElement).value || 0))} className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+                </div>
+                <div className="flex items-end gap-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!form.freeShipping} onChange={(e) => u("freeShipping", (e.target as HTMLInputElement).checked)} /> ส่งฟรี
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!form.localPickup} onChange={(e) => u("localPickup", (e.target as HTMLInputElement).checked)} /> รับเอง
+                  </label>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-4 space-y-2 text-sm">
+              <Row l={cur.code} r={<span className="font-semibold">{F(Number(form.priceLocal || 0))}</span>} />
+              <Row l="≈ WLD" r={<span className="font-semibold">{F(w)} WLD</span>} />
+              <Row l={`ชุมชน ${form.pct}%`} r={<span className="font-semibold text-emerald-400">≈ {F(comm)} WLD</span>} />
+              <Row l="ผู้ขายได้รับ" r={<span className="font-semibold">{F(w - comm)} WLD</span>} />
+              <div className="text-[11px] text-zinc-500 pt-1">* ตั้งราคาเป็น {cur.code} ระบบจะแปลงเป็น WLD อัตโนมัติ</div>
+            </div>
+          </Card>
+
+          <div className="h-16" />
+          <div className="fixed bottom-14 left-0 right-0 z-20">
+            <div className="mx-auto max-w-md px-3">
+              <button onClick={submit} className="h-12 w-full rounded-2xl bg-emerald-500 text-emerald-950 font-medium shadow hover:bg-emerald-400">โพสต์ขาย</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <Card>
+        <div className="p-4">
+          <Title title="ประวัติการขายของฉัน" sub="ดูสถานะรายการที่คุณเคยโพสต์" />
+          <div className="space-y-3">
+            {mine.length === 0 && <div className="text-sm text-zinc-400">ยังไม่มีรายการขาย — กดปุ่ม "+ เพิ่มรายการ" เพื่อเริ่มขาย</div>}
+            {mine.map((it) => (
+              <div key={it.id} className="rounded-xl border border-zinc-800 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium truncate pr-2">{it.title}</div>
+                  <span className="px-2 py-1 rounded-full text-[11px] border bg-zinc-700/30 text-zinc-200 border-zinc-600/40">{it.status}</span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="text-xs text-zinc-400">ราคา</div>
+                  <div className="text-right text-xs text-zinc-300">
+                    {F(it.priceLocal)} {cur.code} • ≈ {F(toWLD(it.priceLocal, cur.rate))} WLD
+                  </div>
+                  <div className="text-xs text-zinc-400">ชุมชน</div>
+                  <div className="text-right text-xs text-emerald-400">{it.pct}%</div>
+                  <div className="text-xs text-zinc-400">วันที่</div>
+                  <div className="text-right text-xs text-zinc-300">{it.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const Orders = () => (
+  <Card>
+    <div className="p-4">
+      <Title title="ออเดอร์" sub="ติดตามสถานะการสั่งซื้อ/ขายและการส่งมอบ" />
+      <div className="text-sm text-zinc-400">(ยังไม่มีออเดอร์ในเดโมนี้)</div>
+    </div>
+  </Card>
+);
+
+const Referral = () => {
+  const cur = useCurrency();
+  const link = "https://fingrow.app/r/FG-jo-1a2b";
+  return (
+    <div className="space-y-4">
+      <Card>
+        <div className="p-4">
+          <Title title="Referral Center" sub="แชร์ลิงก์ / QR เพื่อเชิญเพื่อน (5 สาย / 7 ชั้น)" />
+          <div className="flex items-center gap-2">
+            <input readOnly value={link} className="flex-1 h-12 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm" />
+            <button onClick={() => navigator.clipboard.writeText(link)} className="h-12 px-3 rounded-xl bg-zinc-800 text-sm">คัดลอก</button>
+          </div>
+          <div className="mt-4 h-40 rounded-xl bg-zinc-800 grid place-items-center text-zinc-500 text-sm">QR Code</div>
+          <ul className="mt-4 text-xs text-zinc-400 list-disc pl-5">
+            <li>Attribution: first-touch + last valid click ภายใน 7 วัน</li>
+            <li>Qualified เมื่อยอดซื้อสะสม ≥ 500 {cur.code} และยอดขายสะสม ≥ 500 {cur.code}</li>
+          </ul>
+        </div>
+      </Card>
+      <Card>
+        <div className="p-4">
+          <Title title="Network Snapshot (ย่อ)" sub="มุมมองเครือข่ายแบบตัวอย่าง" />
+          <div className="space-y-2 text-sm">
+            {["สาย 1 • 12 คน", "สาย 2 • 8 คน", "สาย 3 • 5 คน", "สาย 4 • 4 คน", "สาย 5 • 2 คน"].map((s, i) => (
+              <div key={i} className="flex items-center justify-between border-b border-zinc-800/60 pb-2 last:border-0">
+                <span>{s.split(" • ")[0]}</span>
+                <span className="text-zinc-400">{s.split(" • ")[1]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const Earnings = () => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  const [myPct, setMyPct] = useState(3);
+  const [lines, setLines] = useState([
+    { name: "สาย 1", members: 12, linePool: 800 },
+    { name: "สาย 2", members: 8, linePool: 700 },
+    { name: "สาย 3", members: 5, linePool: 600 },
+    { name: "สาย 4", members: 4, linePool: 500 },
+    { name: "สาย 5", members: 2, linePool: 400 },
+  ]);
+  const pool = useMemo(() => lines.reduce((s, l) => s + Number(l.linePool || 0), 0), [lines]);
+  const totalMembers = useMemo(() => lines.reduce((s, l) => s + Number(l.members || 0), 0), [lines]);
+  const totalShare = (myPct / 7) * 14 * pool;
+
+  const [buyLocal, setBuy] = useState(260);
+  const [sellLocal, setSell] = useState(480);
+  const prog = (v: number) => Math.min(100, Math.round((v / 500) * 100));
+  const qualified = buyLocal >= 500 && sellLocal >= 500;
+
+  const setLine = (i: number, field: "linePool" | "members", v: any) =>
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: Number(v || 0) } : l)));
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <div className="p-4">
+          <Title title="Earnings (14% Split)" sub="สูตร: (เปอร์เซ็นต์ของฉัน/7) × 14 × Pool" />
+          <div className="space-y-3 text-sm">
+            <Row l="สมาชิกทั้งหมดในเครือข่าย" r={<span className="font-medium">{F(totalMembers)}</span>} />
+            <Row l="ยอดรวมส่วนแบ่งกลุ่ม (Pool)" r={<span className="font-semibold">{F(pool)} WLD</span>} />
+            <div>
+              <div className="text-zinc-400 mb-2">เปอร์เซ็นต์ที่ฉันแบ่ง (1–7)</div>
+              <Pills v={myPct} on={setMyPct} />
+            </div>
+            <div>
+              <div className="text-zinc-400">ฉันได้รับรวม (ตามสูตร)</div>
+              <div className="mt-1 text-2xl font-semibold">{F(totalShare)} WLD</div>
+              <div className="text-xs text-zinc-400">≈ {F(totalShare * cur.rate)} {cur.code}</div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="p-4">
+          <Title title="รายได้ตามแต่ละสาย (5 สาย)" sub="แก้ไขยอดรวมต่อสายได้เพื่อดูผลลัพธ์" />
+          <div className="space-y-3">
+            {lines.map((ln, idx) => {
+              const share = (myPct / 7) * 14 * (Number(ln.linePool) || 0);
+              return (
+                <div key={idx} className="rounded-xl border border-zinc-800 p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{ln.name}</div>
+                    <div className="text-zinc-400">{F(ln.members)} คน</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <div className="text-zinc-400">ยอดรวมสาย (WLD)</div>
+                      <input
+                        type="number"
+                        value={ln.linePool}
+                        onChange={(e) => setLine(idx, "linePool", (e.target as HTMLInputElement).value)}
+                        className="mt-1 w-full h-11 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-zinc-400">ฉันได้จากสายนี้</div>
+                      <div className="mt-1 font-semibold">{F(share)} WLD</div>
+                      <div className="text-xs text-zinc-400">≈ {F(share * cur.rate)} {cur.code}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="p-4">
+          <Title title="Qualification" sub={`ต้องมียอดซื้อสะสม ≥ 500 ${cur.code} และยอดขายสะสม ≥ 500 ${cur.code}`} />
+          <div className="space-y-4 text-sm">
+            <div>
+              <Row l="ยอดซื้อสะสม" r={<span className="text-zinc-300">{F(buyLocal)} / 500 {cur.code}</span>} />
+              <div className="mt-2 h-2 rounded-full bg-zinc-800">
+                <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${prog(buyLocal)}%` }} />
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <input type="number" value={buyLocal} onChange={(e) => setBuy(Number((e.target as HTMLInputElement).value || 0))} className="w-40 h-10 rounded-xl bg-zinc-900 border border-zinc-700 px-3" />
+                <span className="text-zinc-400">{cur.code}</span>
+              </div>
+            </div>
+            <div>
+              <Row l="ยอดขายสะสม" r={<span className="text-zinc-300">{F(sellLocal)} / 500 {cur.code}</span>} />
+              <div className="mt-2 h-2 rounded-full bg-zinc-800">
+                <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${prog(sellLocal)}%` }} />
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <input type="number" value={sellLocal} onChange={(e) => setSell(Number((e.target as HTMLInputElement).value || 0))} className="w-40 h-10 rounded-xl bg-zinc-900 border border-zinc-700 px-3" />
+                <span className="text-zinc-400">{cur.code}</span>
+              </div>
+            </div>
+            <div className={`rounded-xl px-3 py-2 text-sm ${qualified ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-zinc-800/60 text-zinc-300 border border-zinc-700"}`}>
+              สถานะ: {qualified ? "พร้อมรับสิทธิ์" : "ยังไม่ครบเงื่อนไข"}
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const Profile = () => {
+  const cur = useCurrency();
+  const F = (n: number) => fmt(n, cur.locale);
+  return (
+    <Card>
+      <div className="p-4 space-y-4">
+        <Title title="โปรไฟล์ผู้ใช้" sub="ข้อมูลพื้นฐานและการตั้งค่า" />
+        {PRESET[cur.code] && (
+          <div className="rounded-xl border border-zinc-800 p-3 text-[11px] text-zinc-400 flex items-center justify-between">
+            <span>
+              ตลาดสด: 1 WLD ≈ <span className="text-zinc-200 font-medium">{fmt(cur.rate, cur.locale)}</span> {cur.code}
+            </span>
+            <span className="ml-3">{cur.fetching ? "กำลังอัปเดต…" : cur.lastUpdated ? new Date(cur.lastUpdated).toLocaleTimeString() : ""}</span>
+          </div>
+        )}
+        <div className="grid gap-3 text-sm">
+          <Row l="ชื่อผู้ใช้" r={<span className="text-zinc-400">@jo</span>} />
+          <div className="grid gap-2">
+            <label className="text-zinc-300">สกุลเงิน (Local)</label>
+            <input
+              list="currency-list"
+              value={cur.code}
+              onChange={(e) => cur.setCurrency((e.target as HTMLInputElement).value.toUpperCase())}
+              className="h-10 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+              placeholder="พิมพ์รหัส เช่น THB, USD"
+            />
+            <datalist id="currency-list">{ISO_CODES.map((c) => (<option key={c} value={c} />))}</datalist>
+            <div className="text-xs text-zinc-400">รองรับทุกสกุลเงินตามมาตรฐาน ISO 4217</div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>อัตราแปลง</span>
+            {cur.isCustom ? (
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400">1 WLD ≈</span>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={cur.rate}
+                  onChange={(e) => cur.setCustomRate(Number((e.target as HTMLInputElement).value || 0))}
+                  className="h-10 w-28 rounded-xl bg-zinc-900 border border-zinc-700 px-2 text-right"
+                />
+                <span className="text-zinc-400">{cur.code}</span>
+              </div>
+            ) : (
+              <span className="text-zinc-400">1 WLD ≈ {F(cur.rate)} {cur.code} <span className="text-[11px]">(live)</span></span>
+            )}
+          </div>
+          {cur.isCustom && (
+            <div className="flex items-center justify-between">
+              <span>รูปแบบตัวเลข (Locale)</span>
+              <input
+                value={cur.locale}
+                onChange={(e) => cur.setCustomLocale((e.target as HTMLInputElement).value)}
+                className="h-10 w-40 rounded-xl bg-zinc-900 border border-zinc-700 px-3"
+                placeholder="เช่น en-US, th-TH"
+              />
+            </div>
+          )}
+        </div>
+        <div>
+          <Title title="กระเป๋า WLD" sub="เชื่อมต่อและตรวจยอด" />
+          <div className="rounded-xl border border-zinc-800 p-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span>สถานะ</span>
+              <span className="text-amber-400">ยังไม่เชื่อมต่อ</span>
+            </div>
+            <button className="mt-3 h-11 w-full rounded-xl bg-zinc-800 hover:bg-zinc-700">เชื่อมต่อกระเป๋า</button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+// ===== Test Harness =====
+function runTests() {
+  const T: { name: string; ok: boolean; expected: any; actual: any }[] = [];
+  // Existing tests (unchanged)
+  const conv = toWLD(1000, 100);
+  T.push({ name: "toWLD(1000,100)=10", ok: Math.abs(conv - 10) < 1e-9, expected: 10, actual: conv });
+  const pool = 3000,
+    pct = 7,
+    share = (pct / 7) * 14 * pool;
+  T.push({ name: "Earnings formula", ok: share === 14 * 3000, expected: 42000, actual: share });
+  const qualified = 500 >= 500 && 500 >= 500;
+  T.push({ name: "Qualification rule (500/500)", ok: qualified, expected: true, actual: qualified });
+  const zero = toWLD(0, 100);
+  T.push({ name: "Zero conversion", ok: zero === 0, expected: 0, actual: zero });
+
+  // Array tests
+  const isArr = Array.isArray(ISO_CODES);
+  T.push({ name: "ISO_CODES is array", ok: isArr, expected: true, actual: isArr });
+  const hasMap = typeof (ISO_CODES as any).map === "function";
+  T.push({ name: "ISO_CODES.map exists", ok: hasMap, expected: true, actual: typeof (ISO_CODES as any).map });
+  T.push({ name: "ISO_CODES includes THB", ok: ISO_CODES.includes("THB"), expected: true, actual: ISO_CODES.includes("THB") });
+  T.push({ name: "ISO_CODES includes USD", ok: ISO_CODES.includes("USD"), expected: true, actual: ISO_CODES.includes("USD") });
+
+  // Ensure correct CoinGecko ID
+  T.push({ name: "COINGECKO_ID is worldcoin-wld", ok: COINGECKO_ID === "worldcoin-wld", expected: "worldcoin-wld", actual: COINGECKO_ID });
+  // New tiny test: fetchWLD is present (no network)
+  T.push({ name: "fetchWLD is function", ok: typeof fetchWLD === "function", expected: "function", actual: typeof fetchWLD });
+
+  // eslint-disable-next-line no-console
+  console.log("[Fingrow Tests]", T.every((t) => t.ok) ? "ALL TESTS PASSED" : "TESTS FAILED", T);
+}
+
+// ===== App =====
+export default function App() {
+  const [tab, setTab] = useState<"market" | "create" | "orders" | "referral" | "earnings" | "profile">("market");
+  const [items] = useState(seedProducts);
+  const [pick, setPick] = useState<any>(null);
+  const [mine, setMine] = useState<any[]>(initialMyListings);
+
+  const [code, setCode] = useState("THB");
+  const [customRate, setCustomRate] = useState(100);
+  const [customLocale, setCustomLocale] = useState("th-TH");
+  const [marketRate, setMarketRate] = useState<number | null>(null);
+  const [lastFetchAt, setLastFetchAt] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+
+  // Live WLD rate fetch when using preset currencies
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!PRESET[code]) {
+        setMarketRate(null);
+        setLastFetchAt(null);
+        setFetching(false);
+        return;
+      }
+      setFetching(true);
+      const val = await fetchWLD(code);
+      if (active) {
+        if (typeof val === "number") {
+          setMarketRate(val);
+          setLastFetchAt(new Date().toISOString());
+        }
+        setFetching(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [code]);
+
+  const mapped = PRESET[code as keyof typeof PRESET];
+  const ctx: CurrencyInfo = {
+    code,
+    locale: mapped ? mapped.locale : customLocale,
+    rate: mapped ? marketRate ?? mapped.rate : customRate,
+    isCustom: !mapped,
+    fetching,
+    lastUpdated: lastFetchAt,
+    setCurrency: (c) => setCode((c || "THB").toUpperCase()),
+    setCustomRate: setCustomRate,
+    setCustomLocale: setCustomLocale,
+  };
+
+  useEffect(() => {
+    runTests();
+  }, []);
+
+  return (
+    <CurrencyContext.Provider value={ctx}>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        <TopBar />
+        <main className="mx-auto max-w-md px-3 pt-4 pb-28">
+          {tab === "market" && (
+            <>
+              <Title title="Marketplace" sub="ค้นหาของมือสอง จ่ายด้วย WLD" />
+              {!pick ? (
+                <Marketplace items={items} onPick={setPick} />
+              ) : (
+                <ProductDetail item={pick} back={() => setPick(null)} buy={(i) => alert("เดโม: Checkout → " + i.title)} />
+              )}
+            </>
+          )}
+          {tab === "create" && <CreateListing mine={mine} setMine={setMine} />}
+          {tab === "orders" && <Orders />}
+          {tab === "referral" && <Referral />}
+          {tab === "earnings" && <Earnings />}
+          {tab === "profile" && <Profile />}
+        </main>
+        <BottomNav
+          cur={tab}
+          set={(k) => {
+            setPick(null);
+            setTab(k as any);
+          }}
+        />
+      </div>
+    </CurrencyContext.Provider>
+  );
+}
