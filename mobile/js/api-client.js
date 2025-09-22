@@ -61,22 +61,29 @@ class ApiClient {
         });
     }
 
-    // Get products - placeholder for now
+    // Get products from API
     async getProducts(page = 1, limit = 50) {
-        // For now, return mock data since we haven't implemented products API yet
-        return {
-            success: true,
-            data: [
-                {
-                    id: 1,
-                    title: 'Sample Product',
-                    description: 'This is a sample product',
-                    price_local: 100,
-                    status: 'active',
-                    seller_username: 'test'
-                }
-            ],
-            total: 1
-        };
+        return await this.request('/products');
+    }
+
+    // Get users from API and cache them
+    async getUsers() {
+        if (!this.cachedUsers) {
+            const response = await this.request('/users');
+            this.cachedUsers = response.data || [];
+        }
+        return this.cachedUsers;
+    }
+
+    // Initialize cached data for mobile app compatibility
+    async initialize() {
+        try {
+            // Cache users for mobile app compatibility
+            this.users = await this.getUsers();
+            console.log('✅ ApiClient initialized with', this.users.length, 'users');
+        } catch (error) {
+            console.error('❌ Failed to initialize ApiClient:', error);
+            this.users = []; // fallback to empty array
+        }
     }
 }

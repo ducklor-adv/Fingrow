@@ -2488,6 +2488,7 @@
             try {
                 // Initialize API Client
                 database = new ApiClient();
+                await database.initialize(); // Initialize and cache users
                 console.log('✅ API Client initialized successfully');
 
                 await loadProducts();
@@ -2532,10 +2533,16 @@
                 const conditionText = getConditionText(product.condition);
                 const priceDisplay = formatPrice(product);
 
+                const hasImages = product.images && product.images.length > 0;
+                const firstImage = hasImages ? product.images[0] : null;
+
                 return `
                     <div class="product-card" onclick="viewProduct(${product.id})">
                         <div class="product-image">
-                            <img src="${product.images[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='${categoryIcon} ${product.title.split(' ')[0]}';">
+                            ${firstImage
+                                ? `<img src="${firstImage}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'display: flex; align-items: center; justify-content: center; height: 100%; color: #10b981; font-size: 24px;\\'>${categoryIcon}</div>';"`
+                                : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #10b981; font-size: 24px;">${categoryIcon}</div>`
+                            }
                         </div>
                         <div class="product-title">${product.title}</div>
                         <div class="product-price">${priceDisplay}</div>
@@ -4100,6 +4107,7 @@
             // Ensure database is initialized
             if (!database) {
                 database = new ApiClient();
+                await database.initialize(); // Initialize users cache
                 console.log('⚠️ Database initialized in handleLogin');
             }
 
@@ -4110,10 +4118,9 @@
 
                 if (result.success) {
                     // Ensure user has all structured address fields from database
-                    if (typeof database.getUsers === 'function') {
+                    if (database.users && database.users.length > 0) {
                         try {
-                            const users = database.getUsers();
-                            const normalizedUsers = normalizeUsers(users || []);
+                            const normalizedUsers = normalizeUsers(database.users || []);
                             const fullUser = normalizedUsers.find(u => u.id === result.user.id);
                             if (fullUser) {
                                 // Check if structured fields exist, if not migrate from shipping_address

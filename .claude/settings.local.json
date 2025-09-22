@@ -11,7 +11,9 @@
       "Bash(npm start)",
       "Bash(node:*)",
       "Bash(curl:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

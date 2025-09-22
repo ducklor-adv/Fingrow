@@ -84,6 +84,15 @@ class DatabaseConnector {
         }
     }
 
+    async deleteProduct(productId) {
+        try {
+            return await this.adminDB.deleteProduct(productId);
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            return false;
+        }
+    }
+
     // Orders methods
     async getAllOrders() {
         try {
@@ -203,6 +212,11 @@ class BrowserDatabaseProxy {
         return await this.fetchFromNode('updateProductStatus', { productId, status, adminNotes });
     }
 
+    async deleteProduct(productId) {
+        this.clearCache('products');
+        return await this.fetchFromNode('deleteProduct', { productId });
+    }
+
     async getAllOrders() {
         return this.getCachedOrFetch('orders', () => this.fetchFromNode('getAllOrders'));
     }
@@ -286,6 +300,80 @@ class BrowserDatabaseProxy {
                         method: 'DELETE'
                     });
                     return await deleteResponse.json();
+
+                case 'deleteProduct':
+                    const deleteProductResponse = await fetch(`${apiBase}/products/${params.productId}`, {
+                        method: 'DELETE'
+                    });
+                    return await deleteProductResponse.json();
+
+                case 'getAllProducts':
+                    const productsResponse = await fetch(`${apiBase}/products`);
+                    const productsResult = await productsResponse.json();
+                    if (productsResult.success) {
+                        return productsResult.data; // Return just the data array
+                    }
+                    break;
+
+                case 'getUserById':
+                    const userResponse = await fetch(`${apiBase}/users/${params.userId}`);
+                    return await userResponse.json();
+
+                case 'updateUser':
+                    const updateUserResponse = await fetch(`${apiBase}/users/${params.userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(params.updates)
+                    });
+                    return await updateUserResponse.json();
+
+                case 'searchUsers':
+                    const searchResponse = await fetch(`${apiBase}/users?search=${encodeURIComponent(params.searchTerm)}`);
+                    return await searchResponse.json();
+
+                case 'updateProductStatus':
+                    const updateStatusResponse = await fetch(`${apiBase}/products/${params.productId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: params.status, admin_notes: params.adminNotes })
+                    });
+                    return await updateStatusResponse.json();
+
+                case 'getAllOrders':
+                    const ordersResponse = await fetch(`${apiBase}/orders`);
+                    const ordersResult = await ordersResponse.json();
+                    return ordersResult.success ? ordersResult.data : [];
+
+                case 'getAllCategories':
+                    const categoriesResponse = await fetch(`${apiBase}/categories`);
+                    const categoriesResult = await categoriesResponse.json();
+                    return categoriesResult.success ? categoriesResult.data : this.getMockData('getAllCategories');
+
+                case 'getAllReviews':
+                case 'getReviews':
+                    const reviewsResponse = await fetch(`${apiBase}/reviews`);
+                    const reviewsResult = await reviewsResponse.json();
+                    return reviewsResult.success ? reviewsResult.data : this.getMockData('getAllReviews');
+
+                case 'getDashboardStats':
+                    const statsResponse = await fetch(`${apiBase}/dashboard/stats`);
+                    const statsResult = await statsResponse.json();
+                    return statsResult.success ? statsResult.data : this.getMockData('getDashboardStats');
+
+                case 'getSalesData':
+                    const salesResponse = await fetch(`${apiBase}/dashboard/sales`);
+                    const salesResult = await salesResponse.json();
+                    return salesResult.success ? salesResult.data : this.getMockData('getSalesData');
+
+                case 'getUserData':
+                    const userDataResponse = await fetch(`${apiBase}/dashboard/users`);
+                    const userDataResult = await userDataResponse.json();
+                    return userDataResult.success ? userDataResult.data : this.getMockData('getUserData');
+
+                case 'getTopSellers':
+                    const topSellersResponse = await fetch(`${apiBase}/dashboard/topsellers`);
+                    const topSellersResult = await topSellersResponse.json();
+                    return topSellersResult.success ? topSellersResult.data : this.getMockData('getTopSellers');
 
                 default:
                     console.warn(`API method ${method} not implemented yet, using mock data`);
@@ -503,6 +591,7 @@ class BrowserDatabaseProxy {
             case 'updateUser':
             case 'deleteUser':
             case 'updateProductStatus':
+            case 'deleteProduct':
                 return true;
             default:
                 return null;

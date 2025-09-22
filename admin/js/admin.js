@@ -9,13 +9,64 @@ class FingrowAdmin {
 
     async init() {
         await this.checkAuth();
-        await this.loadDashboardData();
         this.setupEventListeners();
         this.updateDateTime();
+
+        // Setup URL routing
+        this.setupRouting();
+
+        // Load initial content based on URL hash
+        await this.loadInitialContent();
 
         // Update time every second for better UX
         setInterval(() => this.updateDateTime(), 1000);
 
+    }
+
+    setupRouting() {
+        // Listen for hash changes
+        window.addEventListener('hashchange', () => {
+            this.handleHashChange();
+        });
+    }
+
+    async loadInitialContent() {
+        // Get current hash from URL
+        const hash = window.location.hash;
+        const section = hash ? hash.substring(1) : 'dashboard';
+
+        console.log('[Admin] Loading initial content for section:', section);
+
+        // Load appropriate content
+        if (section === 'dashboard') {
+            await this.loadDashboardData();
+        }
+
+        // Load the content for the section
+        await this.loadContent(section);
+
+        // Update active navigation
+        this.setActiveNavigation(section);
+    }
+
+    handleHashChange() {
+        const section = window.location.hash.substring(1) || 'dashboard';
+        console.log('[Admin] Hash changed to:', section);
+        this.loadContent(section);
+        this.setActiveNavigation(section);
+    }
+
+    setActiveNavigation(section) {
+        // Remove active class from all nav items
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.classList.remove('bg-emerald-600');
+        });
+
+        // Find and activate the correct nav item
+        const targetNav = document.querySelector(`.nav-item[href="#${section}"]`);
+        if (targetNav) {
+            targetNav.classList.add('bg-emerald-600');
+        }
     }
 
     // Helper function to normalize users data to ensure it's always an Array (same as MockDatabase)
@@ -408,19 +459,14 @@ class FingrowAdmin {
     }
 
     handleNavigation(navItem) {
-        // Remove active class from all nav items
-        document.querySelectorAll('.nav-item').forEach(nav => {
-            nav.classList.remove('bg-emerald-600');
-        });
-
-        // Add active class to clicked item
-        navItem.classList.add('bg-emerald-600');
-
         // Get the target section
         const target = navItem.getAttribute('href').substring(1);
 
-        // Load appropriate content
-        this.loadContent(target);
+        // Update URL hash (this will trigger hashchange event)
+        window.location.hash = target;
+
+        // The actual navigation will be handled by hashchange event
+        // This ensures URL and content stay in sync
     }
 
     async loadContent(section) {
@@ -710,16 +756,36 @@ class FingrowAdmin {
             'gaming': 'เกมมิ่ง',
             'camera': 'กล้อง',
             'fashion': 'แฟชั่น',
-            'music': 'เครื่องดนตรี'
+            'music': 'เครื่องดนตรี',
+            'general': 'ทั่วไป'
         }[product.category] || product.category;
+
+        const categoryIcon = {
+            'electronics': 'fas fa-mobile-alt',
+            'gaming': 'fas fa-gamepad',
+            'camera': 'fas fa-camera',
+            'fashion': 'fas fa-tshirt',
+            'music': 'fas fa-music',
+            'general': 'fas fa-box'
+        }[product.category] || 'fas fa-box';
+
+        // Get the first image from the images array, fallback to icon if no images
+        const firstImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
         return `
             <tr class="border-b border-gray-800 hover:bg-gray-800" data-product-id="${product.id}" data-category="${product.category}" data-status="${product.status}">
                 <td class="py-3 px-4">
                     <div class="flex items-center">
-                        <div class="w-12 h-12 bg-gray-600 rounded-lg flex items-center justify-center mr-3">
-                            <i class="fas fa-image text-gray-400"></i>
-                        </div>
+                        ${firstImage ?
+                            `<img src="${firstImage}" alt="${product.title}" class="w-12 h-12 object-cover rounded-lg mr-3" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                             <div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center mr-3" style="display: none;">
+                                <i class="${categoryIcon} text-emerald-400"></i>
+                             </div>`
+                            :
+                            `<div class="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center mr-3">
+                                <i class="${categoryIcon} text-emerald-400"></i>
+                             </div>`
+                        }
                         <div>
                             <p class="text-white font-medium">${product.title}</p>
                             <p class="text-gray-400 text-sm">${product.description ? product.description.substring(0, 50) + '...' : 'ไม่มีรายละเอียด'}</p>
@@ -739,11 +805,14 @@ class FingrowAdmin {
                 </td>
                 <td class="py-3 px-4 text-gray-400">${product.views || 0}</td>
                 <td class="py-3 px-4">
-                    <button class="text-blue-400 hover:text-blue-300 mr-3" onclick="editProduct('${product.id}')">
+                    <button class="text-blue-400 hover:text-blue-300 mr-2 text-sm" onclick="editProduct('${product.id}')" title="แก้ไขสินค้า">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="text-${product.status === 'active' ? 'red' : 'emerald'}-400 hover:text-${product.status === 'active' ? 'red' : 'emerald'}-300" onclick="toggleProductStatus('${product.id}')">
+                    <button class="text-${product.status === 'active' ? 'red' : 'emerald'}-400 hover:text-${product.status === 'active' ? 'red' : 'emerald'}-300 mr-2 text-sm" onclick="toggleProductStatus('${product.id}')" title="${product.status === 'active' ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}">
                         <i class="fas fa-${product.status === 'active' ? 'ban' : 'check'}"></i>
+                    </button>
+                    <button class="text-red-500 hover:text-red-400 text-sm" onclick="deleteProduct('${product.id}')" title="ลบสินค้า">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
@@ -2187,9 +2256,9 @@ class FingrowAdmin {
     editUser(userId) {
         console.log('[Admin] Edit user:', { userId, type: typeof userId });
 
-        // Ensure userId is a number for comparison
-        const numericUserId = parseInt(userId);
-        console.log('[Admin] Converted userId:', numericUserId);
+        // Keep userId as string (our database uses string IDs)
+        const userIdString = String(userId);
+        console.log('[Admin] Using userId:', userIdString);
 
         // Find user data (use getAllUsers to avoid pagination issues)
         this.db.getAllUsers().then(result => {
@@ -2204,12 +2273,12 @@ class FingrowAdmin {
                 total: result.total,
                 dataLength: result.data.length,
                 firstUser: result.data[0]?.id,
-                lookingFor: numericUserId,
+                lookingFor: userIdString,
                 allUserIds: result.data.map(u => ({ id: u.id, type: typeof u.id, username: u.username }))
             });
 
             const user = result.data.find(u => {
-                const match = parseInt(u.id) === numericUserId;
+                const match = String(u.id) === userIdString;
                 console.log('[Admin] Checking user:', { userId: u.id, username: u.username, match });
                 return match;
             });
@@ -2231,17 +2300,17 @@ class FingrowAdmin {
     async deleteUser(userId) {
         console.log('[Admin] Delete user:', { userId, type: typeof userId });
 
-        // Ensure userId is a number for comparison
-        const numericUserId = parseInt(userId);
+        // Keep userId as string (our database uses string IDs)
+        const userIdString = String(userId);
 
         // Confirm deletion
-        if (!confirm(`คุณต้องการลบผู้ใช้ ID: ${numericUserId} หรือไม่?\n\nการลบจะไม่สามารถกู้คืนได้`)) {
+        if (!confirm(`คุณต้องการลบผู้ใช้ ID: ${userIdString} หรือไม่?\n\nการลบจะไม่สามารถกู้คืนได้`)) {
             return;
         }
 
         try {
             // Call delete API
-            const result = await this.db.deleteUser(numericUserId);
+            const result = await this.db.deleteUser(userIdString);
 
             if (result.success) {
                 this.showSuccess(`ลบผู้ใช้ ${result.deletedUser.username} สำเร็จ`);
@@ -2407,6 +2476,9 @@ class FingrowAdmin {
 
     toggleUserStatus(userId) {
         console.log('Toggle user status:', userId);
+        // Keep userId as string (our database uses string IDs)
+        const userIdString = String(userId);
+
         // Find and toggle user status
         this.db.getAllUsers().then(result => {
             // Check if result and result.data exist
@@ -2416,10 +2488,10 @@ class FingrowAdmin {
                 return;
             }
 
-            const user = result.data.find(u => u.id == userId);
+            const user = result.data.find(u => String(u.id) === userIdString);
             if (user) {
                 const newStatus = user.is_active ? 0 : 1;
-                this.db.updateUser(userId, { is_active: newStatus }).then(() => {
+                this.db.updateUser(userIdString, { is_active: newStatus }).then(() => {
                     this.showSuccess(`เปลี่ยนสถานะผู้ใช้เป็น ${newStatus ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
 
                     // Refresh users list if we're on users page
@@ -2439,17 +2511,89 @@ class FingrowAdmin {
             const product = products.find(p => p.id == productId);
             if (product) {
                 const newStatus = product.status === 'active' ? 'inactive' : 'active';
-                this.db.updateProductStatus(productId, newStatus).then(() => {
+                this.db.updateProductStatus(productId, newStatus).then(async () => {
                     this.showSuccess(`เปลี่ยนสถานะสินค้าเป็น ${newStatus === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'} แล้ว`);
 
-                    // Refresh products list if we're on products page
+                    // Refresh only the products table if we're on products page
                     const contentArea = document.getElementById('content-area');
                     if (contentArea.innerHTML.includes('จัดการสินค้า')) {
-                        this.loadContent('products');
+                        await this.refreshProductsTable();
                     }
                 });
             }
         });
+    }
+
+    async deleteProduct(productId) {
+        console.log('[Admin] Delete product:', { productId, type: typeof productId });
+
+        // Keep productId as string (our database uses string IDs)
+        const productIdString = String(productId);
+
+        // Get product info first
+        try {
+            const products = await this.db.getAllProducts();
+            const product = products.find(p => String(p.id) === productIdString);
+
+            if (!product) {
+                this.showError('ไม่พบสินค้าที่ต้องการลบ');
+                return;
+            }
+
+            // Confirm deletion
+            if (!confirm(`คุณต้องการลบสินค้า "${product.title}" หรือไม่?\n\nการลบจะไม่สามารถกู้คืนได้`)) {
+                return;
+            }
+
+            // Call delete API
+            const result = await this.db.deleteProduct(productIdString);
+
+            if (result.success) {
+                this.showSuccess(`ลบสินค้า "${product.title}" สำเร็จ`);
+
+                // Refresh only the products table if we're on products page
+                const contentArea = document.getElementById('content-area');
+                if (contentArea.innerHTML.includes('จัดการสินค้า')) {
+                    // Refresh just the products table content
+                    await this.refreshProductsTable();
+                }
+            } else {
+                this.showError('ไม่สามารถลบสินค้าได้');
+            }
+        } catch (error) {
+            console.error('[Admin] Error deleting product:', error);
+            this.showError('เกิดข้อผิดพลาดในการลบสินค้า');
+        }
+    }
+
+    async refreshProductsTable() {
+        try {
+            // Get updated products data
+            const products = await this.fetchProducts();
+
+            // Update the table body
+            const tbody = document.getElementById('productsTableBody');
+            if (tbody) {
+                tbody.innerHTML = products.map(product => this.renderProductRow(product)).join('');
+            }
+
+            // Update the product count in header
+            const headerElement = document.querySelector('h3');
+            if (headerElement && headerElement.textContent.includes('รายการสินค้า')) {
+                headerElement.textContent = `รายการสินค้า (${products.length} รายการ)`;
+            }
+
+            // Update the pagination info
+            const paginationInfo = document.querySelector('.text-gray-400');
+            if (paginationInfo && paginationInfo.textContent.includes('แสดง')) {
+                paginationInfo.textContent = `แสดง 1-${products.length} จาก ${products.length} รายการ`;
+            }
+
+            console.log('[Admin] Products table refreshed successfully');
+        } catch (error) {
+            console.error('[Admin] Error refreshing products table:', error);
+            this.showError('เกิดข้อผิดพลาดในการอัปเดตรายการสินค้า');
+        }
     }
 
     setupUserManagement() {
@@ -3052,6 +3196,15 @@ window.toggleProductStatus = (productId) => {
         admin.toggleProductStatus(productId);
     } catch (error) {
         console.error('Error calling admin.toggleProductStatus:', error);
+    }
+};
+
+window.deleteProduct = (productId) => {
+    console.log('Global deleteProduct called with productId:', productId);
+    try {
+        admin.deleteProduct(productId);
+    } catch (error) {
+        console.error('Error calling admin.deleteProduct:', error);
     }
 };
 
