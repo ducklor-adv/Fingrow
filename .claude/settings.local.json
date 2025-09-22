@@ -13,7 +13,10 @@
       "Bash(curl:*)",
       "Bash(sqlite3:*)",
       "Bash(tasklist)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(del test_invite_system.js)",
+      "Bash(del rename_referral_fields.js)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

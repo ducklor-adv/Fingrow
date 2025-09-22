@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = 5000;
 
 // Middleware
 app.use(cors());
@@ -45,8 +45,8 @@ try {
     process.exit(1);
 }
 
-// Helper function to generate referral code
-function generateReferralCode(username) {
+// Helper function to generate invite code
+function generateInviteCode(username) {
     const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     const randomSuffix = Math.random().toString(36).substr(2, 3).toUpperCase();
     return `${cleanUsername}${randomSuffix}`;
@@ -114,7 +114,7 @@ app.get('/api/users', async (req, res) => {
         const query = `
             SELECT
                 id, username, email, full_name, phone,
-                referral_code, referrer_id as referred_by,
+                invite_code, invitor_id as invited_by,
                 created_at, last_login, is_active, avatar_url as profile_image,
                 trust_score as seller_rating, total_sales, location as province
             FROM users
@@ -155,15 +155,15 @@ app.post('/api/register', async (req, res) => {
             return res.json({ success: false, message: 'Email already exists' });
         }
 
-        // Generate referral code
-        const referralCode = generateReferralCode(userData.username);
+        // Generate invite code
+        const inviteCode = generateInviteCode(userData.username);
 
-        // Check if referred_by code exists
-        let referredBy = null;
-        if (userData.referral_code) {
-            const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(userData.referral_code);
-            if (referrer) {
-                referredBy = referrer.id;
+        // Check if invite code exists
+        let invitedBy = null;
+        if (userData.invite_code) {
+            const invitor = db.prepare('SELECT id FROM users WHERE invite_code = ?').get(userData.invite_code);
+            if (invitor) {
+                invitedBy = invitor.id;
             }
         }
 
@@ -171,7 +171,7 @@ app.post('/api/register', async (req, res) => {
         const insertUser = db.prepare(`
             INSERT INTO users (
                 id, username, email, full_name, phone,
-                referral_code, referrer_id,
+                invite_code, invitor_id,
                 created_at, last_login, location
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
@@ -183,8 +183,8 @@ app.post('/api/register', async (req, res) => {
             userData.email,
             userData.full_name,
             userData.phone || '',
-            referralCode,
-            referredBy,
+            inviteCode,
+            invitedBy,
             new Date().toISOString(),
             new Date().toISOString(),
             userData.province || ''
@@ -602,8 +602,9 @@ app.get('/api/dashboard/stats', async (req, res) => {
     try {
         const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
         const totalProducts = db.prepare('SELECT COUNT(*) as count FROM products').get().count;
-        const totalOrders = db.prepare('SELECT COUNT(*) as count FROM orders').get().count || 0;
-        const totalRevenue = db.prepare('SELECT COALESCE(SUM(total_amount), 0) as sum FROM orders WHERE status = "completed"').get().sum || 0;
+        // Since orders table doesn't exist yet, use placeholder values
+        const totalOrders = 0;
+        const totalRevenue = 0;
 
         const stats = {
             totalUsers,
@@ -689,21 +690,20 @@ app.get('/api/dashboard/users', async (req, res) => {
 // Top sellers
 app.get('/api/dashboard/topsellers', async (req, res) => {
     try {
+        // Since orders and reviews tables don't exist yet, return simplified top sellers
         const query = `
             SELECT
                 u.username as seller_username,
                 u.email as seller_email,
                 COALESCE(COUNT(p.id), 0) as products_sold,
-                COALESCE(SUM(o.total_amount), 0) as total_sales,
-                COALESCE(COUNT(o.id), 0) as total_orders,
-                COALESCE(AVG(r.rating), 0) as avg_rating
+                0 as total_sales,
+                0 as total_orders,
+                0 as avg_rating
             FROM users u
             LEFT JOIN products p ON u.id = p.seller_id
-            LEFT JOIN orders o ON p.id = o.product_id AND o.status = 'completed'
-            LEFT JOIN reviews r ON u.id = r.reviewed_user_id
             GROUP BY u.id, u.username, u.email
-            HAVING total_sales > 0
-            ORDER BY total_sales DESC
+            HAVING products_sold > 0
+            ORDER BY products_sold DESC
             LIMIT 10
         `;
 
@@ -754,7 +754,7 @@ app.get('/api/users', async (req, res) => {
         let query = `
             SELECT
                 id, username, email, full_name, phone,
-                referral_code, referrer_id as referred_by,
+                invite_code, invitor_id as invited_by,
                 created_at, last_login, is_active, avatar_url as profile_image,
                 trust_score as seller_rating, total_sales, location as province
             FROM users
