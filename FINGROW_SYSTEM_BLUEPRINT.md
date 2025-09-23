@@ -1,6 +1,20 @@
-# Fingrow V3 - System Blueprint & Audit Plan
+# FINGROW SYSTEM BLUEPRINT 🌱
+## Complete System Architecture & Database Documentation
 
-## 1. System Blueprint
+---
+
+## 🏗️ SYSTEM OVERVIEW
+
+**Fingrow** เป็นระบบ Marketplace แบบ Multi-level Referral Network ที่รองรับการซื้อขายสินค้า, ระบบแนะนำ และการสร้างเครือข่าย
+
+### 🎯 Core Features
+- **User Management**: ระบบสมาชิก พร้อมการยืนยันตัวตน
+- **Product Marketplace**: ระบบซื้อขายสินค้า
+- **Referral Network**: ระบบแนะนำแบบหลายระดับ (MLM)
+- **Profile System**: ระบบโปรไฟล์ พร้อมอัปโหลดรูปภาพ
+- **Admin Panel**: ระบบจัดการแอดมิน
+
+### 🖥️ **System Architecture**
 
 ```ascii
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -16,1302 +30,750 @@
 │  ┌─────────────────────────┼────────────────────────┼───────────────────────┐│
 │  │                         ▼                        ▼                       ││
 │  │                  ┌─────────────────────────────────────┐                 ││
-│  │                  │      MockDatabase Class             │                 ││
+│  │                  │         Express.js Server           │                 ││
 │  │                  │  ┌─────────────┐ ┌─────────────┐    │                 ││
-│  │                  │  │ Users       │ │ Products    │    │                 ││
-│  │                  │  │ normalizeUsers│ │ normalize   │    │                 ││
+│  │                  │  │ Users API   │ │ Products    │    │                 ││
+│  │                  │  │ Auth System │ │ Management  │    │                 ││
 │  │                  │  └─────────────┘ └─────────────┘    │                 ││
 │  │                  │  ┌─────────────┐ ┌─────────────┐    │                 ││
-│  │                  │  │ Orders      │ │ Analytics   │    │                 ││
-│  │                  │  │ MLM Engine  │ │ WLD Price   │    │                 ││
+│  │                  │  │ File Upload │ │ Referral    │    │                 ││
+│  │                  │  │ (Multer)    │ │ Network     │    │                 ││
 │  │                  │  └─────────────┘ └─────────────┘    │                 ││
 │  │                  └─────────────────────────────────────┘                 ││
 │  │                                    │                                     ││
 │  │                                    ▼                                     ││
 │  │           ┌────────────────┐  ┌──────────────────┐  ┌─────────────────┐  ││
-│  │ CURRENT:  │ localStorage   │  │ CoinGecko API    │  │ Expo Dev Server │  ││
-│  │           │ fingrow_*      │  │ WLD Price        │  │ localhost:8081  │  ││
+│  │ CURRENT:  │ SQLite3        │  │ Profile Images   │  │ Node.js Server  │  ││
+│  │           │ fingrow.db     │  │ /uploads/        │  │ localhost:5000  │  ││
 │  │           └────────────────┘  └──────────────────┘  └─────────────────┘  ││
 │  │                                                                          ││
-│  │ TARGET:   ┌────────────────┐  ┌──────────────────┐  ┌─────────────────┐  ││
-│  │           │ Supabase       │  │ Worldcoin API    │  │ Production      │  ││
-│  │           │ PostgreSQL     │  │ Auth & Payment   │  │ Server          │  ││
-│  │           └────────────────┘  └──────────────────┘  └─────────────────┘  ││
 │  └──────────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
 
 Data Flow:
-User -> Landing -> Admin/Mobile -> MockDatabase -> localStorage
+User -> Mobile/Admin -> Express.js API -> SQLite3 Database
              ↓
-     CoinGecko API (WLD Price) -> 5min refresh
+     File Upload -> /uploads/profiles/ -> Static File Serving
              ↓
-     MLM Tree Traversal (7 levels) -> Commission Distribution
+     Referral Network -> MLM Tree Generation -> Commission Calculation
 ```
-
-## 2. Data Model Specification
-
-### Core Entities
-
-```typescript
-// Enhanced User Schema
-interface User {
-  id: number;                    // PRIMARY KEY
-  username: string;              // UNIQUE, NOT NULL, 3-20 chars
-  email: string;                 // UNIQUE, NOT NULL, valid email
-  password_hash: string;         // bcrypt hash, NOT NULL
-  full_name: string;             // NOT NULL, 2-100 chars
-  phone: string;                 // 10-15 digits, optional
-  profile_image: string | null;  // URL, optional
-
-  // Financial
-  wallet_balance: number;        // DEFAULT 0, >= 0
-  wld_balance: number;           // DEFAULT 0, >= 0
-
-  // Referral System
-  referral_code: string;         // UNIQUE, 6-char alphanumeric
-  referred_by: number | null;    // FK to users.id
-
-  // Address (Structured)
-  address_number: string | null;
-  address_street: string | null;
-  address_subdistrict: string | null;
-  address_district: string | null;
-  address_province: string | null;
-  address_postal_code: string | null;
-
-  // Legacy (for migration)
-  shipping_address: string | null;
-
-  // Status & Timestamps
-  status: 'active' | 'inactive' | 'suspended';
-  created_at: string;            // ISO 8601
-  last_login: string | null;     // ISO 8601
-}
-
-// Enhanced Product Schema
-interface Product {
-  id: number;                    // PRIMARY KEY
-  title: string;                 // NOT NULL, 5-200 chars
-  description: string;           // NOT NULL, 10-2000 chars
-  price_thb: number;             // NOT NULL, > 0
-  price_wld: number;             // NOT NULL, > 0, calculated
-  seller_id: number;             // FK to users.id, NOT NULL
-
-  // Classification
-  category: string;              // NOT NULL, predefined list
-  condition: 'ใหม่' | 'ใกล้ใหม่' | 'ดี' | 'พอใช้';
-
-  // Media & Details
-  images: string[];              // Array of URLs, min 1
-  location: string;              // NOT NULL
-  shipping_included: boolean;    // DEFAULT false
-
-  // Status & Timestamps
-  status: 'available' | 'sold' | 'pending' | 'hidden';
-  created_at: string;            // ISO 8601
-  updated_at: string;            // ISO 8601
-}
-
-// Enhanced Order Schema
-interface Order {
-  id: number;                    // PRIMARY KEY
-  buyer_id: number;              // FK to users.id, NOT NULL
-  seller_id: number;             // FK to users.id, NOT NULL
-  product_id: number;            // FK to products.id, NOT NULL
-
-  // Order Details
-  quantity: number;              // DEFAULT 1, > 0
-  total: number;                 // NOT NULL, > 0
-  currency: 'THB' | 'WLD';       // NOT NULL
-
-  // Status & Processing
-  status: 'pending' | 'confirmed' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'disputed';
-  payment_method: string;        // NOT NULL
-  shipping_address: string;      // NOT NULL
-  tracking_number: string | null;
-
-  // Timestamps
-  created_at: string;            // ISO 8601
-  updated_at: string;            // ISO 8601
-  shipped_at: string | null;     // ISO 8601
-  delivered_at: string | null;   // ISO 8601
-}
-
-// Commission Record
-interface Commission {
-  id: number;                    // PRIMARY KEY
-  order_id: number;              // FK to orders.id, NOT NULL
-  referrer_id: number;           // FK to users.id, NOT NULL
-  level: number;                 // 1-7, NOT NULL
-  amount: number;                // > 0, NOT NULL
-  currency: 'THB' | 'WLD';       // NOT NULL
-  status: 'pending' | 'paid' | 'cancelled';
-  created_at: string;            // ISO 8601
-}
-```
-
-### Normalization Functions
-
-```javascript
-// Enhanced normalization with validation
-function normalizeUsers(raw) {
-  const result = _normalizeToArray(raw);
-  return result.map(user => ({
-    ...user,
-    id: parseInt(user.id) || 0,
-    wallet_balance: parseFloat(user.wallet_balance) || 0,
-    wld_balance: parseFloat(user.wld_balance) || 0,
-    status: ['active', 'inactive', 'suspended'].includes(user.status) ? user.status : 'active'
-  }));
-}
-
-function normalizeProducts(raw) {
-  const result = _normalizeToArray(raw);
-  return result.map(product => ({
-    ...product,
-    id: parseInt(product.id) || 0,
-    price_thb: parseFloat(product.price_thb) || 0,
-    price_wld: parseFloat(product.price_wld) || 0,
-    seller_id: parseInt(product.seller_id) || 0,
-    images: Array.isArray(product.images) ? product.images : []
-  }));
-}
-
-function normalizeOrders(raw) {
-  const result = _normalizeToArray(raw);
-  return result.map(order => ({
-    ...order,
-    id: parseInt(order.id) || 0,
-    buyer_id: parseInt(order.buyer_id) || 0,
-    seller_id: parseInt(order.seller_id) || 0,
-    product_id: parseInt(order.product_id) || 0,
-    total: parseFloat(order.total) || 0,
-    quantity: parseInt(order.quantity) || 1
-  }));
-}
-
-function _normalizeToArray(raw) {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === 'string') {
-    try {
-      return _normalizeToArray(JSON.parse(raw));
-    } catch {
-      return [];
-    }
-  }
-  if (raw && typeof raw === 'object') {
-    if (Array.isArray(raw.data)) return raw.data;
-    const values = Object.values(raw);
-    if (values.length > 0 && typeof values[0] === 'object') return values;
-  }
-  return [];
-}
-```
-
-## 3. State Machines
-
-### Order State Machine
-```
-┌─────────┐   confirm    ┌───────────┐   pay      ┌──────┐
-│ pending ├─────────────►│ confirmed ├───────────►│ paid │
-└────┬────┘              └─────┬─────┘            └───┬──┘
-     │                         │                      │
-     │cancel                   │cancel                │ship
-     ▼                         ▼                      ▼
-┌───────────┐              ┌───────────┐         ┌─────────┐
-│ cancelled │              │ cancelled │         │ shipped │
-└───────────┘              └───────────┘         └────┬────┘
-                                                      │
-                                              deliver │ │ dispute
-                                                      ▼ ▼
-                                               ┌──────────┐ ┌──────────┐
-                                               │delivered │ │ disputed │
-                                               └──────────┘ └──────────┘
-```
-
-### Authentication State Machine
-```
-┌─────────────┐  login   ┌────────────┐  success  ┌───────────┐
-│ logged_out  ├─────────►│ logging_in ├──────────►│ logged_in │
-└─────────────┘          └─────┬──────┘           └─────┬─────┘
-      ▲                        │                        │
-      │                        │fail                    │
-      │                        ▼                        │timeout/logout
-      │                 ┌─────────────┐                 │
-      └─────────────────│ login_error │◄────────────────┘
-                        └─────────────┘
-```
-
-## 4. Core Flow Diagrams
-
-### Login Flow
-```
-User Input → Validation → MockDatabase.login() → normalizeUsers()
-    ↓
-Session Creation → localStorage persistence → Address Migration
-    ↓
-UI Update → Redirect to Dashboard/Marketplace
-```
-
-### Product Management Flow
-```
-Product Input → Validation → Price Calculation (THB ↔ WLD)
-    ↓
-Image Upload → MockDatabase.addProduct() → normalizeProducts()
-    ↓
-Update UI → Refresh Product List → Cache WLD Rate
-```
-
-### Checkout & Commission Flow
-```
-Order Creation → Payment Processing → Order Status Update
-    ↓
-MLM Tree Traversal (7 levels) → Commission Calculation
-    ↓
-Commission Distribution → Wallet Updates → Notification Queue
-```
-
-### Referral Attachment Flow
-```
-Registration → Validate Referral Code → Find Referrer
-    ↓
-Check Cycle Prevention → Attach to MLM Tree → Generate Own Code
-```
-
-## 5. Integration Specifications
-
-### WLD Price API Integration
-```javascript
-class WLDPriceManager {
-  constructor() {
-    this.baseURL = 'https://api.coingecko.com/api/v3/simple/price';
-    this.params = '?ids=worldcoin-wld&vs_currencies=usd,thb&include_24hr_change=true';
-    this.cache = { price: null, timestamp: null, ttl: 5 * 60 * 1000 }; // 5 min
-    this.retryConfig = { attempts: 3, backoff: 1000 };
-  }
-
-  async getCurrentPrice(forceFresh = false) {
-    if (!forceFresh && this._isValidCache()) {
-      return this.cache.price;
-    }
-
-    try {
-      const price = await this._fetchWithRetry();
-      this._updateCache(price);
-      return price;
-    } catch (error) {
-      console.error('WLD price fetch failed:', error);
-      return this.cache.price || { thb: 100, usd: 3.0 }; // fallback
-    }
-  }
-
-  toTHB(wldAmount) {
-    const rate = this.cache.price?.thb || 100;
-    return parseFloat((wldAmount * rate).toFixed(2));
-  }
-
-  toWLD(thbAmount) {
-    const rate = this.cache.price?.thb || 100;
-    return parseFloat((thbAmount / rate).toFixed(6));
-  }
-
-  _isValidCache() {
-    return this.cache.price && (Date.now() - this.cache.timestamp) < this.cache.ttl;
-  }
-
-  async _fetchWithRetry() {
-    for (let i = 0; i < this.retryConfig.attempts; i++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(`${this.baseURL}${this.params}`, {
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        return data['worldcoin-wld'];
-      } catch (error) {
-        if (i === this.retryConfig.attempts - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, this.retryConfig.backoff * (i + 1)));
-      }
-    }
-  }
-
-  _updateCache(price) {
-    this.cache = {
-      price,
-      timestamp: Date.now(),
-      ttl: this.cache.ttl
-    };
-  }
-}
-```
-
-### Supabase Migration Plan
-
-#### Phase 1: Table DDL
-```sql
--- Users table
-CREATE TABLE users (
-  id BIGSERIAL PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL CHECK (length(username) BETWEEN 3 AND 20),
-  email TEXT UNIQUE NOT NULL CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-  password_hash TEXT NOT NULL,
-  full_name TEXT NOT NULL CHECK (length(full_name) BETWEEN 2 AND 100),
-  phone TEXT CHECK (phone ~* '^[0-9]{10,15}$'),
-  profile_image TEXT,
-  wallet_balance DECIMAL(10,2) DEFAULT 0 CHECK (wallet_balance >= 0),
-  wld_balance DECIMAL(15,6) DEFAULT 0 CHECK (wld_balance >= 0),
-  referral_code TEXT UNIQUE NOT NULL,
-  referred_by BIGINT REFERENCES users(id),
-  address_number TEXT,
-  address_street TEXT,
-  address_subdistrict TEXT,
-  address_district TEXT,
-  address_province TEXT,
-  address_postal_code TEXT,
-  shipping_address TEXT,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_login TIMESTAMPTZ
-);
-
--- Products table
-CREATE TABLE products (
-  id BIGSERIAL PRIMARY KEY,
-  title TEXT NOT NULL CHECK (length(title) BETWEEN 5 AND 200),
-  description TEXT NOT NULL CHECK (length(description) BETWEEN 10 AND 2000),
-  price_thb DECIMAL(10,2) NOT NULL CHECK (price_thb > 0),
-  price_wld DECIMAL(15,6) NOT NULL CHECK (price_wld > 0),
-  seller_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  category TEXT NOT NULL,
-  condition TEXT CHECK (condition IN ('ใหม่', 'ใกล้ใหม่', 'ดี', 'พอใช้')),
-  images JSONB NOT NULL DEFAULT '[]',
-  location TEXT NOT NULL,
-  shipping_included BOOLEAN DEFAULT false,
-  status TEXT DEFAULT 'available' CHECK (status IN ('available', 'sold', 'pending', 'hidden')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Orders table
-CREATE TABLE orders (
-  id BIGSERIAL PRIMARY KEY,
-  buyer_id BIGINT NOT NULL REFERENCES users(id),
-  seller_id BIGINT NOT NULL REFERENCES users(id),
-  product_id BIGINT NOT NULL REFERENCES products(id),
-  quantity INTEGER DEFAULT 1 CHECK (quantity > 0),
-  total DECIMAL(10,2) NOT NULL CHECK (total > 0),
-  currency TEXT NOT NULL CHECK (currency IN ('THB', 'WLD')),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'paid', 'shipped', 'delivered', 'cancelled', 'disputed')),
-  payment_method TEXT NOT NULL,
-  shipping_address TEXT NOT NULL,
-  tracking_number TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  shipped_at TIMESTAMPTZ,
-  delivered_at TIMESTAMPTZ
-);
-
--- Commissions table
-CREATE TABLE commissions (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES orders(id),
-  referrer_id BIGINT NOT NULL REFERENCES users(id),
-  level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 7),
-  amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
-  currency TEXT NOT NULL CHECK (currency IN ('THB', 'WLD')),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-#### Phase 2: RLS Policies
-```sql
--- Enable RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE commissions ENABLE ROW LEVEL SECURITY;
-
--- Users policies
-CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id::text);
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid()::text = id::text);
-
--- Products policies
-CREATE POLICY "Anyone can view available products" ON products FOR SELECT USING (status = 'available');
-CREATE POLICY "Users can manage own products" ON products FOR ALL USING (auth.uid()::text = seller_id::text);
-
--- Orders policies
-CREATE POLICY "Users can view own orders" ON orders FOR SELECT USING (
-  auth.uid()::text = buyer_id::text OR auth.uid()::text = seller_id::text
-);
-```
-
-#### Phase 3: Migration Steps
-1. Export localStorage data using `MockDatabase.exportData()`
-2. Transform data format using migration scripts
-3. Import to Supabase using batch inserts
-4. Update client code to use Supabase client
-5. Test data integrity and user flows
-
-## 6. Security & Reliability Checklist
-
-### Authentication & Authorization
-- [ ] Hash passwords using bcryptjs (minimum 12 rounds)
-- [ ] Implement secure session management with TTL
-- [ ] Add rate limiting for login attempts (5 attempts per 15 minutes)
-- [ ] Validate all user inputs on both client and server side
-- [ ] Implement CSRF protection for state-changing operations
-
-### Data Protection
-- [ ] Sanitize all user-generated content
-- [ ] Validate file uploads (type, size, content)
-- [ ] Implement proper error handling without information leakage
-- [ ] Add audit logging for sensitive operations
-- [ ] Encrypt sensitive data in localStorage
-
-### System Reliability
-- [ ] Implement circuit breaker for external API calls
-- [ ] Add graceful degradation for WLD price failures
-- [ ] Handle localStorage corruption with automatic recovery
-- [ ] Implement retry mechanisms with exponential backoff
-- [ ] Add health checks for critical system components
-
-### Code Security Patches
-
-#### Password Hashing Implementation
-```javascript
-// Add to mockDatabase.js
-async _hashPassword(password) {
-  // For demo: simple hash. Production: use bcryptjs
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'fingrow_salt_2024');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async _verifyPassword(password, hash) {
-  const computed = await this._hashPassword(password);
-  return computed === hash;
-}
-
-// Update login method
-async login(username, password) {
-  const normalizedUsers = this.normalizeUsers(this.users || []);
-  const user = normalizedUsers.find(u =>
-    (u.username === username || u.email === username)
-  );
-
-  if (!user || user.status !== 'active') {
-    return { success: false, message: 'Invalid credentials or inactive account' };
-  }
-
-  // Check if password is already hashed
-  const isValidPassword = user.password.length === 64
-    ? await this._verifyPassword(password, user.password)
-    : user.password === password; // Legacy support
-
-  if (!isValidPassword) {
-    return { success: false, message: 'Invalid credentials' };
-  }
-
-  // Update last login
-  user.last_login = new Date().toISOString().split('T')[0];
-  this.updateUser(user.id, { last_login: user.last_login });
-
-  return { success: true, user: { ...user, password: undefined } }; // Remove password from response
-}
-```
-
-#### Session Management
-```javascript
-class SessionManager {
-  constructor() {
-    this.sessionKey = 'fingrow_session';
-    this.ttl = 24 * 60 * 60 * 1000; // 24 hours
-  }
-
-  createSession(user) {
-    const session = {
-      userId: user.id,
-      username: user.username,
-      role: user.role || 'user',
-      createdAt: Date.now(),
-      expiresAt: Date.now() + this.ttl
-    };
-
-    localStorage.setItem(this.sessionKey, JSON.stringify(session));
-    return session;
-  }
-
-  getSession() {
-    try {
-      const sessionData = localStorage.getItem(this.sessionKey);
-      if (!sessionData) return null;
-
-      const session = JSON.parse(sessionData);
-      if (Date.now() > session.expiresAt) {
-        this.clearSession();
-        return null;
-      }
-
-      return session;
-    } catch (error) {
-      console.error('Session parsing error:', error);
-      this.clearSession();
-      return null;
-    }
-  }
-
-  clearSession() {
-    localStorage.removeItem(this.sessionKey);
-  }
-
-  isAuthenticated() {
-    return this.getSession() !== null;
-  }
-}
-```
-
-## 7. MLM Commission Algorithm
-
-```javascript
-class MLMCommissionEngine {
-  constructor(database) {
-    this.db = database;
-    this.commissionRates = [0.1, 0.05, 0.03, 0.02, 0.01, 0.005, 0.002]; // 7 levels
-    this.maxDepth = 7;
-  }
-
-  async calculateCommissions(orderId, saleAmount, currency = 'THB') {
-    try {
-      const order = await this.db.getOrder(orderId);
-      if (!order) throw new Error('Order not found');
-
-      const seller = await this.db.getUser(order.seller_id);
-      if (!seller || !seller.referred_by) {
-        return { commissions: [], total: 0 }; // No referral chain
-      }
-
-      const commissions = [];
-      const visited = new Set(); // Prevent cycles
-      let currentReferrerId = seller.referred_by;
-      let level = 1;
-
-      while (currentReferrerId && level <= this.maxDepth) {
-        // Cycle detection
-        if (visited.has(currentReferrerId)) {
-          console.warn(`MLM cycle detected at user ${currentReferrerId}, breaking chain`);
-          break;
-        }
-        visited.add(currentReferrerId);
-
-        const referrer = await this.db.getUser(currentReferrerId);
-        if (!referrer || referrer.status !== 'active') {
-          break; // Skip inactive users
-        }
-
-        const rate = this.commissionRates[level - 1];
-        const amount = parseFloat((saleAmount * rate).toFixed(2));
-
-        if (amount > 0) {
-          commissions.push({
-            orderId,
-            referrerId: currentReferrerId,
-            referrerUsername: referrer.username,
-            level,
-            amount,
-            currency,
-            rate
-          });
-        }
-
-        currentReferrerId = referrer.referred_by;
-        level++;
-      }
-
-      const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
-
-      return {
-        commissions,
-        total: totalCommission,
-        levels: commissions.length
-      };
-    } catch (error) {
-      console.error('Commission calculation error:', error);
-      return { commissions: [], total: 0, error: error.message };
-    }
-  }
-
-  async distributeCommissions(orderId) {
-    const order = await this.db.getOrder(orderId);
-    const result = await this.calculateCommissions(orderId, order.total, order.currency);
-
-    const promises = result.commissions.map(async (commission) => {
-      // Create commission record
-      await this.db.createCommission({
-        order_id: orderId,
-        referrer_id: commission.referrerId,
-        level: commission.level,
-        amount: commission.amount,
-        currency: commission.currency,
-        status: 'pending'
-      });
-
-      // Update referrer wallet
-      const referrer = await this.db.getUser(commission.referrerId);
-      const balanceField = commission.currency === 'WLD' ? 'wld_balance' : 'wallet_balance';
-      const newBalance = (referrer[balanceField] || 0) + commission.amount;
-
-      await this.db.updateUser(commission.referrerId, {
-        [balanceField]: newBalance
-      });
-
-      return commission;
-    });
-
-    const distributedCommissions = await Promise.all(promises);
-
-    console.log(`💰 Distributed ${result.total} ${order.currency} in commissions across ${result.levels} levels for order ${orderId}`);
-
-    return {
-      ...result,
-      commissions: distributedCommissions
-    };
-  }
-
-  // Utility: Get referral tree (for admin dashboard)
-  async getReferralTree(userId, maxDepth = 3) {
-    const tree = { user: await this.db.getUser(userId), children: [] };
-    const visited = new Set([userId]);
-
-    const buildBranch = async (parentId, currentDepth) => {
-      if (currentDepth >= maxDepth) return [];
-
-      const normalizedUsers = this.db.normalizeUsers(this.db.users || []);
-      const directReferrals = normalizedUsers.filter(u =>
-        u.referred_by === parentId && !visited.has(u.id)
-      );
-
-      const branches = await Promise.all(
-        directReferrals.map(async (user) => {
-          visited.add(user.id);
-          return {
-            user,
-            children: await buildBranch(user.id, currentDepth + 1)
-          };
-        })
-      );
-
-      return branches;
-    };
-
-    tree.children = await buildBranch(userId, 0);
-    return tree;
-  }
-}
-```
-
-## 8. Code Audit & Patches
-
-### Critical Issues Found
-
-#### 1. Plain Text Password Storage
-**Location**: `mockDatabase.js` - login method
-**Risk**: High - Credentials easily compromised
-**Patch**: Implement password hashing (see Section 6)
-
-#### 2. Fragile Array Operations
-**Location**: Multiple files - `.find()` operations
-**Risk**: Medium - Runtime errors on data corruption
-**Status**: ✅ Fixed with `normalizeUsers/Products/Orders`
-
-#### 3. Missing Input Validation
-**Location**: All user input handlers
-**Risk**: High - XSS, injection attacks
-**Patch**:
-```javascript
-// Add to mockDatabase.js
-_validateUserInput(userData) {
-  const errors = [];
-
-  if (!userData.username || userData.username.length < 3 || userData.username.length > 20) {
-    errors.push('Username must be 3-20 characters');
-  }
-
-  if (!userData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
-    errors.push('Invalid email format');
-  }
-
-  if (!userData.password || userData.password.length < 6) {
-    errors.push('Password must be at least 6 characters');
-  }
-
-  // Sanitize strings
-  ['username', 'email', 'full_name'].forEach(field => {
-    if (userData[field]) {
-      userData[field] = userData[field].replace(/[<>\"']/g, ''); // Basic XSS prevention
-    }
-  });
-
-  return { isValid: errors.length === 0, errors, sanitizedData: userData };
-}
-
-// Update register method
-async register(userData) {
-  const validation = this._validateUserInput(userData);
-  if (!validation.isValid) {
-    return { success: false, message: validation.errors.join(', ') };
-  }
-
-  // Continue with existing logic using validation.sanitizedData
-}
-```
-
-#### 4. Missing Error Boundaries
-**Location**: All async operations
-**Risk**: Medium - Poor user experience on failures
-**Patch**:
-```javascript
-// Global error handler
-window.addEventListener('unhandledrejection', event => {
-  console.error('Unhandled promise rejection:', event.reason);
-  showNotification('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', 'error');
-  event.preventDefault();
-});
-
-// Wrapper for async operations
-async function safeAsync(operation, fallback = null) {
-  try {
-    return await operation();
-  } catch (error) {
-    console.error('Async operation failed:', error);
-    return fallback;
-  }
-}
-```
-
-### handleLogin() Improvements
-```javascript
-// Enhanced handleLogin with security
-async function handleLogin(username, password) {
-  try {
-    // Rate limiting check
-    const attempts = parseInt(localStorage.getItem('login_attempts') || '0');
-    const lastAttempt = parseInt(localStorage.getItem('last_login_attempt') || '0');
-    const now = Date.now();
-
-    if (attempts >= 5 && (now - lastAttempt) < 15 * 60 * 1000) {
-      throw new Error('Too many login attempts. Please try again in 15 minutes.');
-    }
-
-    // Input validation
-    if (!username || !password) {
-      throw new Error('Username and password are required');
-    }
-
-    // Sanitize input
-    username = username.trim().substring(0, 50);
-
-    const result = await database.login(username, password);
-
-    if (result.success) {
-      // Reset login attempts
-      localStorage.removeItem('login_attempts');
-      localStorage.removeItem('last_login_attempt');
-
-      // Create session
-      const sessionManager = new SessionManager();
-      sessionManager.createSession(result.user);
-
-      // Enhanced user data loading with error handling
-      if (typeof database.getUsers === 'function') {
-        try {
-          const users = database.getUsers();
-          const normalizedUsers = normalizeUsers(users || []);
-          const fullUser = normalizedUsers.find(u => u.id === result.user.id);
-
-          if (fullUser) {
-            // Address migration logic
-            await migrateUserAddress(fullUser);
-            // Store enhanced user data
-            sessionStorage.setItem('current_user', JSON.stringify(fullUser));
-          }
-        } catch (error) {
-          console.warn('Error loading full user data:', error);
-        }
-      }
-
-      showNotification('เข้าสู่ระบบสำเร็จ', 'success');
-      redirectToDashboard();
-    } else {
-      // Increment failed attempts
-      localStorage.setItem('login_attempts', (attempts + 1).toString());
-      localStorage.setItem('last_login_attempt', now.toString());
-
-      throw new Error(result.message || 'Invalid credentials');
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    showNotification(error.message, 'error');
-  }
-}
-```
-
-## 9. Admin Dashboard UX Fixes
-
-### Loading States & Skeletons
-```javascript
-// Loading skeleton component
-function createLoadingSkeleton(type = 'card') {
-  const skeletons = {
-    card: `
-      <div class="animate-pulse bg-gray-800 rounded-lg p-6">
-        <div class="h-4 bg-gray-700 rounded w-3/4 mb-4"></div>
-        <div class="h-8 bg-gray-700 rounded w-1/2 mb-2"></div>
-        <div class="h-3 bg-gray-700 rounded w-1/3"></div>
-      </div>
-    `,
-    table: `
-      <tr class="animate-pulse">
-        <td class="py-4"><div class="h-4 bg-gray-700 rounded w-24"></div></td>
-        <td class="py-4"><div class="h-4 bg-gray-700 rounded w-32"></div></td>
-        <td class="py-4"><div class="h-4 bg-gray-700 rounded w-20"></div></td>
-      </tr>
-    `,
-    chart: `
-      <div class="animate-pulse bg-gray-800 rounded-lg p-6 h-80">
-        <div class="h-4 bg-gray-700 rounded w-1/3 mb-6"></div>
-        <div class="h-64 bg-gray-700 rounded"></div>
-      </div>
-    `
-  };
-
-  return skeletons[type] || skeletons.card;
-}
-
-// Enhanced loading states in admin.js
-async loadUsers() {
-  const container = document.getElementById('users-container');
-
-  // Show loading skeleton
-  container.innerHTML = Array(5).fill().map(() => createLoadingSkeleton('table')).join('');
-
-  try {
-    const users = await this.mockDB.getUsers();
-    // Render actual data
-    this.renderUsers(users);
-  } catch (error) {
-    // Show error state
-    container.innerHTML = `
-      <div class="text-center py-12">
-        <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-        <h3 class="text-xl text-white mb-2">ไม่สามารถโหลดข้อมูลได้</h3>
-        <p class="text-gray-400 mb-4">${error.message}</p>
-        <button onclick="admin.loadUsers()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded">
-          ลองอีกครั้ง
-        </button>
-      </div>
-    `;
-  }
-}
-```
-
-### Notification System
-```javascript
-class NotificationManager {
-  constructor() {
-    this.container = this.createContainer();
-    this.notifications = new Map();
-  }
-
-  createContainer() {
-    const container = document.createElement('div');
-    container.id = 'notification-container';
-    container.className = 'fixed top-4 right-4 z-50 space-y-2';
-    document.body.appendChild(container);
-    return container;
-  }
-
-  show(message, type = 'info', duration = 4000) {
-    const id = Date.now().toString();
-    const notification = this.createNotification(id, message, type);
-
-    this.container.appendChild(notification);
-    this.notifications.set(id, notification);
-
-    // Auto remove
-    setTimeout(() => this.remove(id), duration);
-
-    // Slide in animation
-    requestAnimationFrame(() => {
-      notification.style.transform = 'translateX(0)';
-      notification.style.opacity = '1';
-    });
-
-    return id;
-  }
-
-  createNotification(id, message, type) {
-    const colors = {
-      success: 'bg-emerald-600',
-      error: 'bg-red-600',
-      warning: 'bg-yellow-600',
-      info: 'bg-blue-600'
-    };
-
-    const icons = {
-      success: 'fa-check-circle',
-      error: 'fa-exclamation-circle',
-      warning: 'fa-exclamation-triangle',
-      info: 'fa-info-circle'
-    };
-
-    const div = document.createElement('div');
-    div.className = `${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg transform translate-x-full opacity-0 transition-all duration-300 max-w-sm`;
-    div.innerHTML = `
-      <div class="flex items-center">
-        <i class="fas ${icons[type]} mr-3"></i>
-        <span class="flex-1">${message}</span>
-        <button onclick="notifications.remove('${id}')" class="ml-3 text-white hover:text-gray-200">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    `;
-
-    return div;
-  }
-
-  remove(id) {
-    const notification = this.notifications.get(id);
-    if (!notification) return;
-
-    notification.style.transform = 'translateX(full)';
-    notification.style.opacity = '0';
-
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-      this.notifications.delete(id);
-    }, 300);
-  }
-
-  clear() {
-    this.notifications.forEach((_, id) => this.remove(id));
-  }
-}
-
-// Global instance
-const notifications = new NotificationManager();
-
-// Update existing show functions
-function showSuccess(message) {
-  notifications.show(message, 'success');
-}
-
-function showError(message) {
-  notifications.show(message, 'error');
-}
-```
-
-### Enhanced Pagination
-```javascript
-class DataTable {
-  constructor(containerId, options = {}) {
-    this.container = document.getElementById(containerId);
-    this.options = {
-      pageSize: 10,
-      searchable: true,
-      sortable: true,
-      ...options
-    };
-    this.data = [];
-    this.filteredData = [];
-    this.currentPage = 1;
-    this.sortColumn = null;
-    this.sortDirection = 'asc';
-    this.searchTerm = '';
-  }
-
-  setData(data) {
-    this.data = data;
-    this.filteredData = [...data];
-    this.currentPage = 1;
-    this.render();
-  }
-
-  search(term) {
-    this.searchTerm = term.toLowerCase();
-    this.filteredData = this.data.filter(item =>
-      Object.values(item).some(value =>
-        String(value).toLowerCase().includes(this.searchTerm)
-      )
-    );
-    this.currentPage = 1;
-    this.render();
-  }
-
-  sort(column) {
-    if (this.sortColumn === column) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortColumn = column;
-      this.sortDirection = 'asc';
-    }
-
-    this.filteredData.sort((a, b) => {
-      const aVal = a[column];
-      const bVal = b[column];
-      const direction = this.sortDirection === 'asc' ? 1 : -1;
-
-      return aVal > bVal ? direction : aVal < bVal ? -direction : 0;
-    });
-
-    this.render();
-  }
-
-  goToPage(page) {
-    const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
-    this.currentPage = Math.max(1, Math.min(page, totalPages));
-    this.render();
-  }
-
-  render() {
-    const startIndex = (this.currentPage - 1) * this.options.pageSize;
-    const endIndex = startIndex + this.options.pageSize;
-    const pageData = this.filteredData.slice(startIndex, endIndex);
-    const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
-
-    // Render table content
-    this.renderTable(pageData);
-
-    // Render pagination
-    this.renderPagination(totalPages);
-  }
-
-  renderPagination(totalPages) {
-    const pagination = document.getElementById('pagination');
-    if (!pagination) return;
-
-    const pages = [];
-    const current = this.currentPage;
-
-    // Previous button
-    pages.push(`
-      <button ${current === 1 ? 'disabled' : ''}
-              onclick="dataTable.goToPage(${current - 1})"
-              class="px-3 py-2 mx-1 rounded ${current === 1 ? 'bg-gray-700 text-gray-500' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">
-        ←
-      </button>
-    `);
-
-    // Page numbers
-    for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
-      pages.push(`
-        <button onclick="dataTable.goToPage(${i})"
-                class="px-3 py-2 mx-1 rounded ${i === current ? 'bg-emerald-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}">
-          ${i}
-        </button>
-      `);
-    }
-
-    // Next button
-    pages.push(`
-      <button ${current === totalPages ? 'disabled' : ''}
-              onclick="dataTable.goToPage(${current + 1})"
-              class="px-3 py-2 mx-1 rounded ${current === totalPages ? 'bg-gray-700 text-gray-500' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">
-        →
-      </button>
-    `);
-
-    pagination.innerHTML = `
-      <div class="flex justify-between items-center mt-4">
-        <div class="text-gray-400 text-sm">
-          แสดง ${startIndex + 1}-${Math.min(endIndex, this.filteredData.length)} จาก ${this.filteredData.length} รายการ
-        </div>
-        <div class="flex items-center">
-          ${pages.join('')}
-        </div>
-      </div>
-    `;
-  }
-}
-```
-
-## 10. DevOps & Tooling
-
-### package.json Scripts
-```json
-{
-  "name": "fingrow-v3",
-  "version": "3.0.0",
-  "description": "Secondhand Marketplace with Worldcoin Integration",
-  "scripts": {
-    "dev": "expo start --clear",
-    "build": "expo build:web",
-    "lint": "eslint admin/js mobile/index.html --ext .js,.html",
-    "lint:fix": "eslint admin/js mobile/index.html --ext .js,.html --fix",
-    "format": "prettier --write \"**/*.{js,html,css,md}\"",
-    "format:check": "prettier --check \"**/*.{js,html,css,md}\"",
-    "test": "echo \"No tests yet\" && exit 0",
-    "audit": "echo \"Running security audit...\" && npm audit",
-    "clean": "rm -rf .expo dist",
-    "backup": "node scripts/backup-data.js",
-    "migrate": "node scripts/migrate-to-supabase.js"
-  },
-  "devDependencies": {
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  }
-}
-```
-
-### .eslintrc.json
-```json
-{
-  "env": {
-    "browser": true,
-    "es2021": true
-  },
-  "extends": [
-    "eslint:recommended"
-  ],
-  "parserOptions": {
-    "ecmaVersion": "latest",
-    "sourceType": "script"
-  },
-  "rules": {
-    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "no-console": ["warn", { "allow": ["warn", "error", "debug"] }],
-    "prefer-const": "error",
-    "no-var": "error",
-    "eqeqeq": "error",
-    "curly": "error",
-    "semi": ["error", "always"],
-    "quotes": ["error", "single", { "allowTemplateLiterals": true }],
-    "indent": ["error", 2],
-    "no-trailing-spaces": "error",
-    "object-curly-spacing": ["error", "always"],
-    "array-bracket-spacing": ["error", "never"],
-    "max-len": ["warn", { "code": 120 }]
-  },
-  "globals": {
-    "Chart": "readonly",
-    "MockDatabase": "readonly",
-    "FingrowAdmin": "readonly",
-    "normalizeUsers": "readonly",
-    "notifications": "readonly"
-  }
-}
-```
-
-### .prettierrc
-```json
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 120,
-  "tabWidth": 2,
-  "useTabs": false,
-  "bracketSpacing": true,
-  "bracketSameLine": false,
-  "arrowParens": "avoid",
-  "endOfLine": "lf",
-  "htmlWhitespaceSensitivity": "css",
-  "overrides": [
-    {
-      "files": "*.html",
-      "options": {
-        "printWidth": 100,
-        "htmlWhitespaceSensitivity": "ignore"
-      }
-    }
-  ]
-}
-```
-
-### Development Scripts
-
-#### scripts/backup-data.js
-```javascript
-// Backup localStorage data
-const fs = require('fs');
-const path = require('path');
-
-function backupLocalStorage() {
-  const backupDir = path.join(__dirname, '..', 'backups');
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir);
-  }
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupFile = path.join(backupDir, `fingrow-backup-${timestamp}.json`);
-
-  // This would typically run in browser context
-  console.log(`Backup script created. Run this in browser console:
-
-    const data = {
-      users: localStorage.getItem('fingrow_users'),
-      products: localStorage.getItem('fingrow_products'),
-      orders: localStorage.getItem('fingrow_orders'),
-      timestamp: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'fingrow-backup-${timestamp}.json';
-    a.click();
-  `);
-}
-
-backupLocalStorage();
-```
-
-## Manual Test Plans
-
-### Test Plan 1: Authentication Security
-1. Open browser console and run `localStorage.clear()`
-2. Try login with invalid credentials → Should show rate limiting after 5 attempts
-3. Login with valid credentials → Should hash password and create session
-4. Close browser and reopen → Should maintain session within TTL
-5. Check session storage for encrypted user data
-
-### Test Plan 2: Data Normalization
-1. Manually corrupt localStorage: `localStorage.setItem('fingrow_users', 'invalid_json')`
-2. Try to load admin dashboard → Should gracefully handle and create defaults
-3. Set users as object instead of array → Should normalize correctly
-4. Verify all `.find()` operations work without errors
-
-### Test Plan 3: MLM Commission Flow
-1. Create user A with referral code
-2. Register user B using A's referral code
-3. User B creates and sells a product
-4. Check that commission is calculated and distributed to A
-5. Verify commission records are created in database
-
-### Test Plan 4: WLD Price Integration
-1. Disable internet connection
-2. Load application → Should show cached/fallback WLD price
-3. Re-enable connection → Should update price within 5 minutes
-4. Test currency conversion in product creation
-
-### Test Plan 5: Admin Dashboard UX
-1. Load dashboard with slow network → Should show loading skeletons
-2. Cause API error → Should show error state with retry button
-3. Test pagination with large dataset → Should handle smoothly
-4. Test search and sorting functionality
 
 ---
 
-This blueprint provides a comprehensive roadmap for transforming Fingrow V3 from a prototype into a production-ready marketplace. The focus remains on vanilla JavaScript, security hardening, and maintaining the existing architecture while adding robustness and user experience improvements.
+## 🗄️ DATABASE STRUCTURE
+
+### 👥 **USERS TABLE** - ตารางข้อมูลผู้ใช้หลัก
+
+| Field Name | Type | Description | หน้าที่/การใช้งาน |
+|------------|------|-------------|-----------------|
+| `id` | TEXT PRIMARY KEY | User ID รูปแบบ: [ปี2หลัก][AAA][0000] | ระบุตัวตนเฉพาะ เช่น 25AAA0001 |
+| `world_id` | TEXT | Global World ID | สำหรับ sync ข้ามเซิร์ฟเวอร์ (อนาคต) |
+| `username` | TEXT UNIQUE | ชื่อผู้ใช้ | Login, แสดงชื่อในระบบ |
+| `email` | TEXT UNIQUE | อีเมล | Login, การติดต่อ |
+| `phone` | TEXT | เบอร์โทรศัพท์ | ติดต่อ, ยืนยันตัวตน |
+| `full_name` | TEXT | ชื่อจริง-นามสกุล | แสดงชื่อในเครือข่าย |
+| `password_hash` | TEXT | รหัสผ่านที่เข้ารหัส bcrypt | ความปลอดภัย |
+| `avatar_url` | TEXT | URL รูปโปรไฟล์ | แสดงในเครือข่าย/โปรไฟล์ |
+| `profile_image_filename` | TEXT | ชื่อไฟล์รูปโปรไฟล์ | จัดการไฟล์อัปโหลด |
+| `bio` | TEXT | แนะนำตัว | โปรไฟล์ส่วนตัว |
+| `location` | TEXT | จังหวัด/พื้นที่ | แสดงที่อยู่, กรองสินค้า |
+| `preferred_currency` | TEXT | สกุลเงินที่ต้องการ | แสดงราคาสินค้า |
+| `language` | TEXT | ภาษา | UI/UX |
+| **REFERRAL SYSTEM** | | | |
+| `invite_code` | TEXT UNIQUE | รหัสเชิญเข้าร่วม | สร้างเครือข่าย, track referral |
+| `invitor_id` | TEXT | ID ผู้แนะนำ | สร้างเครือข่าย, คำนวณคอมมิชชั่น |
+| `total_invites` | INTEGER | จำนวนคนที่แนะนำทั้งหมด | สถิติ, ranking |
+| `active_invites` | INTEGER | จำนวนคนที่แนะนำที่ยัง active | คำนวณคอมมิชชั่น |
+| **TRUST & VERIFICATION** | | | |
+| `is_verified` | INTEGER (0/1) | สถานะยืนยันตัวตน | ความน่าเชื่อถือ |
+| `verification_level` | INTEGER | ระดับการยืนยัน (1-5) | สิทธิ์การใช้งาน |
+| `trust_score` | REAL | คะแนนความน่าเชื่อถือ | Seller rating |
+| **BUSINESS METRICS** | | | |
+| `total_sales` | REAL | ยอดขายรวม | สถิติ, ranking |
+| `total_purchases` | REAL | ยอดซื้อรวม | สถิติผู้ซื้อ |
+| **SYSTEM STATUS** | | | |
+| `is_active` | INTEGER (0/1) | สถานะการใช้งาน | ระงับการใช้งาน |
+| `is_suspended` | INTEGER (0/1) | สถานะถูกระงับ | จัดการผู้ใช้ |
+| `created_at` | TEXT | วันที่สร้างบัญชี | สถิติ, audit |
+| `updated_at` | TEXT | วันที่อัปเดตล่าสุด | tracking การเปลี่ยนแปลง |
+| `last_login` | TEXT | Login ล่าสุด | สถิติการใช้งาน |
+
+### 🛍️ **PRODUCTS TABLE** - ตารางสินค้า
+
+| Field Name | Type | Description | หน้าที่/การใช้งาน |
+|------------|------|-------------|-----------------|
+| `id` | TEXT PRIMARY KEY | Product ID | ระบุสินค้าเฉพาะ |
+| `seller_id` | TEXT | ID ผู้ขาย (FK: users.id) | เชื่อมโยงผู้ขาย |
+| `title` | TEXT | ชื่อสินค้า | แสดงในรายการ |
+| `description` | TEXT | รายละเอียดสินค้า | หน้าสินค้า |
+| `price_local` | REAL | ราคาท้องถิน | แสดงราคา |
+| `currency_code` | TEXT | รหัสสกุลเงิน | แปลงสกุลเงิน |
+| `category_id` | TEXT | หมวดหมู่สินค้า | จัดหมวดหมู่ |
+| `condition` | TEXT | สภาพสินค้า (new/used) | ข้อมูลสินค้า |
+| `brand` | TEXT | ยี่ห้อ | ค้นหา/กรอง |
+| `location` | TEXT | ที่อยู่สินค้า | จัดส่ง/รับสินค้า |
+| `images` | TEXT (JSON) | รูปภาพสินค้า | แสดงรูป |
+| `status` | TEXT | สถานะ (active/sold/hidden) | จัดการสินค้า |
+| `created_at` | TEXT | วันที่เพิ่มสินค้า | เรียงลำดับ |
+| `updated_at` | TEXT | วันที่แก้ไขล่าสุด | tracking |
+
+---
+
+## 🔄 REFERRAL NETWORK SYSTEM
+
+### 🌟 **การทำงานของระบบเครือข่าย**
+
+#### 1. **User ID Generation Algorithm**
+```
+Format: [ปีค.ศ. 2 หลัก][Letters 3 ตัว][Numbers 4 หลัก]
+Example: 25AAA0001, 25AAA0002, ..., 25AAA9999, 25AAB0000
+
+Logic:
+- เริ่มต้น: 25AAA0000
+- เมื่อครบ 9999: เพิ่ม Letters (AAA→AAB→...→ZZZ)
+- รองรับได้ 175,760,000 users ต่อปี
+```
+
+#### 2. **Invite Code Generation**
+```
+Format: [CLEANED_USERNAME][RANDOM_3_CHARS]
+Example: DUCKLORDP7G, NEWUSER6PD
+
+Process:
+1. ทำความสะอาดชื่อผู้ใช้ (เอาเฉพาะ A-Z, 0-9)
+2. แปลงเป็นตัวพิมพ์ใหญ่
+3. เพิ่มตัวอักษรสุ่ม 3 ตัว
+```
+
+#### 3. **Network Creation Process**
+```
+Registration Flow:
+1. User กรอกข้อมูล + invite_code (optional)
+2. ตรวจสอบ invite_code ในฐานข้อมูล
+3. หา invitor_id จาก invite_code
+4. สร้าง User ID ใหม่
+5. สร้าง invite_code ใหม่สำหรับ user นี้
+6. บันทึก invitor_id เป็น parent ในเครือข่าย
+7. อัปเดต total_invites ของ invitor
+```
+
+#### 4. **Network Hierarchy Tracking**
+```sql
+-- หา downline ทั้งหมด
+SELECT * FROM users WHERE invitor_id = 'USER_ID';
+
+-- หา upline (ผู้แนะนำ)
+SELECT * FROM users WHERE id = (
+    SELECT invitor_id FROM users WHERE id = 'USER_ID'
+);
+
+-- นับจำนวนคนในเครือข่าย
+SELECT COUNT(*) FROM users WHERE invitor_id = 'USER_ID';
+```
+
+---
+
+## 🚀 BACKEND API ENDPOINTS
+
+### 👤 **User Management**
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/api/register` | POST | สมัครสมาชิกใหม่ | username, email, password, full_name, phone, province, invite_code |
+| `/api/login` | POST | เข้าสู่ระบบ | username/email, password |
+| `/api/users` | GET | ดึงรายชื่อผู้ใช้ทั้งหมด | - |
+| `/api/users/:userId` | GET | ดึงข้อมูลผู้ใช้รายบุคคล | userId |
+| `/api/users/:userId` | PUT | อัปเดตข้อมูลผู้ใช้ | userId + user data |
+
+### 🖼️ **File Upload**
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/api/upload-profile-image` | POST | อัปโหลดรูปโปรไฟล์ | profileImage (file), userId |
+| `/uploads/*` | GET | Static Files Serving | file path |
+
+### 🛍️ **Product Management**
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/api/products` | GET | ดึงรายการสินค้า | - |
+| `/api/products` | POST | เพิ่มสินค้าใหม่ | product data |
+| `/api/products/:productId` | PUT | อัปเดตสินค้า | productId + product data |
+| `/api/products/:productId` | DELETE | ลบสินค้า | productId |
+
+### 📊 **Analytics**
+| Endpoint | Method | Description | Parameters |
+|----------|--------|-------------|------------|
+| `/api/stats` | GET | สถิติระบบรวม | - |
+| `/api/network/:userId` | GET | ข้อมูลเครือข่ายของผู้ใช้ | userId |
+
+---
+
+## 🎨 FRONTEND ARCHITECTURE
+
+### 📱 **Mobile Interface** (`mobile/index.html`)
+- **Single Page Application** พร้อม Dynamic Content Loading
+- **Responsive Design** สำหรับมือถือ
+- **Local Storage** สำหรับ User Session
+- **AJAX API Calls** สำหรับ Real-time Data
+
+#### Key Functions:
+- `loadReferralsData()` - โหลดข้อมูลเครือข่าย
+- `displayInvitedUsers()` - แสดงคนที่แนะนำมา
+- `copyMyReferralCode()` - คัดลอกรหัสแนะนำ
+- `uploadProfileImageToServer()` - อัปโหลดรูปโปรไฟล์
+
+### 🔧 **Admin Panel** (`admin/js/admin.js`)
+- **User Management** - จัดการผู้ใช้
+- **Product Moderation** - จัดการสินค้า
+- **Network Analytics** - วิเคราะห์เครือข่าย
+- **System Statistics** - สถิติระบบ
+
+---
+
+## 🔧 TECHNICAL SPECIFICATIONS
+
+### 🖥️ **Backend Stack**
+- **Runtime**: Node.js with ES6 Modules
+- **Framework**: Express.js
+- **Database**: SQLite3 with better-sqlite3
+- **File Upload**: Multer (5MB limit)
+- **Security**: bcryptjs for password hashing
+- **CORS**: Cross-Origin Resource Sharing enabled
+
+### 🎨 **Frontend Stack**
+- **HTML5** with Semantic Structure
+- **CSS3** with Modern Flexbox/Grid
+- **Vanilla JavaScript** (ES6+)
+- **Local Storage** for Client-side Data
+- **Fetch API** for Server Communication
+
+### 📁 **File Structure**
+```
+FingrowV3/
+├── server.js              # Main Backend Server
+├── package.json           # Dependencies
+├── data/
+│   └── fingrow.db         # SQLite Database
+├── uploads/
+│   └── profiles/          # Profile Images
+├── mobile/
+│   └── index.html         # Mobile Interface
+├── admin/
+│   ├── index.html         # Admin Panel
+│   └── js/
+│       └── admin.js       # Admin Functions
+└── FINGROW_SYSTEM_BLUEPRINT.md
+```
+
+---
+
+## 🌐 NETWORK CREATION IMPLEMENTATION GUIDE
+
+### 🔥 **Key Functions for ChatGPT Implementation**
+
+#### 1. **Enhanced Network Visualization**
+```javascript
+// สำหรับสร้าง Tree View แสดงเครือข่าย
+function buildNetworkTree(userId, depth = 3) {
+    // Recursive function to build network hierarchy
+    // Return: JSON tree structure with user data
+}
+
+function renderNetworkVisualization(treeData) {
+    // Convert tree data to visual representation
+    // Options: D3.js, Canvas, or CSS-based tree
+}
+```
+
+#### 2. **Advanced Network Analytics**
+```javascript
+// คำนวณ Network Performance Metrics
+function calculateNetworkMetrics(userId) {
+    return {
+        totalNetwork: 0,      // จำนวนคนในเครือข่าย
+        activeNetwork: 0,     // จำนวนคนที่ active
+        networkDepth: 0,      // ความลึกของเครือข่าย
+        monthlyGrowth: 0,     // การเติบโตรายเดือน
+        networkValue: 0       // มูลค่ารวมของเครือข่าย
+    };
+}
+```
+
+#### 3. **Referral Link Generator**
+```javascript
+// สร้าง Dynamic Referral Links
+function generateReferralLink(userId, campaign = 'default') {
+    const baseUrl = window.location.origin;
+    const inviteCode = getCurrentUser().invite_code;
+    return `${baseUrl}/mobile/?invite=${inviteCode}&campaign=${campaign}&source=share`;
+}
+```
+
+#### 4. **Network Search & Filter**
+```javascript
+// ค้นหาและกรองเครือข่าย
+function searchNetwork(userId, filters = {}) {
+    // Filters: name, level, joinDate, status, etc.
+    // Return: Filtered network members
+}
+```
+
+---
+
+## 🎯 **NETWORK EXPANSION STRATEGIES**
+
+### 📈 **Growth Tracking Variables**
+- `total_invites` - จำนวนคนที่แนะนำ (สะสม)
+- `active_invites` - จำนวนคนที่แนะนำที่ยัง active
+- `created_at` - วันที่เข้าร่วม (สำหรับคำนวณ growth rate)
+- `last_login` - การใช้งานล่าสุด (สำหรับ active status)
+
+### 🏆 **Gamification Elements**
+```javascript
+// ระบบ Achievement & Rewards
+const ACHIEVEMENTS = {
+    FIRST_REFERRAL: { name: 'ผู้แนะนำมือใหม่', reward: 'badge' },
+    NETWORK_BUILDER: { name: 'นักสร้างเครือข่าย', requirement: 10 },
+    MASTER_RECRUITER: { name: 'เจ้าแห่งการรีครูท', requirement: 50 }
+};
+```
+
+---
+
+## 💡 **ACTUAL IMPLEMENTATION CODE SAMPLES**
+
+### 🔧 **Server-side Functions** (From `server.js`)
+
+#### **User ID Generation**
+```javascript
+// Helper function to generate new format User ID: [ปีค.ศ 2 หลัก][AAA][0000]
+function generateUserId() {
+    const currentYear = new Date().getFullYear();
+    const yearSuffix = currentYear.toString().slice(-2); // เอา 2 หลักท้าย เช่น 2025 -> 25
+
+    // หา User ID ล่าสุดในปีนี้
+    const latestUser = db.prepare(`
+        SELECT id FROM users
+        WHERE id LIKE '${yearSuffix}%'
+        ORDER BY id DESC
+        LIMIT 1
+    `).get();
+
+    let nextSequence = 'AAA0000'; // เริ่มต้น
+
+    if (latestUser) {
+        const currentId = latestUser.id;
+        const sequence = currentId.substring(2); // เอาส่วนหลัง yearSuffix
+
+        // แยก letters และ numbers
+        const letters = sequence.substring(0, 3);
+        const numbers = parseInt(sequence.substring(3));
+
+        if (numbers < 9999) {
+            // เพิ่มตัวเลข
+            const newNumbers = (numbers + 1).toString().padStart(4, '0');
+            nextSequence = letters + newNumbers;
+        } else {
+            // เพิ่มตัวอักษร และ reset ตัวเลข
+            const newLetters = incrementLetters(letters);
+            nextSequence = newLetters + '0000';
+        }
+    }
+
+    return yearSuffix + nextSequence;
+}
+
+// Helper function to increment letters (AAA -> AAB -> ... -> ZZZ)
+function incrementLetters(letters) {
+    let result = letters.split('');
+    let carry = true;
+
+    for (let i = result.length - 1; i >= 0 && carry; i--) {
+        if (result[i] === 'Z') {
+            result[i] = 'A';
+        } else {
+            result[i] = String.fromCharCode(result[i].charCodeAt(0) + 1);
+            carry = false;
+        }
+    }
+
+    return result.join('');
+}
+```
+
+#### **Invite Code Generation**
+```javascript
+// Helper function to generate invite code
+function generateInviteCode(username) {
+    const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const randomSuffix = Math.random().toString(36).substr(2, 3).toUpperCase();
+    return `${cleanUsername}${randomSuffix}`;
+}
+```
+
+#### **Registration with Referral System**
+```javascript
+// Registration Flow (Excerpt from server.js)
+app.post('/api/register', async (req, res) => {
+    try {
+        const userData = req.body;
+
+        // Check if username exists
+        const existingUsername = db.prepare('SELECT id FROM users WHERE username = ?').get(userData.username);
+        if (existingUsername) {
+            return res.json({ success: false, message: 'Username already exists' });
+        }
+
+        // Check if email exists
+        const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(userData.email);
+        if (existingEmail) {
+            return res.json({ success: false, message: 'Email already exists' });
+        }
+
+        // Generate invite code
+        const inviteCode = generateInviteCode(userData.username);
+
+        // Check if invite code exists and find invitor
+        let invitedBy = null;
+        if (userData.invite_code) {
+            const invitor = db.prepare('SELECT id FROM users WHERE invite_code = ?').get(userData.invite_code);
+            if (invitor) {
+                invitedBy = invitor.id;
+            }
+        }
+
+        // Generate new user ID
+        const userId = generateUserId();
+
+        // Insert new user with referral connection
+        const insertStmt = db.prepare(`
+            INSERT INTO users (
+                id, username, email, full_name, phone,
+                invite_code, invitor_id,
+                created_at, last_login, location
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        insertStmt.run(
+            userId,
+            userData.username,
+            userData.email,
+            userData.full_name,
+            userData.phone || '',
+            inviteCode,
+            invitedBy,
+            new Date().toISOString(),
+            new Date().toISOString(),
+            userData.province || ''
+        );
+
+        // Update invitor's total_invites if applicable
+        if (invitedBy) {
+            db.prepare('UPDATE users SET total_invites = total_invites + 1 WHERE id = ?').run(invitedBy);
+        }
+
+        const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        res.json({
+            success: true,
+            message: 'Registration successful',
+            user: newUser
+        });
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Registration failed',
+            error: error.message
+        });
+    }
+});
+```
+
+### 🎨 **Frontend Functions** (From `mobile/index.html`)
+
+#### **Load Referrals Data**
+```javascript
+// Load referrals data from database
+async function loadReferralsData() {
+    console.log('Loading referrals data...');
+
+    if (!currentUser) {
+        console.log('No current user, skipping referrals load');
+        return;
+    }
+
+    try {
+        // Set invite code and referral link
+        const inviteCode = currentUser.invite_code || '';
+        const referralLink = inviteCode ? `${window.location.origin}/mobile/?invite=${inviteCode}` : '';
+
+        document.getElementById('myReferralCode').value = inviteCode;
+        document.getElementById('myReferralLink').value = referralLink;
+
+        // Count users who were invited by this user
+        const invitedUsers = await database.getAllUsers();
+        const myInvitees = invitedUsers.data ?
+            invitedUsers.data.filter(user => {
+                const userInvitor = user.invited_by || user.invitor_id;
+                return userInvitor === currentUser.id;
+            }) : [];
+
+        console.log('Found invitees:', myInvitees.map(u => ({id: u.id, username: u.username})));
+
+        // Update real referral count
+        document.querySelector('#referrals .stat-card:first-child .stat-value').textContent = myInvitees.length;
+
+        // Display invited users
+        displayInvitedUsers(myInvitees);
+
+        // Find and display inviter info
+        if (currentUser.invited_by || currentUser.invitor_id) {
+            const invitorId = currentUser.invited_by || currentUser.invitor_id;
+            const inviter = invitedUsers.data?.find(u => u.id === invitorId);
+
+            if (inviter) {
+                displayInviterInfo(inviter);
+            }
+        }
+
+    } catch (error) {
+        console.error('Error loading referrals data:', error);
+    }
+}
+```
+
+#### **Display Network Members**
+```javascript
+function displayInvitedUsers(invitees) {
+    const listContainer = document.getElementById('invitedUsersList');
+
+    if (!invitees || invitees.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">ยังไม่มีคนที่คุณชวนมา</div>';
+        return;
+    }
+
+    listContainer.innerHTML = invitees.map(user => {
+        const initials = (user.full_name || user.username || 'U').charAt(0).toUpperCase();
+        const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH') : 'ไม่ทราบ';
+        const displayName = user.full_name || user.username || 'ไม่ระบุ';
+
+        // Check if user has profile image
+        const hasProfileImage = user.profile_image || user.avatar_url;
+        const avatarContent = hasProfileImage
+            ? `<img src="${user.profile_image || user.avatar_url}" alt="${displayName}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
+            : initials;
+
+        return `
+            <div class="invited-user-card">
+                <div class="invited-user-avatar">${avatarContent}</div>
+                <div class="invited-user-info">
+                    <div class="invited-user-name">${displayName}</div>
+                    <div class="invited-user-date">เข้าร่วม: ${joinDate}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+```
+
+---
+
+## 🎯 **RECOMMENDED NEXT STEPS FOR CHATGPT**
+
+### 🌟 **Priority 1: Network Visualization Dashboard**
+Create an interactive tree view to visualize the referral network hierarchy:
+
+```javascript
+// Example implementation structure
+class NetworkVisualization {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.svg = null;
+        this.data = null;
+    }
+
+    async loadNetworkData(userId, depth = 3) {
+        // Fetch network data from API
+        // Build hierarchical tree structure
+        // Calculate network metrics
+    }
+
+    renderTree(data) {
+        // Create SVG-based tree visualization
+        // Add interactive nodes with user info
+        // Implement zoom/pan functionality
+    }
+
+    updateMetrics(data) {
+        // Update network statistics
+        // Show growth trends
+        // Display performance indicators
+    }
+}
+```
+
+### 🌟 **Priority 2: Advanced Analytics Dashboard**
+Implement comprehensive network analytics:
+
+```javascript
+// Network analytics functions
+function calculateNetworkStats(userId) {
+    return {
+        totalMembers: getTotalNetworkSize(userId),
+        activeMembers: getActiveNetworkMembers(userId),
+        networkGrowthRate: getMonthlyGrowthRate(userId),
+        networkDepth: getMaxNetworkDepth(userId),
+        conversionRate: getInviteConversionRate(userId),
+        topPerformers: getTopNetworkPerformers(userId)
+    };
+}
+
+function generateNetworkReport(userId, period = '30d') {
+    // Generate comprehensive network performance report
+    // Include charts and visualizations
+    // Export capabilities (PDF/Excel)
+}
+```
+
+### 🌟 **Priority 3: Real-time Notifications**
+Add notification system for network activities:
+
+```javascript
+// Notification system for network events
+class NetworkNotifications {
+    constructor() {
+        this.eventTypes = [
+            'new_member_joined',
+            'member_made_purchase',
+            'commission_earned',
+            'achievement_unlocked'
+        ];
+    }
+
+    subscribeToNetworkEvents(userId) {
+        // WebSocket or Server-Sent Events
+        // Real-time notifications
+    }
+
+    showNotification(type, data) {
+        // Toast notifications
+        // Push notifications
+    }
+}
+```
+
+### 🌟 **Priority 4: Mobile App Enhancement**
+Progressive Web App features:
+
+```javascript
+// PWA capabilities
+class PWAFeatures {
+    enableOfflineSupport() {
+        // Service Worker implementation
+        // Cache network data
+        // Offline functionality
+    }
+
+    addToHomeScreen() {
+        // Install prompt
+        // App icons and manifests
+    }
+
+    pushNotifications() {
+        // Browser push notifications
+        // Network event notifications
+    }
+}
+```
+
+### 🌟 **Priority 5: Commission Calculation System**
+MLM compensation plan implementation:
+
+```javascript
+// Multi-level commission calculator
+class CommissionEngine {
+    constructor() {
+        this.commissionRates = [0.1, 0.05, 0.03, 0.02, 0.01]; // 5 levels
+        this.maxDepth = 5;
+    }
+
+    calculateCommissions(saleAmount, sellerId) {
+        // Walk up the referral tree
+        // Calculate commissions for each level
+        // Distribute rewards
+    }
+
+    processPayouts() {
+        // Batch process commission payments
+        // Update user balances
+        // Generate payout reports
+    }
+}
+```
+
+---
+
+## 🔒 **SECURITY CONSIDERATIONS**
+
+### 🛡️ **Data Protection**
+- Password hashing with bcrypt (salt rounds: 12)
+- Input validation & sanitization
+- SQL injection prevention with prepared statements
+- File upload security (type & size validation)
+
+### 🔐 **Access Control**
+- User authentication required for all actions
+- Admin-only endpoints protection
+- Rate limiting for API calls
+- CSRF protection for forms
+
+### 🚨 **Network Security**
+- Prevent referral loops/cycles
+- Validate invite codes before processing
+- Monitor for abuse patterns
+- Implement user verification levels
+
+---
+
+## 📊 **PERFORMANCE OPTIMIZATION**
+
+### 🔄 **Database Indexing**
+```sql
+-- Indexes for Network Queries
+CREATE INDEX idx_users_invitor_id ON users(invitor_id);
+CREATE INDEX idx_users_invite_code ON users(invite_code);
+CREATE INDEX idx_users_created_at ON users(created_at);
+CREATE INDEX idx_users_is_active ON users(is_active);
+```
+
+### 🚀 **Caching Strategy**
+- Network data caching in localStorage
+- API response caching with timestamps
+- Image lazy loading for profile pictures
+- Progressive data loading for large networks
+
+---
+
+## 📞 **INTEGRATION POINTS**
+
+### 🔗 **External APIs Ready**
+- Payment Gateway Integration Points
+- SMS OTP Services
+- Email Notification Services
+- Social Media Sharing APIs
+- Analytics & Tracking Services
+
+### 📊 **Data Export Formats**
+- JSON for API responses
+- CSV for data exports
+- Excel for reports
+- PDF for statements
+
+---
+
+*📝 Document Version: 1.0*
+*🔄 Last Updated: 2025-09-23*
+*🤖 Generated with Claude Code*
+
+---
+
+**Happy Coding! 🚀**
