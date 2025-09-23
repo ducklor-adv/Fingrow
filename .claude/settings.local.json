@@ -16,7 +16,9 @@
       "Bash(findstr:*)",
       "Bash(del test_invite_system.js)",
       "Bash(del rename_referral_fields.js)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

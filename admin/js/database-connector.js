@@ -172,13 +172,24 @@ class DatabaseConnector {
             return [];
         }
     }
+
+    // Cache management method
+    clearCache(key) {
+        try {
+            if (this.adminDB && this.adminDB.clearCache) {
+                return this.adminDB.clearCache(key);
+            }
+        } catch (error) {
+            console.error('Error clearing cache:', error);
+        }
+    }
 }
 
 // Browser proxy for database operations
 class BrowserDatabaseProxy {
     constructor() {
         this.cache = new Map();
-        this.cacheTimeout = 30000; // 30 seconds
+        this.cacheTimeout = 5000; // 5 seconds - reduced for better sync with mobile updates
     }
 
     async getAllUsers() {

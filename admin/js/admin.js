@@ -552,6 +552,8 @@ class FingrowAdmin {
     }
 
     async loadUsersContent() {
+        // Clear cache to ensure fresh data from database
+        this.db.clearCache('users');
         const result = await this.fetchUsers();
         const users = result.data || [];
 
@@ -588,7 +590,7 @@ class FingrowAdmin {
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จำนวนขาย</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ยอดขาย</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">รายได้รวม</th>
-                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Referrals</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Follower</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จัดการ</th>
                             </tr>
                         </thead>
@@ -2260,6 +2262,9 @@ class FingrowAdmin {
         const userIdString = String(userId);
         console.log('[Admin] Using userId:', userIdString);
 
+        // Clear cache to ensure we get fresh data from database
+        this.db.clearCache('users');
+
         // Find user data (use getAllUsers to avoid pagination issues)
         this.db.getAllUsers().then(result => {
             // Check if result and result.data exist
@@ -2336,15 +2341,28 @@ class FingrowAdmin {
         // Store current user ID for saving
         this.currentEditUserId = user.id;
 
-        // Populate form fields
+        // Populate form fields with correct field mapping
         document.getElementById('editUsername').value = user.username || '';
         document.getElementById('editEmail').value = user.email || '';
         document.getElementById('editFullName').value = user.full_name || '';
         document.getElementById('editPhone').value = user.phone || '';
-        document.getElementById('editStatus').value = user.status || 'active';
-        document.getElementById('editReferralCode').value = user.referral_code || '';
+        document.getElementById('editStatus').value = user.is_active ? 'active' : 'inactive';
+        document.getElementById('editReferralCode').value = user.invite_code || '';
         document.getElementById('editWalletBalance').value = user.wallet_balance || 0;
         document.getElementById('editWldBalance').value = user.wld_balance || 0;
+
+        // Set profile image field and preview
+        const profileImageInput = document.getElementById('editProfileImage');
+        console.log('[Admin] populateUserEditModal - user.profile_image:', user.profile_image);
+        console.log('[Admin] populateUserEditModal - user.avatar_url:', user.avatar_url);
+        console.log('[Admin] profileImageInput found:', !!profileImageInput);
+
+        if (profileImageInput) {
+            profileImageInput.value = user.profile_image || '';
+            this.updateProfileImagePreview(user.profile_image || '');
+        } else {
+            console.error('[Admin] editProfileImage input not found');
+        }
 
         // Populate structured address fields if they exist
         if (document.getElementById('editAddressNumber')) {
@@ -2423,10 +2441,20 @@ class FingrowAdmin {
     }
 
     updateProfileImagePreview(imageUrl) {
+        console.log('[Admin] updateProfileImagePreview called with:', imageUrl);
         const preview = document.getElementById('editProfileImagePreview');
+        console.log('[Admin] preview element found:', !!preview);
+
+        if (!preview) {
+            console.error('[Admin] editProfileImagePreview element not found');
+            return;
+        }
+
         if (imageUrl && imageUrl.trim()) {
+            console.log('[Admin] Setting image preview to:', imageUrl);
             preview.innerHTML = `<img src="${imageUrl}" class="w-full h-full rounded-full object-cover" onerror="this.parentNode.innerHTML='👤';">`;
         } else {
+            console.log('[Admin] No imageUrl, showing default avatar');
             preview.innerHTML = '👤';
         }
     }
@@ -2435,21 +2463,18 @@ class FingrowAdmin {
         const form = document.getElementById('userEditForm');
         const formData = new FormData(form);
 
-        // Create updated user object
+        // Create updated user object with correct database field mapping
         const updatedUser = {
             id: this.currentEditUserId,
             username: formData.get('username'),
             email: formData.get('email'),
             full_name: formData.get('full_name'),
             phone: formData.get('phone'),
-            status: formData.get('status'),
-            referral_code: formData.get('referral_code'),
-            wallet_balance: parseFloat(formData.get('wallet_balance')) || 0,
-            wld_balance: parseFloat(formData.get('wld_balance')) || 0,
-            created_at: formData.get('created_at'),
-            last_login: formData.get('last_login'),
-            referred_by: formData.get('referred_by') ? parseInt(formData.get('referred_by')) : null,
-            profile_image: formData.get('profile_image') || ''
+            is_active: formData.get('status') === 'active' ? 1 : 0,
+            invite_code: formData.get('referral_code'),
+            avatar_url: formData.get('profile_image') || '',
+            location: formData.get('location') || '',
+            bio: formData.get('bio') || ''
         };
 
         try {

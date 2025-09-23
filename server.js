@@ -245,8 +245,33 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Verify password
-        const passwordValid = bcrypt.compareSync(password, user.password_hash);
+        // Verify password - handle both hashed and plain text passwords
+        let passwordValid = false;
+
+        // First try bcrypt comparison (for properly hashed passwords)
+        try {
+            console.log('[API] Trying bcrypt comparison...');
+            passwordValid = bcrypt.compareSync(password, user.password_hash);
+            console.log('[API] Bcrypt result:', passwordValid);
+        } catch (error) {
+            console.log('[API] Bcrypt threw error:', error.message);
+        }
+
+        // If bcrypt didn't work, try plain text comparison
+        if (!passwordValid) {
+            console.log('[API] Bcrypt failed, checking for plain text password');
+            passwordValid = (password === user.password_hash);
+            console.log('[API] Plain text comparison result:', passwordValid);
+
+            // If it's a plain text match, hash it and update the database
+            if (passwordValid) {
+                console.log('[API] Plain text password detected, hashing and updating...');
+                const hashedPassword = bcrypt.hashSync(password, 10);
+                db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+                  .run(hashedPassword, user.id);
+                console.log('[API] Password hashed and updated for user:', user.username);
+            }
+        }
 
         if (!passwordValid) {
             console.log('[API] Login failed - invalid password for user:', user.username);
@@ -285,10 +310,35 @@ app.put('/api/users/:userId', async (req, res) => {
         const userId = req.params.userId;
         const updates = req.body;
 
+        // Filter out fields that don't exist in the current database schema
+        const validFields = ['id', 'world_id', 'username', 'email', 'phone', 'full_name', 'avatar_url', 'bio', 'location', 'preferred_currency', 'language', 'is_verified', 'verification_level', 'trust_score', 'total_sales', 'total_purchases', 'invite_code', 'invitor_id', 'total_invites', 'active_invites', 'is_active', 'is_suspended', 'last_login', 'created_at', 'updated_at', 'password_hash'];
+
+        // Field mapping for compatibility between old and new field names
+        const fieldMapping = {
+            'profile_image': 'avatar_url',
+            'password': 'password_hash',
+            'user_type': 'verification_level',
+            'shipping_address': 'location'
+        };
+
+        const filteredUpdates = {};
+        Object.keys(updates).forEach(key => {
+            // Map old field names to new ones
+            const mappedKey = fieldMapping[key] || key;
+
+            if (validFields.includes(mappedKey)) {
+                filteredUpdates[mappedKey] = updates[key];
+            }
+        });
+
         // Build dynamic update query
-        const updateFields = Object.keys(updates);
+        const updateFields = Object.keys(filteredUpdates);
+        if (updateFields.length === 0) {
+            return res.json({ success: true, message: 'No valid fields to update' });
+        }
+
         const setClause = updateFields.map(field => `${field} = ?`).join(', ');
-        const values = Object.values(updates);
+        const values = Object.values(filteredUpdates);
 
         const result = db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`).run(...values, userId);
 

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fingrow - Mobile Marketplace</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
     <style>
         * {
             margin: 0;
@@ -700,137 +699,6 @@
             display: block;
         }
 
-        /* Authentication Styles */
-        .auth-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: calc(100vh - 200px);
-            padding: 20px 0;
-        }
-
-        .auth-form {
-            background: rgba(30, 41, 59, 0.8);
-            border-radius: 16px;
-            padding: 32px;
-            width: 100%;
-            max-width: 400px;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            color: #f4f4f5;
-            font-weight: 500;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .auth-input {
-            width: 100%;
-            padding: 14px 16px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            border-radius: 8px;
-            color: #f4f4f5;
-            font-size: 16px;
-            transition: border-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        .auth-input:focus {
-            outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        }
-
-        .auth-input::placeholder {
-            color: #94a3b8;
-        }
-
-        .auth-btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 20px;
-        }
-
-        .auth-btn.primary {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .auth-btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-        }
-
-        .auth-footer {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 14px;
-        }
-
-        .auth-link {
-            color: #10b981;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .auth-link:hover {
-            text-decoration: underline;
-        }
-
-        .demo-accounts {
-            margin-top: 24px;
-            padding: 16px;
-            background: rgba(15, 23, 42, 0.4);
-            border-radius: 8px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .demo-accounts h4 {
-            color: #f4f4f5;
-            margin: 0 0 12px 0;
-            font-size: 14px;
-        }
-
-        .demo-account {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: rgba(30, 41, 59, 0.6);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 12px;
-        }
-
-        .demo-account:hover {
-            background: rgba(30, 41, 59, 0.8);
-            transform: translateX(4px);
-        }
-
-        .demo-account:last-child {
-            margin-bottom: 0;
-        }
-
-        .demo-account span {
-            color: #94a3b8;
-        }
-
         /* Stats Cards */
         .stats-grid {
             display: grid;
@@ -868,7 +736,7 @@
             border: 1px solid rgba(148, 163, 184, 0.1);
         }
 
-        .profile-section .section-title { /* fixed */
+        .section-title {
             font-size: 18px;
             font-weight: 600;
             color: #f4f4f5;
@@ -953,172 +821,79 @@
             color: #10b981;
         }
 
-        /* Referrer Card */
-        .referrer-card {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+        /* Referral Card */
+        .referral-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.3);
             border-radius: 12px;
             padding: 20px;
         }
 
-        .referrer-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
+        .referral-code {
+            margin-bottom: 20px;
         }
 
-        .referrer-avatar {
-            flex-shrink: 0;
-        }
-
-        .referrer-details {
-            flex: 1;
-        }
-
-        .referrer-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #10b981;
-            margin-bottom: 4px;
-        }
-
-        .referrer-code {
+        .referral-label {
             font-size: 14px;
             color: #94a3b8;
-            margin-bottom: 4px;
-            font-family: 'Monaco', 'Consolas', monospace;
+            display: block;
+            margin-bottom: 8px;
         }
 
-        .referrer-date {
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        .referrer-stats {
-            padding-top: 16px;
-            border-top: 1px solid rgba(16, 185, 129, 0.2);
-        }
-
-        .referrer-stat {
+        .referral-value {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(16, 185, 129, 0.1);
-            border-radius: 8px;
-            padding: 12px;
         }
 
-        .referrer-stat-icon {
-            font-size: 24px;
-        }
-
-        .referrer-stat-info {
-            flex: 1;
-        }
-
-        .referrer-stat-value {
+        .code {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            font-family: 'Monaco', 'Consolas', monospace;
             font-size: 16px;
             font-weight: 600;
-            color: #10b981;
-            margin-bottom: 2px;
-        }
-
-        .referrer-stat-label {
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        /* Network Page Styles */
-        .referral-section {
-            margin: 24px 0;
-        }
-
-        .referral-code-card {
-            background: rgba(30, 41, 59, 0.6);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .referral-code-input,
-        .referral-link-input {
-            display: flex;
-            gap: 8px;
-        }
-
-        .copy-code-btn,
-        .copy-link-btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
+            padding: 8px 12px;
             border-radius: 8px;
-            padding: 12px;
-            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: #3b82f6;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
-            flex-shrink: 0;
-            width: auto;
         }
 
-        .copy-code-btn:hover,
-        .copy-link-btn:hover {
+        .copy-btn:hover {
             background: #2563eb;
             transform: scale(1.05);
         }
 
-        .referral-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 24px;
+        .referral-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
         }
 
-        .invited-users-section {
-            margin: 24px 0;
-        }
-
-        .invited-users-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .invited-user-card {
-            background: rgba(30, 41, 59, 0.6);
-            border-radius: 12px;
+        .referral-stat {
+            text-align: center;
             padding: 16px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
         }
 
-        .invited-user-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #3b82f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        .invited-user-info {
-            flex: 1;
-        }
-
-        .invited-user-name {
+        .referral-stat-value {
+            font-size: 20px;
             font-weight: 600;
-            color: #f1f5f9;
+            color: #3b82f6;
+            display: block;
             margin-bottom: 4px;
         }
 
-        .invited-user-date {
+        .referral-stat-label {
             font-size: 12px;
             color: #94a3b8;
         }
@@ -1182,39 +957,6 @@
         .setting-item.clickable .setting-value {
             color: #10b981;
             font-weight: 500;
-        }
-
-        /* Edit buttons */
-        .edit-btn {
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-left: 8px;
-        }
-
-        .edit-btn:hover {
-            background: #059669;
-            transform: scale(1.05);
-        }
-
-        .edit-btn.small {
-            padding: 2px 6px;
-            font-size: 10px;
-        }
-
-        .edit-btn.profile-image-edit {
-            background: #3b82f6;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 2px solid white;
-        }
-
-        .edit-btn.profile-image-edit:hover {
-            background: #2563eb;
         }
 
         /* Profile Actions */
@@ -1297,12 +1039,12 @@
             background: #059669;
         }
 
-        .profile-section .btn-secondary { /* fixed */
+        .btn-secondary {
             background: rgba(30, 41, 59, 0.8);
             border: 1px solid rgba(148, 163, 184, 0.1);
         }
 
-        .profile-section .btn-secondary:hover { /* fixed */
+        .btn-secondary:hover {
             background: rgba(30, 41, 59, 0.95);
         }
 
@@ -1615,28 +1357,11 @@
     </div>
 
     <!-- Create Listing Page -->
-    <!-- Listings Page (Combined Create + Orders + My Products) -->
-    <div id="listings" class="page">
+    <div id="create" class="page">
         <div class="container">
             <div class="header">
-                <div class="logo">📋 รายการของฉัน</div>
+                <div class="logo">📝 ลงขายสินค้า</div>
             </div>
-
-            <!-- Tab Navigation -->
-            <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #374151;">
-                <button id="sellTab" class="tab-button active" onclick="showListingsTab('sell')" style="flex: 1; padding: 12px; border: none; background: none; color: #10b981; font-weight: bold; border-bottom: 2px solid #10b981;">
-                    ➕ ลงขาย
-                </button>
-                <button id="myProductsTab" class="tab-button" onclick="showListingsTab('myProducts')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold;">
-                    🛍️ สินค้าของฉัน
-                </button>
-                <button id="ordersTab" class="tab-button" onclick="showListingsTab('orders')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold;">
-                    📦 คำสั่งซื้อ
-                </button>
-            </div>
-
-            <!-- Sell Product Tab Content -->
-            <div id="sellTabContent" class="tab-content">
 
             <form id="createListingForm">
                 <!-- Basic Information -->
@@ -1940,39 +1665,33 @@
                     <button type="submit" class="btn">✅ ลงขายสินค้า</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="orders" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">📦 คำสั่งซื้อ</div>
             </div>
 
-            <!-- My Products Tab Content -->
-            <div id="myProductsTabContent" class="tab-content" style="display: none;">
-                <div id="myProductsList">
-                    <!-- User's products will be loaded here -->
-                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
-                        <div>กำลังโหลดสินค้าของคุณ...</div>
-                    </div>
+            <div class="product-card" style="margin-bottom: 16px;">
+                <div class="product-title">iPhone 14 Pro สีทอง</div>
+                <div class="product-price">570 WLD</div>
+                <div class="product-seller">สั่งซื้อจาก @alice_smith</div>
+                <div class="product-stats">
+                    <span style="color: #10b981;">✅ เสร็จสิ้น</span>
+                    <span>15 ก.ย. 2025</span>
                 </div>
             </div>
 
-            <!-- Orders Tab Content -->
-            <div id="ordersTabContent" class="tab-content" style="display: none;">
-                <div class="product-card" style="margin-bottom: 16px;">
-                    <div class="product-title">iPhone 14 Pro สีทอง</div>
-                    <div class="product-price">570 WLD</div>
-                    <div class="product-seller">สั่งซื้อจาก @alice_smith</div>
-                    <div class="product-stats">
-                        <span style="color: #10b981;">✅ เสร็จสิ้น</span>
-                        <span>15 ก.ย. 2025</span>
-                    </div>
-                </div>
-
-                <div class="product-card" style="margin-bottom: 16px;">
-                    <div class="product-title">โต๊ะทำงาน IKEA</div>
-                    <div class="product-price">90 WLD</div>
-                    <div class="product-seller">ขายให้ @charlie_w</div>
-                    <div class="product-stats">
-                        <span style="color: #fbbf24;">🚚 กำลังจัดส่ง</span>
-                        <span>18 ก.ย. 2025</span>
-                    </div>
+            <div class="product-card" style="margin-bottom: 16px;">
+                <div class="product-title">โต๊ะทำงาน IKEA</div>
+                <div class="product-price">90 WLD</div>
+                <div class="product-seller">ขายให้ @charlie_w</div>
+                <div class="product-stats">
+                    <span style="color: #fbbf24;">🚚 กำลังจัดส่ง</span>
+                    <span>18 ก.ย. 2025</span>
                 </div>
             </div>
         </div>
@@ -1987,289 +1706,26 @@
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">0</div>
+                    <div class="stat-value">23</div>
                     <div class="stat-label">คนที่แนะนำ</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">125.50</div>
+                    <div class="stat-value">45.67</div>
                     <div class="stat-label">WLD ที่ได้รับ</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">2,450</div>
-                    <div class="stat-label">Finpoint (FP)</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">รหัสแนะนำของคุณ</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="form-input" value="ALICE2025" readonly>
+                    <button class="btn-secondary" style="padding: 12px; width: auto;">📋</button>
                 </div>
             </div>
 
-            <!-- Referral Code Section -->
-            <div class="referral-section">
-                <h3 class="section-title">🎯 รหัสแนะนำของคุณ</h3>
-                <div class="referral-code-card">
-                    <div class="form-group">
-                        <label class="form-label">รหัสแนะนำ</label>
-                        <div class="referral-code-input">
-                            <input type="text" id="myReferralCode" class="form-input" value="" readonly>
-                            <button class="copy-code-btn" onclick="copyMyReferralCode()">📋</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">ลิงค์แนะนำ</label>
-                        <div class="referral-link-input">
-                            <input type="text" id="myReferralLink" class="form-input" value="" readonly>
-                            <button class="copy-link-btn" onclick="copyMyReferralLink()">🔗</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Who Invited You Section -->
-            <div class="invited-users-section">
-                <h3 class="section-title">🙋 ผู้ที่เชิญคุณมา</h3>
-                <div id="myInviterInfo" class="invited-users-list">
-                    <!-- Inviter info will be loaded dynamically -->
-                </div>
-            </div>
-
-            <!-- Invited Users Section -->
-            <div class="invited-users-section">
-                <h3 class="section-title">👥 คนที่คุณชวนมา</h3>
-                <div id="invitedUsersList" class="invited-users-list">
-                    <!-- Users will be loaded dynamically -->
-                </div>
-            </div>
-
-            <div class="referral-actions">
-                <button class="btn" onclick="generateQRCode()">📱 สร้าง QR Code</button>
-                <button class="btn-secondary" onclick="shareReferralLink()">📤 แชร์ลิงค์</button>
-                <button class="btn-secondary" onclick="showReferralDetails()">📊 ดูรายละเอียด</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Login Page -->
-    <div id="login" class="page">
-        <div class="container">
-            <div class="header">
-                <div class="logo">🔐 เข้าสู่ระบบ</div>
-            </div>
-
-            <div class="auth-container">
-                <div class="auth-form">
-                    <div class="form-group">
-                        <label class="form-label">Username หรือ Email</label>
-                        <input type="text" id="loginUsername" class="auth-input" placeholder="กรอก username หรือ email">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">รหัสผ่าน</label>
-                        <input type="password" id="loginPassword" class="auth-input" placeholder="กรอกรหัสผ่าน">
-                    </div>
-
-                    <button class="auth-btn primary" onclick="handleLogin()">เข้าสู่ระบบ</button>
-
-                    <div class="auth-footer">
-                        <p>ยังไม่มีบัญชี? <span class="auth-link" onclick="showPage('register')">สมัครสมาชิก</span></p>
-                    </div>
-
-                    <div class="demo-accounts">
-                        <h4>🔧 บัญชีทดสอบ</h4>
-                        <div class="demo-account" onclick="quickLogin('charlie_wilson', '123456')">
-                            <span>👤 charlie_wilson</span>
-                            <span>🔑 123456</span>
-                        </div>
-                        <div class="demo-account" onclick="quickLogin('alice_smith', '123456')">
-                            <span>👤 alice_smith</span>
-                            <span>🔑 123456</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Register Page -->
-    <div id="register" class="page">
-        <div class="container">
-            <div class="header">
-                <div class="logo">📝 สมัครสมาชิก</div>
-            </div>
-
-            <div class="auth-container">
-                <div class="auth-form">
-                    <div class="form-group">
-                        <label class="form-label">ชื่อ-นามสกุล *</label>
-                        <input type="text" id="registerFullName" class="auth-input" placeholder="กรอกชื่อ-นามสกุล">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Username *</label>
-                        <input type="text" id="registerUsername" class="auth-input" placeholder="กรอก username">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Email *</label>
-                        <input type="email" id="registerEmail" class="auth-input" placeholder="กรอก email">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">รหัสผ่าน *</label>
-                        <input type="password" id="registerPassword" class="auth-input" placeholder="กรอกรหัสผ่าน">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">เบอร์โทร</label>
-                        <input type="tel" id="registerPhone" class="auth-input" placeholder="081-234-5678">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">จังหวัด</label>
-                        <select id="registerProvince" class="auth-input">
-                            <option value="">เลือกจังหวัด</option>
-                            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
-                            <option value="กระบี่">กระบี่</option>
-                            <option value="กาญจนบุรี">กาญจนบุรี</option>
-                            <option value="กาฬสินธุ์">กาฬสินธุ์</option>
-                            <option value="กำแพงเพชร">กำแพงเพชร</option>
-                            <option value="ขอนแก่น">ขอนแก่น</option>
-                            <option value="จันทบุรี">จันทบุรี</option>
-                            <option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option>
-                            <option value="ชลบุรี">ชลบุรี</option>
-                            <option value="ชัยนาท">ชัยนาท</option>
-                            <option value="ชัยภูมิ">ชัยภูมิ</option>
-                            <option value="ชุมพร">ชุมพร</option>
-                            <option value="เชียงราย">เชียงราย</option>
-                            <option value="เชียงใหม่">เชียงใหม่</option>
-                            <option value="ตรัง">ตรัง</option>
-                            <option value="ตราด">ตราด</option>
-                            <option value="ตาก">ตาก</option>
-                            <option value="นครนายก">นครนายก</option>
-                            <option value="นครปฐม">นครปฐม</option>
-                            <option value="นครพนม">นครพนม</option>
-                            <option value="นครราชสีมา">นครราชสีมา</option>
-                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
-                            <option value="นครสวรรค์">นครสวรรค์</option>
-                            <option value="นนทบุรี">นนทบุรี</option>
-                            <option value="นราธิวาส">นราธิวาส</option>
-                            <option value="น่าน">น่าน</option>
-                            <option value="บุรีรัมย์">บุรีรัมย์</option>
-                            <option value="ปทุมธานี">ปทุมธานี</option>
-                            <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option>
-                            <option value="ปราจีนบุรี">ปราจีนบุรี</option>
-                            <option value="ปัตตานี">ปัตตานี</option>
-                            <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
-                            <option value="พะเยา">พะเยา</option>
-                            <option value="พังงา">พังงา</option>
-                            <option value="พัทลุง">พัทลุง</option>
-                            <option value="พิจิตร">พิจิตร</option>
-                            <option value="พิษณุโลก">พิษณุโลก</option>
-                            <option value="เพชรบุรี">เพชรบุรี</option>
-                            <option value="เพชรบูรณ์">เพชรบูรณ์</option>
-                            <option value="แพร่">แพร่</option>
-                            <option value="ภูเก็ต">ภูเก็ต</option>
-                            <option value="มหาสารคาม">มหาสารคาม</option>
-                            <option value="มุกดาหาร">มุกดาหาร</option>
-                            <option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option>
-                            <option value="ยโซธร">ยโซธร</option>
-                            <option value="ยะลา">ยะลา</option>
-                            <option value="ร้อยเอ็ด">ร้อยเอ็ด</option>
-                            <option value="ระนอง">ระนอง</option>
-                            <option value="ระยอง">ระยอง</option>
-                            <option value="ราชบุรี">ราชบุรี</option>
-                            <option value="ลพบุรี">ลพบุรี</option>
-                            <option value="ลำปาง">ลำปาง</option>
-                            <option value="ลำพูน">ลำพูน</option>
-                            <option value="เลย">เลย</option>
-                            <option value="ศรีสะเกษ">ศรีสะเกษ</option>
-                            <option value="สกลนคร">สกลนคร</option>
-                            <option value="สงขลา">สงขลา</option>
-                            <option value="สตูล">สตูล</option>
-                            <option value="สมุทรปราการ">สมุทรปราการ</option>
-                            <option value="สมุทรสงคราม">สมุทรสงคราม</option>
-                            <option value="สมุทรสาคร">สมุทรสาคร</option>
-                            <option value="สระแก้ว">สระแก้ว</option>
-                            <option value="สระบุรี">สระบุรี</option>
-                            <option value="สิงห์บุรี">สิงห์บุรี</option>
-                            <option value="สุโขทัย">สุโขทัย</option>
-                            <option value="สุพรรณบุรี">สุพรรณบุรี</option>
-                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
-                            <option value="สุรินทร์">สุรินทร์</option>
-                            <option value="หนองคาย">หนองคาย</option>
-                            <option value="หนองบัวลำภู">หนองบัวลำภู</option>
-                            <option value="อ่างทอง">อ่างทอง</option>
-                            <option value="อำนาจเจริญ">อำนาจเจริญ</option>
-                            <option value="อุดรธานี">อุดรธานี</option>
-                            <option value="อุตรดิตถ์">อุตรดิตถ์</option>
-                            <option value="อุทัยธานี">อุทัยธานี</option>
-                            <option value="อุบลราชธานี">อุบลราชธานี</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">รหัสแนะนำ (ถ้ามี)</label>
-                        <div class="relative">
-                            <input type="text" id="registerReferralCode" class="auth-input" placeholder="ใส่รหัสแนะนำ เช่น ALI001">
-                            <button type="button" id="confirmReferralBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-sm transition-colors" style="display: none;">
-                                🔍 ตรวจสอบ
-                            </button>
-                        </div>
-
-                        <!-- Referrer Info Display (Hidden by default) -->
-                        <div id="referrerInfo" class="mt-3" style="display: none;">
-                            <div class="referrer-card" style="position: relative;">
-                                <div class="referrer-info">
-                                    <div class="referrer-avatar">
-                                        <img id="referrerProfileImage" src="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: none;">
-                                        <div id="referrerAvatarFallback" style="width: 60px; height: 60px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center;">
-                                            <span id="referrerAvatar" style="color: white; font-weight: bold; font-size: 20px;">?</span>
-                                        </div>
-                                    </div>
-                                    <div class="referrer-details">
-                                        <div class="referrer-name" id="referrerDisplayName">@username</div>
-                                        <div class="referrer-code" style="color: #10b981;">ผู้แนะนำ</div>
-                                        <div class="referrer-date" style="color: #10b981; font-size: 12px;">✓ รหัสแนะนำถูกต้อง</div>
-                                    </div>
-                                </div>
-                                <button type="button" id="editReferralBtn" style="position: absolute; top: 8px; right: 8px; background: none; border: none; color: #10b981; text-decoration: underline; font-size: 12px; cursor: pointer;">
-                                    แก้ไข
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Edit Referral Code Confirmation (Hidden by default) -->
-                        <div id="editReferralConfirm" class="mt-3 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg" style="display: none;">
-                            <p class="text-yellow-300 text-sm mb-3">⚠️ คุณต้องการแก้ไขรหัสแนะนำหรือไม่?</p>
-                            <div class="flex gap-2">
-                                <button type="button" id="confirmEditBtn" class="text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" style="background-color: #059669 !important;">
-                                    ยืนยัน
-                                </button>
-                                <button type="button" id="cancelEditBtn" class="text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" style="background-color: #ea580c !important;">
-                                    ยกเลิก
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- No Referrer Found Options (Hidden by default) -->
-                        <div id="noReferrerOptions" class="mt-3 p-3 bg-red-900/30 border border-red-500/50 rounded-lg" style="display: none;">
-                            <p class="text-red-300 text-sm mb-3">❌ ไม่พบผู้แนะนำที่ใช้รหัส "<span id="invalidReferralCode"></span>"</p>
-                            <p class="text-gray-300 text-sm mb-3">คุณต้องการให้ระบบจัดการอย่างไร?</p>
-                            <div class="flex flex-col gap-2">
-                                <button type="button" id="autoAssignBtn" class="text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors" style="background-color: #2563eb !important;">
-                                    🤖 ให้ระบบจัดสรรผู้แนะนำให้อัตโนมัติ
-                                </button>
-                                <button type="button" id="retryReferralBtn" class="text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors" style="background-color: #ca8a04 !important;">
-                                    ✏️ แก้ไขรหัสแนะนำใหม่
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="auth-btn primary" onclick="handleRegister()">สมัครสมาชิก</button>
-
-                    <div class="auth-footer">
-                        <p>มีบัญชีแล้ว? <span class="auth-link" onclick="showPage('login')">เข้าสู่ระบบ</span></p>
-                    </div>
-                </div>
-            </div>
+            <button class="btn">📱 สร้าง QR Code</button>
+            <br><br>
+            <button class="btn-secondary">📊 ดูรายละเอียด</button>
         </div>
     </div>
 
@@ -2282,16 +1738,11 @@
 
             <!-- User Profile Header -->
             <div style="text-align: center; margin-bottom: 32px;">
-                <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 16px;">
-                    <div id="profileImage" style="width: 100px; height: 100px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden;">👤</div>
-                    <button class="edit-btn profile-image-edit" onclick="editProfileImage()" style="position: absolute; bottom: 0; right: 0; border-radius: 50%; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">📷</button>
-                </div>
+                <div id="profileImage" style="width: 100px; height: 100px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 40px; overflow: hidden;">👤</div>
                 <h2 id="profileUsername">@user_demo</h2>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <p id="profileFullName" style="color: #94a3b8; font-size: 16px; margin: 4px 0;">Charlie Wilson</p>
-                    <button class="edit-btn small" onclick="editFullName()">✏️</button>
-                </div>
+                <p id="profileFullName" style="color: #94a3b8; font-size: 16px; margin: 4px 0;">Charlie Wilson</p>
                 <p id="profileRating" style="color: #a1a1aa;">⭐ 4.85 คะแนน</p>
+                <div id="profileProvince" style="color: #94a3b8; font-size: 14px; margin-top: 8px;">📍 ภูเก็ต</div>
             </div>
 
             <!-- Account Information Section -->
@@ -2305,17 +1756,10 @@
                     <div class="info-item">
                         <span class="info-label">📧 อีเมล:</span>
                         <span id="profileEmail" class="info-value">charlie@example.com</span>
-                        <button class="edit-btn" onclick="editEmail()">✏️</button>
                     </div>
                     <div class="info-item">
                         <span class="info-label">📱 เบอร์โทร:</span>
                         <span id="profilePhone" class="info-value">081-234-5673</span>
-                        <button class="edit-btn" onclick="editPhone()">✏️</button>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">🏠 ที่อยู่ในการส่งสินค้า:</span>
-                        <span id="profileShippingAddress" class="info-value">321/12 หาดป่าตอง ตำบลป่าตอง อำเภอกะทู้ ภูเก็ต 83150</span>
-                        <button class="edit-btn" onclick="editShippingAddress()">✏️</button>
                     </div>
                     <div class="info-item">
                         <span class="info-label">📅 สมัครเมื่อ:</span>
@@ -2373,17 +1817,24 @@
             </div>
 
             <!-- Referral System Section -->
-            <div class="profile-section" id="referralSection" style="display: none;">
-                <h3 class="section-title">👥 ผู้แนะนำ</h3>
-                <div class="referrer-card">
-                    <div class="referrer-info">
-                        <div class="referrer-avatar">
-                            <img id="referrerImage" src="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+            <div class="profile-section">
+                <h3 class="section-title">👥 ระบบแนะนำเพื่อน</h3>
+                <div class="referral-card">
+                    <div class="referral-code">
+                        <span class="referral-label">รหัสแนะนำของคุณ:</span>
+                        <div class="referral-value">
+                            <span id="profileReferralCode" class="code">CHA003</span>
+                            <button class="copy-btn" onclick="copyReferralCode()">📋</button>
                         </div>
-                        <div class="referrer-details">
-                            <div class="referrer-name" id="referrerName"></div>
-                            <div class="referrer-code" id="referrerCode"></div>
-                            <div class="referrer-date" id="referrerDate"></div>
+                    </div>
+                    <div class="referral-stats">
+                        <div class="referral-stat">
+                            <span class="referral-stat-value">12</span>
+                            <span class="referral-stat-label">คนที่แนะนำ</span>
+                        </div>
+                        <div class="referral-stat">
+                            <span class="referral-stat-value">฿2,450</span>
+                            <span class="referral-stat-label">โบนัสรับ</span>
                         </div>
                     </div>
                 </div>
@@ -2418,6 +1869,7 @@
 
             <!-- Action Buttons -->
             <div class="profile-actions">
+                <button class="btn-primary" onclick="editProfile()">✏️ แก้ไขโปรไฟล์</button>
                 <button class="btn-secondary" onclick="showWalletDetails()">💰 จัดการกระเป๋าเงิน</button>
                 <button class="btn-secondary" onclick="showSettings()">⚙️ ตั้งค่าเพิ่มเติม</button>
                 <button class="btn-secondary" onclick="contactSupport()">📞 ติดต่อเรา</button>
@@ -2470,9 +1922,13 @@
             <div class="icon">🏪</div>
             <div>ตลาด</div>
         </a>
-        <a href="#" class="nav-item" onclick="showPage('listings')">
-            <div class="icon">📋</div>
-            <div>รายการ</div>
+        <a href="#" class="nav-item" onclick="showPage('create')">
+            <div class="icon">➕</div>
+            <div>ลงขาย</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('orders')">
+            <div class="icon">📦</div>
+            <div>คำสั่งซื้อ</div>
         </a>
         <a href="#" class="nav-item" onclick="showPage('chatsList')">
             <div class="icon">💬</div>
@@ -2488,11 +1944,11 @@
         </a>
     </div>
 
-    <!-- Load API Client -->
-    <script src="js/api-client.js"></script>
+    <!-- Load MockDatabase -->
+    <script src="../admin/js/mockDatabase.js"></script>
 
     <script>
-        // Initialize Database (using API Client instead of MockDatabase)
+        // Initialize Database
         let database = null;
         let allProducts = [];
         let filteredProducts = [];
@@ -2506,64 +1962,14 @@
             maxPrice: null
         };
 
-        // Helper function to normalize users data to ensure it's always an Array
-        function normalizeUsers(raw) {
-            // Add debug logging for development
-            if (typeof window !== 'undefined' && window.console) {
-                console.debug('[Mobile] normalizeUsers input:', { raw, type: typeof raw, isArray: Array.isArray(raw) });
-            }
-
-            try {
-                // If it's already an array, return as-is
-                if (Array.isArray(raw)) {
-                    return raw;
-                }
-
-                // If it's a string, try to parse as JSON
-                if (typeof raw === 'string') {
-                    const parsed = JSON.parse(raw);
-                    return normalizeUsers(parsed); // Recursive call to handle nested cases
-                }
-
-                // If it's an object with users property, use that
-                if (raw && typeof raw === 'object' && Array.isArray(raw.users)) {
-                    return raw.users;
-                }
-
-                // If it's an object map, convert to array of values
-                if (raw && typeof raw === 'object') {
-                    const values = Object.values(raw);
-                    // Check if values look like user objects
-                    if (values.length > 0 && values[0] && typeof values[0] === 'object' && 'username' in values[0]) {
-                        return values;
-                    }
-                }
-
-                // Fallback: return empty array
-                if (typeof window !== 'undefined' && window.console) {
-                    console.warn('[Mobile] normalizeUsers fallback to empty array for:', raw);
-                }
-                return [];
-            } catch (error) {
-                if (typeof window !== 'undefined' && window.console) {
-                    console.error('[Mobile] normalizeUsers error:', error, 'input:', raw);
-                }
-                return [];
-            }
-        }
-
         // Initialize database and load products
         async function initializeMarketplace() {
             try {
-                // Initialize API Client
-                database = new ApiClient();
-                await database.initialize(); // Initialize and cache users
-                console.log('✅ API Client initialized successfully');
-
+                database = new MockDatabase();
                 await loadProducts();
-                console.log('✅ Marketplace initialized with', allProducts.length, 'products');
+                console.log('Marketplace initialized with', allProducts.length, 'products');
             } catch (error) {
-                console.error('❌ Failed to initialize marketplace:', error);
+                console.error('Failed to initialize marketplace:', error);
                 showError('ไม่สามารถโหลดข้อมูลสินค้าได้');
             }
         }
@@ -2602,33 +2008,14 @@
                 const conditionText = getConditionText(product.condition);
                 const priceDisplay = formatPrice(product);
 
-                const hasImages = product.images && product.images.length > 0;
-                const firstImage = hasImages ? product.images[0] : null;
-
                 return `
                     <div class="product-card" onclick="viewProduct(${product.id})">
                         <div class="product-image">
-                            ${firstImage
-                                ? `<img
-                                    src="${firstImage}"
-                                    alt="${product.title}"
-                                    style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
-                                    onerror="this.style.display='none'; this.parentElement.textContent='${categoryIcon} ${product.title.split(' ')[0]}'"
-                                />`
-                                : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #10b981; font-size: 24px;">${categoryIcon}</div>`
-                            }
+                            <img src="${product.images[0]}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='${categoryIcon} ${product.title.split(' ')[0]}';">
                         </div>
                         <div class="product-title">${product.title}</div>
                         <div class="product-price">${priceDisplay}</div>
-                        <div class="product-seller">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span>@${seller?.username || 'unknown'}</span>
-                                <div style="display: flex; align-items: center; font-size: 12px;">
-                                    <span style="color: #fbbf24; margin-right: 2px;">${generateStarRating(seller?.seller_rating || 0)}</span>
-                                    <span style="color: #6b7280;">(${(seller?.seller_rating || 0).toFixed(1)})</span>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="product-seller">@${seller?.username || 'unknown'}</div>
                         <div class="product-stats">
                             <span>${conditionText}</span>
                             <button class="favorite-btn" onclick="toggleFavorite(event, ${product.id})">♡</button>
@@ -2912,134 +2299,6 @@
             `;
         }
 
-        // Listings Tab Management
-        function showListingsTab(tabName) {
-            // Hide all tab contents
-            document.getElementById('sellTabContent').style.display = 'none';
-            document.getElementById('myProductsTabContent').style.display = 'none';
-            document.getElementById('ordersTabContent').style.display = 'none';
-
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.style.color = '#9ca3af';
-                btn.style.borderBottom = 'none';
-            });
-
-            // Show selected tab content and activate button
-            if (tabName === 'sell') {
-                document.getElementById('sellTabContent').style.display = 'block';
-                document.getElementById('sellTab').style.color = '#10b981';
-                document.getElementById('sellTab').style.borderBottom = '2px solid #10b981';
-            } else if (tabName === 'myProducts') {
-                document.getElementById('myProductsTabContent').style.display = 'block';
-                document.getElementById('myProductsTab').style.color = '#10b981';
-                document.getElementById('myProductsTab').style.borderBottom = '2px solid #10b981';
-                // Load user's products
-                loadMyProducts();
-            } else if (tabName === 'orders') {
-                document.getElementById('ordersTabContent').style.display = 'block';
-                document.getElementById('ordersTab').style.color = '#10b981';
-                document.getElementById('ordersTab').style.borderBottom = '2px solid #10b981';
-                // Load user's orders
-                loadMyOrders();
-            }
-        }
-
-        function loadMyProducts() {
-            const content = document.getElementById('myProductsTabContent');
-            const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-
-            if (!currentUser.id) {
-                content.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🔒</div>
-                        <div>กรุณาเข้าสู่ระบบเพื่อดูสินค้าของคุณ</div>
-                    </div>
-                `;
-                return;
-            }
-
-            try {
-                // Get products from localStorage
-                const products = JSON.parse(localStorage.getItem('fingrow_products') || '[]');
-                const myProducts = products.filter(product => parseInt(product.seller_id) === parseInt(currentUser.id));
-
-                if (myProducts.length === 0) {
-                    content.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                            <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
-                            <div>คุณยังไม่มีสินค้าลงขาย</div>
-                            <div style="margin-top: 16px; color: #6b7280;">คลิกแท็บ "ลงขาย" เพื่อเริ่มขายสินค้า</div>
-                        </div>
-                    `;
-                } else {
-                    let productsHTML = '';
-                    myProducts.forEach(product => {
-                        const status = product.status === 'active' ?
-                            '<span style="color: #10b981;">✅ กำลังขาย</span>' :
-                            '<span style="color: #9ca3af;">⏸️ หยุดขาย</span>';
-
-                        // Generate random view count for demonstration (or use actual data if available)
-                        const viewCount = product.view_count || Math.floor(Math.random() * 50) + 1;
-
-                        productsHTML += `
-                            <div class="product-card" onclick="viewProduct(${product.id})">
-                                <div class="product-image" style="position: relative;">
-                                    <img
-                                        src="${product.images ? product.images[0] : ''}"
-                                        alt="${product.title}"
-                                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
-                                        onerror="this.style.display='none'; this.parentElement.textContent='📦 ${product.title.split(' ')[0]}'"
-                                    />
-                                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                                        👁️ ${viewCount}
-                                    </div>
-                                    <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">
-                                        ${status}
-                                    </div>
-                                </div>
-                                <div class="product-title">${product.title}</div>
-                                <div class="product-price">${product.price} WLD</div>
-                                <div class="product-seller">ขายโดยคุณ</div>
-                                <div class="product-stats">
-                                    <span>ลงขาย ${new Date(product.created_at || Date.now()).toLocaleDateString('th-TH')}</span>
-                                    <button class="favorite-btn" onclick="editProduct(event, ${product.id})" style="background: #374151; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px;">แก้ไข</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    content.innerHTML = `
-                        <div style="margin-bottom: 16px; padding: 12px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #10b981;">
-                            <div style="font-weight: 600; color: #374151;">สินค้าของฉัน (${myProducts.length} รายการ)</div>
-                        </div>
-                        <div class="product-grid">
-                            ${productsHTML}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading my products:', error);
-                content.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ef4444;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
-                        <div>เกิดข้อผิดพลาดในการโหลดสินค้า</div>
-                    </div>
-                `;
-            }
-        }
-
-        function loadMyOrders() {
-            // Placeholder - load current user's orders
-            const content = document.getElementById('ordersTabContent');
-            content.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
-                    <div>กำลังโหลดคำสั่งซื้อของคุณ...</div>
-                </div>
-            `;
-        }
-
         function showPage(pageId) {
             // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
@@ -3054,30 +2313,9 @@
             // Show selected page
             document.getElementById(pageId).classList.add('active');
 
-            // Special handling for listings page
-            if (pageId === 'listings') {
-                // Always show sell tab by default
-                setTimeout(() => showListingsTab('sell'), 10);
-            }
-
-            // Special handling for referrals/network page
-            if (pageId === 'referrals') {
-                loadReferralsData();
-            }
-
-            // Legacy redirect handling
-            if (pageId === 'create' || pageId === 'orders') {
-                // Redirect old pages to new listings page
-                showPage('listings');
-                return;
-            }
-
             // Add active to clicked nav item
             if (event && event.target) {
-                const navItem = event.target.closest('.nav-item');
-                if (navItem) {
-                    navItem.classList.add('active');
-                }
+                event.target.closest('.nav-item').classList.add('active');
             }
 
             // Load data for marketplace page
@@ -3661,49 +2899,8 @@
         console.log('🔒 Exchange Rate Lock Feature with Transaction Rate Recording');
         console.log('💰 Dedicated WLD Price Field with Auto-Conversion');
 
-        // Initialize app with authentication check
-        async function initializeApp() {
-            try {
-                await initializeMarketplace();
-
-                // Check for referral code in URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const hashParams = new URLSearchParams(window.location.hash.substring(window.location.hash.indexOf('?') + 1));
-                const referralCode = urlParams.get('ref') || hashParams.get('ref');
-
-                if (referralCode) {
-                    console.log('🔗 Referral code detected:', referralCode);
-                    // Store referral code for registration
-                    sessionStorage.setItem('referralCode', referralCode);
-                    // Show register page if not logged in
-                    if (!checkAuthStatus()) {
-                        showPage('register');
-                        // Pre-fill referral code and check referrer info
-                        setTimeout(async () => {
-                            const referralInput = document.getElementById('registerReferralCode');
-                            if (referralInput) {
-                                referralInput.value = referralCode;
-                                await checkReferralCode(referralCode);
-                            }
-                        }, 100);
-                        return;
-                    }
-                }
-
-                // Check if user is already logged in
-                if (!checkAuthStatus()) {
-                    showPage('login');
-                } else {
-                    showPage('marketplace');
-                }
-            } catch (error) {
-                console.error('Failed to initialize app:', error);
-                showPage('login');
-            }
-        }
-
-        // Initialize app when page loads
-        initializeApp();
+        // Initialize marketplace when page loads
+        initializeMarketplace();
 
         // Product popup functions
         let currentProductImages = [];
@@ -4067,14 +3264,11 @@
         }
 
         // Close popup when clicking outside
-        const productPopup = document.getElementById('productPopup');
-        if (productPopup) {
-            productPopup.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeProductPopup();
-                }
-            });
-        }
+        document.getElementById('productPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProductPopup();
+            }
+        });
 
         // Keyboard navigation for image gallery
         document.addEventListener('keydown', function(e) {
@@ -4096,17 +3290,14 @@
         let touchStartX = 0;
         let touchEndX = 0;
 
-        const productMainImage = document.getElementById('productMainImage');
-        if (productMainImage) {
-            productMainImage.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            });
+        document.getElementById('productMainImage').addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
 
-            productMainImage.addEventListener('touchend', function(e) {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            });
-        }
+        document.getElementById('productMainImage').addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
 
         function handleSwipe() {
             const swipeThreshold = 50; // Minimum swipe distance
@@ -4124,552 +3315,12 @@
         }
 
         // Profile Management Functions
-        var currentUser = null;
-
-        // Helper function to format user address from structured fields
-        function formatUserAddress(user) {
-            console.log('formatUserAddress called with user:', user);
-
-            if (!user.address_number && !user.address_street) {
-                console.log('No structured address fields, using shipping_address:', user.shipping_address);
-                return user.shipping_address || '';
-            }
-
-            const parts = [
-                user.address_number,
-                user.address_street,
-                user.address_subdistrict ? `แขวง${user.address_subdistrict}` : '',
-                user.address_district ? `เขต${user.address_district}` : '',
-                user.address_province,
-                user.address_postal_code
-            ].filter(part => part && part.trim()); // Remove empty parts
-
-            const result = parts.join(' ');
-            console.log('Formatted address parts:', parts);
-            console.log('Final formatted address:', result);
-            return result;
-        }
-
-        // ฟังก์ชันอัพเดทข้อมูลผู้ใช้ในฐานข้อมูล
-        function updateUserInDatabase(user) {
-            try {
-                console.log('Updating user in database:', user);
-                database.updateUser(user.id, user);
-                // Also update localStorage
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                console.log('User updated successfully');
-            } catch (error) {
-                console.error('Error updating user:', error);
-                alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-            }
-        }
-
-        // Authentication Functions
-        async function handleLogin() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
-
-            if (!username || !password) {
-                alert('❌ กรุณากรอก username และรหัสผ่าน');
-                return;
-            }
-
-
-            // Clear any old localStorage data that might interfere
-            console.log('[Debug] Clearing localStorage...');
-            localStorage.clear();
-
-            // Ensure database is initialized
-            if (!database) {
-                database = new ApiClient();
-                await database.initialize(); // Initialize users cache
-                console.log('⚠️ Database initialized in handleLogin');
-            }
-
-            console.log('[Debug] Login data:', { username, password: '***' });
-
-            try {
-                const result = await database.login({ username, password });
-
-                if (result.success) {
-                    // Ensure user has all structured address fields from database
-                    if (database.users && database.users.length > 0) {
-                        try {
-                            const normalizedUsers = normalizeUsers(database.users || []);
-                            const fullUser = normalizedUsers.find(u => u.id === result.user.id);
-                            if (fullUser) {
-                                // Check if structured fields exist, if not migrate from shipping_address
-                                if (!fullUser.address_number && fullUser.shipping_address) {
-                                    console.log('🔄 Migrating legacy address to structured fields for user:', fullUser.username);
-                                    // Parse legacy address for fallback
-                                    const address = fullUser.shipping_address;
-                                    const parts = address.split(' ');
-                                    fullUser.address_number = parts[0] || '';
-                                    fullUser.address_street = parts.slice(1, 3).join(' ') || '';
-                                    fullUser.address_subdistrict = parts.find(p => p.includes('แขวง'))?.replace('แขวง', '') || '';
-                                    fullUser.address_district = parts.find(p => p.includes('เขต'))?.replace('เขต', '') || '';
-                                    fullUser.address_province = parts.find(p => ['กรุงเทพมหานคร', 'ภูเก็ต', 'เชียงใหม่', 'เชียงราย'].includes(p)) || '';
-                                    fullUser.address_postal_code = parts.find(p => /^\d{5}$/.test(p)) || '';
-                                    // Update database with structured fields
-                                    database.updateUser(fullUser.id, fullUser);
-                                }
-
-                                currentUser = fullUser;
-                                localStorage.setItem('currentUser', JSON.stringify(fullUser));
-                                console.log('🔍 Login - Full user data loaded:', currentUser);
-                            } else {
-                                currentUser = result.user;
-                                localStorage.setItem('currentUser', JSON.stringify(result.user));
-                            }
-                        } catch (error) {
-                            console.error('Error loading full user data:', error);
-                            currentUser = result.user;
-                            localStorage.setItem('currentUser', JSON.stringify(result.user));
-                        }
-                    } else {
-                        currentUser = result.user;
-                        localStorage.setItem('currentUser', JSON.stringify(result.user));
-                    }
-
-                    alert(`✅ เข้าสู่ระบบสำเร็จ!\nยินดีต้อนรับ ${result.user.full_name}`);
-
-                    // Redirect to marketplace
-                    showPage('marketplace');
-                } else {
-                    console.log('❌ Login failed:', result.message);
-                    alert(`❌ เข้าสู่ระบบไม่สำเร็จ\n${result.message}`);
-                }
-            } catch (error) {
-                console.error('❌ Login error:', error);
-                alert('❌ เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
-            }
-        }
-
-        // Function to check and display referral code information
-        async function checkReferralCode(code, showNoReferrerOptions = false) {
-            if (!code || code.trim() === '') {
-                hideAllReferralElements();
-                return;
-            }
-
-            try {
-                console.log('[Mobile] Checking referral code:', code);
-                const users = await database.getUsers(1, 1000);
-                const referrer = users.data.find(u => u.referral_code === code.trim());
-
-                if (referrer) {
-                    console.log('[Mobile] Found referrer:', referrer);
-                    hideAllReferralElements();
-                    showReferrerInfo(referrer);
-                } else {
-                    console.log('[Mobile] Referral code not found');
-                    hideAllReferralElements();
-                    if (showNoReferrerOptions) {
-                        showNoReferrerOptions(code.trim());
-                    }
-                }
-            } catch (error) {
-                console.error('[Mobile] Error checking referral code:', error);
-                hideAllReferralElements();
-            }
-        }
-
-        // Function to get random active user for auto-assign
-        async function getRandomInvitor() {
-            try {
-                const users = await database.getUsers(1, 1000);
-                const activeUsers = users.data.filter(u => u.status === 'active' && u.referral_code);
-                if (activeUsers.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * activeUsers.length);
-                    return activeUsers[randomIndex];
-                }
-                return null;
-            } catch (error) {
-                console.error('[Mobile] Error getting random invitor:', error);
-                return null;
-            }
-        }
-
-        // Function to show referrer information
-        function showReferrerInfo(referrer) {
-            const referrerInfo = document.getElementById('referrerInfo');
-            const referrerDisplayName = document.getElementById('referrerDisplayName');
-            const referrerAvatar = document.getElementById('referrerAvatar');
-            const referrerProfileImage = document.getElementById('referrerProfileImage');
-            const referrerAvatarFallback = document.getElementById('referrerAvatarFallback');
-            const referralInput = document.getElementById('registerReferralCode');
-
-            if (referrerInfo && referrerDisplayName && referrerAvatar) {
-                referrerDisplayName.textContent = `@${referrer.username}`;
-                referrerAvatar.textContent = referrer.username.charAt(0).toUpperCase();
-
-                // Show profile image if available, otherwise show fallback
-                if (referrer.profile_image && referrerProfileImage && referrerAvatarFallback) {
-                    referrerProfileImage.src = referrer.profile_image;
-                    referrerProfileImage.style.display = 'block';
-                    referrerAvatarFallback.style.display = 'none';
-                } else if (referrerAvatarFallback) {
-                    referrerAvatarFallback.style.display = 'flex';
-                    if (referrerProfileImage) referrerProfileImage.style.display = 'none';
-                }
-
-                referrerInfo.style.display = 'block';
-
-                // Make referral code input readonly and hide confirm button
-                if (referralInput) {
-                    referralInput.readOnly = true;
-                    referralInput.style.backgroundColor = 'rgba(15, 23, 42, 0.5)';
-                    referralInput.style.cursor = 'not-allowed';
-                }
-
-                hideConfirmButton();
-            }
-        }
-
-        // Function to hide all referral-related elements
-        function hideAllReferralElements() {
-            const referrerInfo = document.getElementById('referrerInfo');
-            const editReferralConfirm = document.getElementById('editReferralConfirm');
-            const noReferrerOptions = document.getElementById('noReferrerOptions');
-
-            if (referrerInfo) referrerInfo.style.display = 'none';
-            if (editReferralConfirm) editReferralConfirm.style.display = 'none';
-            if (noReferrerOptions) noReferrerOptions.style.display = 'none';
-        }
-
-        // Function to show edit confirmation
-        function showEditConfirmation() {
-            hideAllReferralElements();
-            const editReferralConfirm = document.getElementById('editReferralConfirm');
-            if (editReferralConfirm) {
-                editReferralConfirm.style.display = 'block';
-            }
-        }
-
-        // Function to show no referrer options
-        function showNoReferrerOptions(invalidCode) {
-            const noReferrerOptions = document.getElementById('noReferrerOptions');
-            const invalidReferralCode = document.getElementById('invalidReferralCode');
-
-            if (noReferrerOptions) {
-                noReferrerOptions.style.display = 'block';
-            }
-
-            if (invalidReferralCode) {
-                invalidReferralCode.textContent = invalidCode;
-            }
-        }
-
-        // Function to enable referral input editing
-        function enableReferralEdit() {
-            const referralInput = document.getElementById('registerReferralCode');
-            const confirmReferralBtn = document.getElementById('confirmReferralBtn');
-
-            if (referralInput) {
-                referralInput.readOnly = false;
-                referralInput.style.backgroundColor = '';
-                referralInput.style.cursor = '';
-                referralInput.focus();
-                referralInput.select();
-            }
-
-            // Show confirm button
-            if (confirmReferralBtn) {
-                confirmReferralBtn.style.display = 'block';
-            }
-        }
-
-        // Function to hide confirm button
-        function hideConfirmButton() {
-            const confirmReferralBtn = document.getElementById('confirmReferralBtn');
-            if (confirmReferralBtn) {
-                confirmReferralBtn.style.display = 'none';
-            }
-        }
-
-        // Initialize referral code checking on input change
-        document.addEventListener('DOMContentLoaded', function() {
-            const referralInput = document.getElementById('registerReferralCode');
-            const editReferralBtn = document.getElementById('editReferralBtn');
-            const confirmEditBtn = document.getElementById('confirmEditBtn');
-            const cancelEditBtn = document.getElementById('cancelEditBtn');
-            const confirmReferralBtn = document.getElementById('confirmReferralBtn');
-            const autoAssignBtn = document.getElementById('autoAssignBtn');
-            const retryReferralBtn = document.getElementById('retryReferralBtn');
-
-            let isEditMode = false; // Flag to prevent auto-check during edit
-
-            if (referralInput) {
-                // Debounced input checking
-                let timeout;
-                referralInput.addEventListener('input', function() {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        if (!this.readOnly && !isEditMode) {
-                            checkReferralCode(this.value, true);
-                        }
-                    }, 500);
-                });
-
-                // Clear edit mode when user starts typing
-                referralInput.addEventListener('keydown', function() {
-                    if (isEditMode) {
-                        isEditMode = false;
-                    }
-                });
-            }
-
-            if (editReferralBtn) {
-                editReferralBtn.addEventListener('click', function() {
-                    showEditConfirmation();
-                });
-            }
-
-            if (confirmEditBtn) {
-                confirmEditBtn.addEventListener('click', function() {
-                    isEditMode = true; // Set edit mode flag
-                    hideAllReferralElements();
-                    enableReferralEdit();
-                    // Don't check current value to allow editing
-                    // User will trigger check when they type
-                });
-            }
-
-            if (cancelEditBtn) {
-                cancelEditBtn.addEventListener('click', function() {
-                    hideAllReferralElements();
-                    // Re-show referrer info if there was one
-                    const currentValue = referralInput ? referralInput.value : '';
-                    if (currentValue) {
-                        checkReferralCode(currentValue, false);
-                    }
-                });
-            }
-
-            if (autoAssignBtn) {
-                autoAssignBtn.addEventListener('click', async function() {
-                    this.disabled = true;
-                    this.innerHTML = '🔄 กำลังค้นหาผู้แนะนำ...';
-
-                    const randomInvitor = await getRandomInvitor();
-                    if (randomInvitor) {
-                        if (referralInput) {
-                            referralInput.value = randomInvitor.referral_code;
-                        }
-                        hideAllReferralElements();
-                        showReferrerInfo(randomInvitor);
-                        alert(`✅ ระบบได้จัดสรร @${randomInvitor.username} เป็นผู้แนะนำให้คุณแล้ว`);
-                    } else {
-                        alert('❌ ไม่สามารถหาผู้แนะนำได้ในขณะนี้');
-                    }
-
-                    this.disabled = false;
-                    this.innerHTML = '🤖 ให้ระบบจัดสรรผู้แนะนำให้อัตโนมัติ';
-                });
-            }
-
-
-            if (retryReferralBtn) {
-                retryReferralBtn.addEventListener('click', function() {
-                    isEditMode = true; // Set edit mode flag
-                    hideAllReferralElements();
-                    enableReferralEdit();
-                });
-            }
-
-            if (confirmReferralBtn) {
-                confirmReferralBtn.addEventListener('click', async function() {
-                    const currentCode = referralInput ? referralInput.value.trim() : '';
-
-                    if (!currentCode) {
-                        hideAllReferralElements();
-                        hideConfirmButton();
-                        return;
-                    }
-
-                    // Disable button during check
-                    this.disabled = true;
-                    this.innerHTML = '🔄 ตรวจสอบ...';
-
-                    try {
-                        console.log('[Mobile] Confirming referral code:', currentCode);
-                        const users = await database.getUsers(1, 1000);
-                        const referrer = users.data.find(u => u.referral_code === currentCode);
-
-                        if (referrer) {
-                            console.log('[Mobile] Found referrer:', referrer);
-                            hideAllReferralElements();
-                            hideConfirmButton();
-                            showReferrerInfo(referrer);
-                            isEditMode = false;
-                        } else {
-                            console.log('[Mobile] Referral code not found');
-                            hideAllReferralElements();
-                            showNoReferrerOptions(currentCode);
-                        }
-                    } catch (error) {
-                        console.error('[Mobile] Error confirming referral code:', error);
-                        alert('❌ เกิดข้อผิดพลาดในการตรวจสอบรหัสแนะนำ');
-                    }
-
-                    // Re-enable button
-                    this.disabled = false;
-                    this.innerHTML = '🔍 ตรวจสอบ';
-                });
-            }
-        });
-
-        async function handleRegister() {
-            const fullName = document.getElementById('registerFullName').value.trim();
-            const username = document.getElementById('registerUsername').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value.trim();
-            const phone = document.getElementById('registerPhone').value.trim();
-            const province = document.getElementById('registerProvince').value;
-            const referralCode = document.getElementById('registerReferralCode').value.trim();
-
-            // Validation
-            if (!fullName || !username || !email || !password) {
-                alert('❌ กรุณากรอกข้อมูลที่จำเป็น (มี * )');
-                return;
-            }
-
-            if (password.length < 6) {
-                alert('❌ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
-                return;
-            }
-
-            if (!email.includes('@')) {
-                alert('❌ รูปแบบอีเมลไม่ถูกต้อง');
-                return;
-            }
-
-            const userData = {
-                full_name: fullName,
-                username: username,
-                email: email,
-                password: password,
-                phone: phone,
-                province: province,
-                referral_code: referralCode
-            };
-
-            // Debug logging
-            console.log('[Mobile] Registering user with data:', userData);
-            console.log('[Mobile] Referral code being sent:', referralCode);
-
-            // Ensure database is initialized
-            if (!database) {
-                database = new ApiClient();
-                console.log('⚠️ Database initialized in handleRegister');
-            }
-
-            try {
-                const result = await database.register(userData);
-
-                if (result.success) {
-                    alert(`✅ สมัครสมาชิกสำเร็จ!\nยินดีต้อนรับ ${result.user.full_name}\nรหัสแนะนำของคุณ: ${result.user.referral_code}`);
-
-                    // Auto login after registration
-                    localStorage.setItem('currentUser', JSON.stringify(result.user));
-                    currentUser = result.user;
-                    showPage('marketplace');
-                } else {
-                    alert(`❌ สมัครสมาชิกไม่สำเร็จ\n${result.message}`);
-                }
-            } catch (error) {
-                console.error('Registration error:', error);
-                alert('❌ เกิดข้อผิดพลาดในการสมัครสมาชิก');
-            }
-        }
-
-        function quickLogin(username, password) {
-            document.getElementById('loginUsername').value = username;
-            document.getElementById('loginPassword').value = password;
-            handleLogin();
-        }
-
-        function logout() {
-            if (confirm('ต้องการออกจากระบบหรือไม่?')) {
-                localStorage.removeItem('currentUser');
-                currentUser = null;
-                showPage('login');
-                alert('✅ ออกจากระบบเรียบร้อยแล้ว');
-            }
-        }
-
-        // Session Management
-        function checkAuthStatus() {
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                const parsedUser = JSON.parse(savedUser);
-                // Refresh user data from database to get latest structured fields
-                if (database && typeof database.getUsers === 'function') {
-                    try {
-                        const rawUsers = database.getUsers();
-                        const users = normalizeUsers(rawUsers);
-                        const fullUser = users.find(u => u.id === parsedUser.id);
-                        if (fullUser) {
-                            // Check if structured fields exist, if not migrate from shipping_address
-                            if (!fullUser.address_number && fullUser.shipping_address) {
-                                console.log('🔄 Migrating legacy address to structured fields for user:', fullUser.username);
-                                // Parse legacy address for fallback
-                                const address = fullUser.shipping_address;
-                                const parts = address.split(' ');
-                                fullUser.address_number = parts[0] || '';
-                                fullUser.address_street = parts.slice(1, 3).join(' ') || '';
-                                fullUser.address_subdistrict = parts.find(p => p.includes('แขวง'))?.replace('แขวง', '') || '';
-                                fullUser.address_district = parts.find(p => p.includes('เขต'))?.replace('เขต', '') || '';
-                                fullUser.address_province = parts.find(p => ['กรุงเทพมหานคร', 'ภูเก็ต', 'เชียงใหม่', 'เชียงราย'].includes(p)) || '';
-                                fullUser.address_postal_code = parts.find(p => /^\d{5}$/.test(p)) || '';
-                                // Update database with structured fields
-                                database.updateUser(fullUser.id, fullUser);
-                            }
-
-                            currentUser = fullUser;
-                            localStorage.setItem('currentUser', JSON.stringify(fullUser));
-                            console.log('🔍 Refreshed user data from database:', currentUser);
-                        } else {
-                            currentUser = parsedUser;
-                        }
-                    } catch (error) {
-                        console.error('Error refreshing user data:', error);
-                        currentUser = parsedUser;
-                    }
-                } else {
-                    currentUser = parsedUser;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        function requireAuth() {
-            if (!checkAuthStatus()) {
-                showPage('login');
-                return false;
-            }
-            return true;
-        }
+        var currentUser = null; // Will be set to logged in user
 
         function loadProfileData() {
-            // Use current logged in user
-            if (!currentUser) {
-                console.error('❌ No user logged in!');
-                return;
-            }
-
-            console.log('🔍 Debug currentUser:', currentUser);
-            console.log('🔍 Profile image:', currentUser.profile_image);
-            console.log('🔍 Address fields debug:', {
-                address_number: currentUser.address_number,
-                address_street: currentUser.address_street,
-                address_subdistrict: currentUser.address_subdistrict,
-                address_district: currentUser.address_district,
-                address_province: currentUser.address_province,
-                address_postal_code: currentUser.address_postal_code,
-                shipping_address: currentUser.shipping_address
-            });
+            // For demo, use user ID 3 (Charlie Wilson)
+            const userId = 3;
+            currentUser = database.getUser(userId);
 
             if (currentUser) {
                 // Update profile image
@@ -4679,88 +3330,33 @@
                 }
 
                 // Update basic profile info
-                const profileUsername = document.getElementById('profileUsername');
-                if (profileUsername) {
-                    profileUsername.textContent = `@${currentUser.username}`;
-                }
-                const profileFullName = document.getElementById('profileFullName');
-                if (profileFullName) {
-                    profileFullName.textContent = currentUser.full_name;
-                }
-                const profileRating = document.getElementById('profileRating');
-                if (profileRating) {
-                    profileRating.textContent = `⭐ ${currentUser.seller_rating} คะแนน`;
-                }
+                document.getElementById('profileUsername').textContent = `@${currentUser.username}`;
+                document.getElementById('profileFullName').textContent = currentUser.full_name;
+                document.getElementById('profileRating').textContent = `⭐ ${currentUser.seller_rating} คะแนน`;
+                document.getElementById('profileProvince').textContent = `📍 ${currentUser.province}`;
 
                 // Update account information
-                const profileUserId = document.getElementById('profileUserId');
-                if (profileUserId) {
-                    profileUserId.textContent = currentUser.auto_user_id;
-                }
-                const profileEmail = document.getElementById('profileEmail');
-                if (profileEmail) {
-                    profileEmail.textContent = currentUser.email;
-                }
-                const profilePhone = document.getElementById('profilePhone');
-                if (profilePhone) {
-                    profilePhone.textContent = currentUser.phone;
-                }
-                const profileShippingAddress = document.getElementById('profileShippingAddress');
-                if (profileShippingAddress) {
-                    // Use formatted full address from structured fields or fallback to legacy field
-                    const fullAddress = formatUserAddress(currentUser);
-                    profileShippingAddress.textContent = fullAddress || 'ยังไม่ได้ระบุ';
-                }
-                const profileCreatedAt = document.getElementById('profileCreatedAt');
-                if (profileCreatedAt) {
-                    profileCreatedAt.textContent = formatThaiDate(currentUser.created_at);
-                }
-                const profileLastLogin = document.getElementById('profileLastLogin');
-                if (profileLastLogin) {
-                    profileLastLogin.textContent = formatThaiDate(currentUser.last_login);
-                }
+                document.getElementById('profileUserId').textContent = currentUser.auto_user_id;
+                document.getElementById('profileEmail').textContent = currentUser.email;
+                document.getElementById('profilePhone').textContent = currentUser.phone;
+                document.getElementById('profileCreatedAt').textContent = formatThaiDate(currentUser.created_at);
+                document.getElementById('profileLastLogin').textContent = formatThaiDate(currentUser.last_login);
 
                 // Update wallet information
-                const profileThbBalance = document.getElementById('profileThbBalance');
-                if (profileThbBalance) {
-                    const balance = currentUser.wallet_balance || 0;
-                    profileThbBalance.textContent = `฿${Number(balance).toLocaleString()}`;
-                }
-                const profileWldBalance = document.getElementById('profileWldBalance');
-                if (profileWldBalance) {
-                    const wldBalance = currentUser.wld_balance || 0;
-                    profileWldBalance.textContent = `${wldBalance} WLD`;
-                }
+                document.getElementById('profileThbBalance').textContent = `฿${currentUser.wallet_balance.toLocaleString()}`;
+                document.getElementById('profileWldBalance').textContent = `${currentUser.wld_balance} WLD`;
 
                 // Update sales statistics
-                const profileTotalSales = document.getElementById('profileTotalSales');
-                if (profileTotalSales) {
-                    profileTotalSales.textContent = currentUser.total_sales;
-                }
-                const profileSellerRating = document.getElementById('profileSellerRating');
-                if (profileSellerRating) {
-                    profileSellerRating.textContent = currentUser.seller_rating;
-                }
+                document.getElementById('profileTotalSales').textContent = currentUser.total_sales;
+                document.getElementById('profileSellerRating').textContent = currentUser.seller_rating;
 
                 // Update referral information
-                const profileReferralCode = document.getElementById('profileReferralCode');
-                if (profileReferralCode) {
-                    profileReferralCode.textContent = currentUser.referral_code;
-                }
-
-                // Load referrer information
-                loadReferrerInfo(currentUser);
+                document.getElementById('profileReferralCode').textContent = currentUser.referral_code;
 
                 // Calculate referral stats
-                const referralStats = calculateReferralStats(currentUser.id);
-                const referralStatValue = document.querySelector('.referral-stat-value');
-                if (referralStatValue) {
-                    referralStatValue.textContent = referralStats.referredUsers;
-                }
-                const referralStatValues = document.querySelectorAll('.referral-stat-value');
-                if (referralStatValues.length > 1) {
-                    referralStatValues[1].textContent = `฿${referralStats.totalBonus.toLocaleString()}`;
-                }
+                const referralStats = calculateReferralStats(userId);
+                document.querySelector('.referral-stat-value').textContent = referralStats.referredUsers;
+                document.querySelectorAll('.referral-stat-value')[1].textContent = `฿${referralStats.totalBonus.toLocaleString()}`;
             }
         }
 
@@ -4813,538 +3409,52 @@
             security: true
         };
 
-        function editFullName() {
-            var currentName = document.getElementById('profileFullName').textContent;
-            var newName = prompt('แก้ไขชื่อ-นามสกุล:', currentName);
-
-            if (newName && newName !== currentName && newName.trim()) {
-                // อัพเดทใน UI
-                document.getElementById('profileFullName').textContent = newName;
-
-                // อัพเดทในฐานข้อมูล
-                if (currentUser) {
-                    currentUser.full_name = newName;
-                    updateUserInDatabase(currentUser);
-                }
-
-                alert('✅ บันทึกชื่อสำเร็จ!');
-            }
-        }
-
-        function editEmail() {
-            var currentEmail = document.getElementById('profileEmail').textContent;
-            var newEmail = prompt('แก้ไขอีเมล:', currentEmail);
-
-            if (newEmail && newEmail !== currentEmail && newEmail.trim()) {
-                if (newEmail.includes('@')) {
-                    // อัพเดทใน UI
-                    document.getElementById('profileEmail').textContent = newEmail;
-
-                    // อัพเดทในฐานข้อมูล
-                    if (currentUser) {
-                        currentUser.email = newEmail;
-                        updateUserInDatabase(currentUser);
-                    }
-
-                    alert('✅ บันทึกอีเมลสำเร็จ!');
-                } else {
-                    alert('❌ รูปแบบอีเมลไม่ถูกต้อง');
-                }
-            }
-        }
-
-        function editPhone() {
-            var currentPhone = document.getElementById('profilePhone').textContent;
-            var newPhone = prompt('แก้ไขเบอร์โทร (081-234-5678):', currentPhone);
-
-            if (newPhone && newPhone !== currentPhone && newPhone.trim()) {
-                // อัพเดทใน UI
-                document.getElementById('profilePhone').textContent = newPhone;
-
-                // อัพเดทในฐานข้อมูล
-                if (currentUser) {
-                    currentUser.phone = newPhone;
-                    updateUserInDatabase(currentUser);
-                }
-
-                alert('✅ บันทึกเบอร์โทรสำเร็จ!');
-            }
-        }
-
-        function editShippingAddress() {
-            console.log('editShippingAddress called');
-            console.log('currentUser:', currentUser);
-
-            // Remove any existing address modal first
-            const existingModal = document.querySelector('.address-edit-modal');
-            if (existingModal) {
-                console.log('Removing existing modal');
-                existingModal.remove();
-            }
-
-            if (!currentUser) {
-                alert('❌ ไม่พบข้อมูลผู้ใช้');
-                return;
-            }
-
-            // Create a detailed address form instead of simple prompt
-            const modal = document.createElement('div');
-            modal.className = 'address-edit-modal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                padding: 20px;
-            `;
-            modal.innerHTML = `
-                <div style="background-color: white; border-radius: 8px; padding: 24px; width: 100%; max-width: 400px; max-height: 500px; overflow-y: auto; position: relative;">
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #374151;">แก้ไขที่อยู่</h3>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">บ้านเลขที่/หมู่ที่</label>
-                            <input type="text" id="addressNumber" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="${currentUser.address_number || ''}">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">ถนน/ซอย</label>
-                            <input type="text" id="addressStreet" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="${currentUser.address_street || ''}">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">ตำบล/แขวง</label>
-                            <input type="text" id="addressSubdistrict" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="${currentUser.address_subdistrict || ''}">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">อำเภอ/เขต</label>
-                            <input type="text" id="addressDistrict" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="${currentUser.address_district || ''}">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">จังหวัด</label>
-                            <select id="addressProvince" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
-                                <option value="">เลือกจังหวัด</option>
-                                <option value="กรุงเทพมหานคร" ${currentUser.address_province === 'กรุงเทพมหานคร' ? 'selected' : ''}>กรุงเทพมหานคร</option>
-                                <option value="กระบี่" ${currentUser.address_province === 'กระบี่' ? 'selected' : ''}>กระบี่</option>
-                                <option value="กาญจนบุรี" ${currentUser.address_province === 'กาญจนบุรี' ? 'selected' : ''}>กาญจนบุรี</option>
-                                <option value="กาฬสินธุ์" ${currentUser.address_province === 'กาฬสินธุ์' ? 'selected' : ''}>กาฬสินธุ์</option>
-                                <option value="กำแพงเพชร" ${currentUser.address_province === 'กำแพงเพชร' ? 'selected' : ''}>กำแพงเพชร</option>
-                                <option value="ขอนแก่น" ${currentUser.address_province === 'ขอนแก่น' ? 'selected' : ''}>ขอนแก่น</option>
-                                <option value="จันทบุรี" ${currentUser.address_province === 'จันทบุรี' ? 'selected' : ''}>จันทบุรี</option>
-                                <option value="ฉะเชิงเทรา" ${currentUser.address_province === 'ฉะเชิงเทรา' ? 'selected' : ''}>ฉะเชิงเทรา</option>
-                                <option value="ชลบุรี" ${currentUser.address_province === 'ชลบุรี' ? 'selected' : ''}>ชลบุรี</option>
-                                <option value="ชัยนาท" ${currentUser.address_province === 'ชัยนาท' ? 'selected' : ''}>ชัยนาท</option>
-                                <option value="ชัยภูมิ" ${currentUser.address_province === 'ชัยภูมิ' ? 'selected' : ''}>ชัยภูมิ</option>
-                                <option value="ชุมพร" ${currentUser.address_province === 'ชุมพร' ? 'selected' : ''}>ชุมพร</option>
-                                <option value="เชียงราย" ${currentUser.address_province === 'เชียงราย' ? 'selected' : ''}>เชียงราย</option>
-                                <option value="เชียงใหม่" ${currentUser.address_province === 'เชียงใหม่' ? 'selected' : ''}>เชียงใหม่</option>
-                                <option value="ตรัง" ${currentUser.address_province === 'ตรัง' ? 'selected' : ''}>ตรัง</option>
-                                <option value="ตราด" ${currentUser.address_province === 'ตราด' ? 'selected' : ''}>ตราด</option>
-                                <option value="ตาก" ${currentUser.address_province === 'ตาก' ? 'selected' : ''}>ตาก</option>
-                                <option value="นครนายก" ${currentUser.address_province === 'นครนายก' ? 'selected' : ''}>นครนายก</option>
-                                <option value="นครปฐม" ${currentUser.address_province === 'นครปฐม' ? 'selected' : ''}>นครปฐม</option>
-                                <option value="นครพนม" ${currentUser.address_province === 'นครพนม' ? 'selected' : ''}>นครพนม</option>
-                                <option value="นครราชสีมา" ${currentUser.address_province === 'นครราชสีมา' ? 'selected' : ''}>นครราชสีมา</option>
-                                <option value="นครศรีธรรมราช" ${currentUser.address_province === 'นครศรีธรรมราช' ? 'selected' : ''}>นครศรีธรรมราช</option>
-                                <option value="นครสวรรค์" ${currentUser.address_province === 'นครสวรรค์' ? 'selected' : ''}>นครสวรรค์</option>
-                                <option value="นนทบุรี" ${currentUser.address_province === 'นนทบุรี' ? 'selected' : ''}>นนทบุรี</option>
-                                <option value="นราธิวาส" ${currentUser.address_province === 'นราธิวาส' ? 'selected' : ''}>นราธิวาส</option>
-                                <option value="น่าน" ${currentUser.address_province === 'น่าน' ? 'selected' : ''}>น่าน</option>
-                                <option value="บุรีรัมย์" ${currentUser.address_province === 'บุรีรัมย์' ? 'selected' : ''}>บุรีรัมย์</option>
-                                <option value="ปทุมธานี" ${currentUser.address_province === 'ปทุมธานี' ? 'selected' : ''}>ปทุมธานี</option>
-                                <option value="ประจวบคีรีขันธ์" ${currentUser.address_province === 'ประจวบคีรีขันธ์' ? 'selected' : ''}>ประจวบคีรีขันธ์</option>
-                                <option value="ปราจีนบุรี" ${currentUser.address_province === 'ปราจีนบุรี' ? 'selected' : ''}>ปราจีนบุรี</option>
-                                <option value="ปัตตานี" ${currentUser.address_province === 'ปัตตานี' ? 'selected' : ''}>ปัตตานี</option>
-                                <option value="พระนครศรีอยุธยา" ${currentUser.address_province === 'พระนครศรีอยุธยา' ? 'selected' : ''}>พระนครศรีอยุธยา</option>
-                                <option value="พะเยา" ${currentUser.address_province === 'พะเยา' ? 'selected' : ''}>พะเยา</option>
-                                <option value="พังงา" ${currentUser.address_province === 'พังงา' ? 'selected' : ''}>พังงา</option>
-                                <option value="พัทลุง" ${currentUser.address_province === 'พัทลุง' ? 'selected' : ''}>พัทลุง</option>
-                                <option value="พิจิตร" ${currentUser.address_province === 'พิจิตร' ? 'selected' : ''}>พิจิตร</option>
-                                <option value="พิษณุโลก" ${currentUser.address_province === 'พิษณุโลก' ? 'selected' : ''}>พิษณุโลก</option>
-                                <option value="เพชรบุรี" ${currentUser.address_province === 'เพชรบุรี' ? 'selected' : ''}>เพชรบุรี</option>
-                                <option value="เพชรบูรณ์" ${currentUser.address_province === 'เพชรบูรณ์' ? 'selected' : ''}>เพชรบูรณ์</option>
-                                <option value="แพร่" ${currentUser.address_province === 'แพร่' ? 'selected' : ''}>แพร่</option>
-                                <option value="ภูเก็ต" ${currentUser.address_province === 'ภูเก็ต' ? 'selected' : ''}>ภูเก็ต</option>
-                                <option value="มหาสารคาม" ${currentUser.address_province === 'มหาสารคาม' ? 'selected' : ''}>มหาสารคาม</option>
-                                <option value="มุกดาหาร" ${currentUser.address_province === 'มุกดาหาร' ? 'selected' : ''}>มุกดาหาร</option>
-                                <option value="แม่ฮ่องสอน" ${currentUser.address_province === 'แม่ฮ่องสอน' ? 'selected' : ''}>แม่ฮ่องสอน</option>
-                                <option value="ยโซธร" ${currentUser.address_province === 'ยโซธร' ? 'selected' : ''}>ยโซธร</option>
-                                <option value="ยะลา" ${currentUser.address_province === 'ยะลา' ? 'selected' : ''}>ยะลา</option>
-                                <option value="ร้อยเอ็ด" ${currentUser.address_province === 'ร้อยเอ็ด' ? 'selected' : ''}>ร้อยเอ็ด</option>
-                                <option value="ระนอง" ${currentUser.address_province === 'ระนอง' ? 'selected' : ''}>ระนอง</option>
-                                <option value="ระยอง" ${currentUser.address_province === 'ระยอง' ? 'selected' : ''}>ระยอง</option>
-                                <option value="ราชบุรี" ${currentUser.address_province === 'ราชบุรี' ? 'selected' : ''}>ราชบุรี</option>
-                                <option value="ลพบุรี" ${currentUser.address_province === 'ลพบุรี' ? 'selected' : ''}>ลพบุรี</option>
-                                <option value="ลำปาง" ${currentUser.address_province === 'ลำปาง' ? 'selected' : ''}>ลำปาง</option>
-                                <option value="ลำพูน" ${currentUser.address_province === 'ลำพูน' ? 'selected' : ''}>ลำพูน</option>
-                                <option value="เลย" ${currentUser.address_province === 'เลย' ? 'selected' : ''}>เลย</option>
-                                <option value="ศรีสะเกษ" ${currentUser.address_province === 'ศรีสะเกษ' ? 'selected' : ''}>ศรีสะเกษ</option>
-                                <option value="สกลนคร" ${currentUser.address_province === 'สกลนคร' ? 'selected' : ''}>สกลนคร</option>
-                                <option value="สงขลา" ${currentUser.address_province === 'สงขลา' ? 'selected' : ''}>สงขลา</option>
-                                <option value="สตูล" ${currentUser.address_province === 'สตูล' ? 'selected' : ''}>สตูล</option>
-                                <option value="สมุทรปราการ" ${currentUser.address_province === 'สมุทรปราการ' ? 'selected' : ''}>สมุทรปราการ</option>
-                                <option value="สมุทรสงคราม" ${currentUser.address_province === 'สมุทรสงคราม' ? 'selected' : ''}>สมุทรสงคราม</option>
-                                <option value="สมุทรสาคร" ${currentUser.address_province === 'สมุทรสาคร' ? 'selected' : ''}>สมุทรสาคร</option>
-                                <option value="สระแก้ว" ${currentUser.address_province === 'สระแก้ว' ? 'selected' : ''}>สระแก้ว</option>
-                                <option value="สระบุรี" ${currentUser.address_province === 'สระบุรี' ? 'selected' : ''}>สระบุรี</option>
-                                <option value="สิงห์บุรี" ${currentUser.address_province === 'สิงห์บุรี' ? 'selected' : ''}>สิงห์บุรี</option>
-                                <option value="สุโขทัย" ${currentUser.address_province === 'สุโขทัย' ? 'selected' : ''}>สุโขทัย</option>
-                                <option value="สุพรรณบุรี" ${currentUser.address_province === 'สุพรรณบุรี' ? 'selected' : ''}>สุพรรณบุรี</option>
-                                <option value="สุราษฎร์ธานี" ${currentUser.address_province === 'สุราษฎร์ธานี' ? 'selected' : ''}>สุราษฎร์ธานี</option>
-                                <option value="สุรินทร์" ${currentUser.address_province === 'สุรินทร์' ? 'selected' : ''}>สุรินทร์</option>
-                                <option value="หนองคาย" ${currentUser.address_province === 'หนองคาย' ? 'selected' : ''}>หนองคาย</option>
-                                <option value="หนองบัวลำภู" ${currentUser.address_province === 'หนองบัวลำภู' ? 'selected' : ''}>หนองบัวลำภู</option>
-                                <option value="อ่างทอง" ${currentUser.address_province === 'อ่างทอง' ? 'selected' : ''}>อ่างทอง</option>
-                                <option value="อำนาจเจริญ" ${currentUser.address_province === 'อำนาจเจริญ' ? 'selected' : ''}>อำนาจเจริญ</option>
-                                <option value="อุดรธานี" ${currentUser.address_province === 'อุดรธานี' ? 'selected' : ''}>อุดรธานี</option>
-                                <option value="อุตรดิตถ์" ${currentUser.address_province === 'อุตรดิตถ์' ? 'selected' : ''}>อุตรดิตถ์</option>
-                                <option value="อุทัยธานี" ${currentUser.address_province === 'อุทัยธานี' ? 'selected' : ''}>อุทัยธานี</option>
-                                <option value="อุบลราชธานี" ${currentUser.address_province === 'อุบลราชธานี' ? 'selected' : ''}>อุบลราชธานี</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">รหัสไปรษณีย์</label>
-                            <input type="text" id="addressPostalCode" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;" value="${currentUser.address_postal_code || ''}">
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
-                        <button onclick="closeAddressModal()" style="padding: 8px 16px; background-color: #d1d5db; color: #374151; border: none; border-radius: 4px; cursor: pointer;">ยกเลิก</button>
-                        <button onclick="saveAddress()" style="padding: 8px 16px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">บันทึก</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            // Add modal functions to global scope
-            window.closeAddressModal = function() {
-                document.body.removeChild(modal);
-                delete window.closeAddressModal;
-                delete window.saveAddress;
-            };
-
-            window.saveAddress = function() {
-                console.log('saveAddress called');
-                const addressNumber = document.getElementById('addressNumber').value.trim();
-                const addressStreet = document.getElementById('addressStreet').value.trim();
-                const addressSubdistrict = document.getElementById('addressSubdistrict').value.trim();
-                const addressDistrict = document.getElementById('addressDistrict').value.trim();
-                const addressProvince = document.getElementById('addressProvince').value;
-                const addressPostalCode = document.getElementById('addressPostalCode').value.trim();
-
-                console.log('Address data:', {
-                    addressNumber, addressStreet, addressSubdistrict,
-                    addressDistrict, addressProvince, addressPostalCode
-                });
-
-                // Update user data with structured fields
-                if (currentUser) {
-                    currentUser.address_number = addressNumber;
-                    currentUser.address_street = addressStreet;
-                    currentUser.address_subdistrict = addressSubdistrict;
-                    currentUser.address_district = addressDistrict;
-                    currentUser.address_province = addressProvince;
-                    currentUser.address_postal_code = addressPostalCode;
-
-                    // Also update legacy field for backward compatibility
-                    const fullAddress = formatUserAddress(currentUser);
-                    currentUser.shipping_address = fullAddress;
-
-                    // Update in database
-                    updateUserInDatabase(currentUser);
-
-                    // Update UI display
-                    document.getElementById('profileShippingAddress').textContent = fullAddress || 'ยังไม่ได้ระบุ';
-                }
-
-                closeAddressModal();
-                alert('✅ บันทึกที่อยู่สำเร็จ!');
-            };
-        }
-
-        function editProfileImage() {
-            // สร้าง input element สำหรับเลือกไฟล์
-            var input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-
-            input.onchange = function(e) {
-                var file = e.target.files[0];
-
-                if (file) {
-                    // ตรวจสอบประเภทไฟล์
-                    if (!file.type.startsWith('image/')) {
-                        alert('❌ กรุณาเลือกไฟล์รูปภาพเท่านั้น');
-                        return;
-                    }
-
-                    // ตรวจสอบขนาดไฟล์ (จำกัดที่ 5MB)
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('❌ ไฟล์รูปภาพใหญ่เกินไป\nขนาดสูงสุด: 5MB');
-                        return;
-                    }
-
-                    // อ่านไฟล์และแสดงผล
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        var imageUrl = e.target.result;
-
-                        // แสดงภาพใหม่
-                        document.getElementById('profileImage').innerHTML =
-                            '<img src="' + imageUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">';
-
-                        // บันทึกรูปโปรไฟล์ในฐานข้อมูล
-                        if (currentUser) {
-                            currentUser.profile_image = imageUrl;
-                            updateUserInDatabase(currentUser);
-                        }
-
-                        alert('✅ เปลี่ยนรูปโปรไฟล์สำเร็จ!\n\nขนาดไฟล์: ' + Math.round(file.size / 1024) + ' KB');
-                    };
-
-                    reader.onerror = function() {
-                        alert('❌ ไม่สามารถอ่านไฟล์ได้\nกรุณาลองใหม่');
-                    };
-
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            // เปิด dialog เลือกไฟล์
-            input.click();
-        }
-
-        function editFullName() {
-            var currentFullName = document.getElementById('profileFullName').textContent;
-            var newFullName = prompt('แก้ไขชื่อจริง:', currentFullName);
-
-            if (newFullName && newFullName !== currentFullName) {
-                // อัพเดทใน UI
-                document.getElementById('profileFullName').textContent = newFullName;
-
-                // อัพเดทในฐานข้อมูล
-                if (currentUser) {
-                    currentUser.full_name = newFullName;
-                    updateUserInDatabase(currentUser);
-                }
-
-                alert('✅ บันทึกชื่อจริงสำเร็จ!');
-            }
-        }
-
-        // Display my inviter function
-        function displayMyInviter(inviter) {
-            const container = document.getElementById('myInviterInfo');
-
-            if (!inviter) {
-                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">ไม่มีผู้แนะนำ</div>';
-                return;
-            }
-
-            const initials = (inviter.full_name || inviter.username || 'U').charAt(0).toUpperCase();
-            const joinDate = inviter.created_at ? new Date(inviter.created_at).toLocaleDateString('th-TH') : 'ไม่ทราบ';
-            const displayName = inviter.full_name || inviter.username || 'ไม่ระบุ';
-
-            // Check if inviter has profile image
-            const hasProfileImage = inviter.profile_image || inviter.avatar_url;
-            const avatarContent = hasProfileImage
-                ? `<img src="${inviter.profile_image || inviter.avatar_url}" alt="${displayName}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">`
-                : initials;
-
-            container.innerHTML = `
-                <div class="invited-user-card">
-                    <div class="invited-user-avatar">${avatarContent}</div>
-                    <div class="invited-user-info">
-                        <div class="invited-user-name">👑 ${displayName}</div>
-                        <div class="invited-user-date">ผู้แนะนำของคุณ • เข้าร่วม: ${joinDate}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Display invited users function
-        function displayInvitedUsers(invitees) {
-            const listContainer = document.getElementById('invitedUsersList');
-
-            if (!invitees || invitees.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">ยังไม่มีคนที่คุณชวนมา</div>';
-                return;
-            }
-
-            listContainer.innerHTML = invitees.map(user => {
-                const initials = (user.full_name || user.username || 'U').charAt(0).toUpperCase();
-                const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH') : 'ไม่ทราบ';
-                const displayName = user.full_name || user.username || 'ไม่ระบุ';
-
-                return `
-                    <div class="invited-user-card">
-                        <div class="invited-user-avatar">${initials}</div>
-                        <div class="invited-user-info">
-                            <div class="invited-user-name">${displayName}</div>
-                            <div class="invited-user-date">เข้าร่วม: ${joinDate}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-
-        // Network/Referral Functions
-        function copyMyReferralCode() {
-            var code = document.getElementById('myReferralCode').value;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(code).then(() => {
-                    var btn = document.querySelector('.copy-code-btn');
-                    var original = btn.textContent;
-                    btn.textContent = '✅';
-                    btn.style.background = '#10b981';
-                    setTimeout(() => {
-                        btn.textContent = original;
-                        btn.style.background = '#3b82f6';
-                    }, 2000);
-                    alert('✅ คัดลอกรหัสแนะนำสำเร็จ!\n\n' + code);
-                });
-            } else {
-                alert('รหัสแนะนำของคุณ: ' + code);
-            }
-        }
-
-        function copyMyReferralLink() {
-            var link = document.getElementById('myReferralLink').value;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(link).then(() => {
-                    var btn = document.querySelector('.copy-link-btn');
-                    var original = btn.textContent;
-                    btn.textContent = '✅';
-                    btn.style.background = '#10b981';
-                    setTimeout(() => {
-                        btn.textContent = original;
-                        btn.style.background = '#3b82f6';
-                    }, 2000);
-                    alert('✅ คัดลอกลิงค์แนะนำสำเร็จ!');
-                });
-            } else {
-                alert('ลิงค์แนะนำของคุณ:\n\n' + link);
-            }
-        }
-
-        // Load referrals data from database
-        async function loadReferralsData() {
-            console.log('Loading referrals data...');
-
-            if (!currentUser) {
-                console.log('No current user, skipping referrals load');
-                return;
-            }
-
+        function editProfile() {
             try {
-                // Debug current user data
-                console.log('Current user data:', currentUser);
-                console.log('Current user invitor_id:', currentUser.invitor_id);
-                console.log('Current user invited_by:', currentUser.invited_by);
-
-                // Set invite code and referral link
-                const inviteCode = currentUser.invite_code || '';
-                const referralLink = inviteCode ? `${window.location.origin}/mobile/?invite=${inviteCode}` : '';
-
-                document.getElementById('myReferralCode').value = inviteCode;
-                document.getElementById('myReferralLink').value = referralLink;
-
-                // Count users who were invited by this user
-                const invitedUsers = await database.getAllUsers();
-                const myInvitees = invitedUsers.data ?
-                    invitedUsers.data.filter(user => user.invitor_id === currentUser.id) : [];
-
-                // Update real referral count
-                document.querySelector('#referrals .stat-card:first-child .stat-value').textContent = myInvitees.length;
-
-                // Mock WLD data (not calculated from referrals)
-                const mockWLD = 125.50;
-                document.querySelector('#referrals .stat-card:nth-child(2) .stat-value').textContent = mockWLD.toFixed(2);
-
-                // Mock Finpoint data
-                const mockFinpoint = 2450;
-                document.querySelector('#referrals .stat-card:nth-child(3) .stat-value').textContent = mockFinpoint.toLocaleString();
-
-                // Find and display who invited current user
-                const inviterID = currentUser.invited_by || currentUser.invitor_id;
-                console.log('Looking for inviter with ID:', inviterID);
-                console.log('Available users:', invitedUsers.data?.map(u => ({id: u.id, username: u.username})));
-
-                let myInviter = null;
-                if (inviterID) {
-                    myInviter = invitedUsers.data ?
-                        invitedUsers.data.find(user => user.id === inviterID) : null;
+                // โหลดข้อมูล user ก่อน
+                if (!currentUser && database) {
+                    var userId = 3; // Charlie Wilson
+                    currentUser = database.getUser(userId);
                 }
-                console.log('Found inviter:', myInviter);
-                if (myInviter) {
-                    console.log('Inviter profile_image:', myInviter.profile_image);
-                    console.log('Inviter avatar_url:', myInviter.avatar_url);
+
+                var currentPhone = currentUser ? currentUser.phone : '081-234-5673';
+                var currentFullName = currentUser ? currentUser.full_name : 'Charlie Wilson';
+
+                alert('ข้อมูลปัจจุบัน:\n\nชื่อ: ' + currentFullName + '\nเบอร์โทร: ' + currentPhone);
+
+                var newFullName = prompt('แก้ไขชื่อ-นามสกุล:', currentFullName);
+
+                if (newFullName && newFullName !== currentFullName) {
+                    if (currentUser) {
+                        currentUser.full_name = newFullName;
+                    }
+
+                    var fullNameElement = document.getElementById('profileFullName');
+                    if (fullNameElement) {
+                        fullNameElement.textContent = newFullName;
+                    }
+                    alert('✅ บันทึกชื่อสำเร็จ: ' + newFullName);
                 }
-                displayMyInviter(myInviter);
 
-                // Display invited users
-                displayInvitedUsers(myInvitees);
+                var newPhone = prompt('แก้ไขเบอร์โทร (081-234-5678):', currentPhone);
 
-                console.log(`Loaded referrals data: ${myInvitees.length} real invitees, ${mockWLD} WLD (mock), ${mockFinpoint} FP (mock)`);
-                console.log('My inviter:', myInviter);
+                if (newPhone && newPhone !== currentPhone) {
+                    if (currentUser) {
+                        currentUser.phone = newPhone;
+                    }
+
+                    var phoneElement = document.getElementById('profilePhone');
+                    if (phoneElement) {
+                        phoneElement.textContent = newPhone;
+                    }
+                    alert('✅ บันทึกเบอร์โทรสำเร็จ: ' + newPhone);
+                }
+
+                alert('✅ การแก้ไขโปรไฟล์เสร็จสมบูรณ์');
 
             } catch (error) {
-                console.error('Error loading referrals data:', error);
-
-                // Fallback to showing basic data
-                const inviteCode = currentUser.invite_code || '';
-                const referralLink = inviteCode ? `${window.location.origin}/mobile/?invite=${inviteCode}` : '';
-
-                document.getElementById('myReferralCode').value = inviteCode;
-                document.getElementById('myReferralLink').value = referralLink;
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
             }
-        }
-
-        function generateReferralLink(code) {
-            return `${window.location.origin}/mobile/?invite=${code}`;
-        }
-
-        function generateQRCode() {
-            var link = document.getElementById('myReferralLink').value;
-            alert('📱 สร้าง QR Code\n\nลิงค์: ' + link + '\n\n[ในแอปจริงจะแสดง QR Code]');
-        }
-
-        function shareReferralLink() {
-            var code = document.getElementById('myReferralCode').value;
-            var link = document.getElementById('myReferralLink').value;
-
-            var message = '🌱 มาร่วมกับ Fingrow V3 กันเถอะ!\n\n' +
-                         '💰 ตลาดซื้อขายสินค้ามือสองพร้อม Worldcoin\n' +
-                         '🎁 ใช้รหัสแนะนำ: ' + code + '\n' +
-                         '🔗 ' + link + '\n\n' +
-                         '✅ รับโบนัสทันทีเมื่อสมัคร!';
-
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Fingrow V3 - ตลาดซื้อขายสินค้ามือสอง',
-                    text: message,
-                    url: link
-                });
-            } else {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(message);
-                    alert('✅ คัดลอกข้อความแชร์สำเร็จ!\n\nนำไปแชร์ในแอปอื่นได้เลย');
-                } else {
-                    alert('ข้อความแชร์:\n\n' + message);
-                }
-            }
-        }
-
-        function showReferralDetails() {
-            alert('📊 รายละเอียดการแนะนำ\n\n' +
-                  '👥 คนที่แนะนำ: 23 คน\n' +
-                  '🎁 โบนัสรวม: 45.67 WLD\n' +
-                  '💰 รายได้รวม: ฿11,540\n\n' +
-                  '🔥 ระดับปัจจุบัน: Silver\n' +
-                  '🎯 เป้าหมาย Gold: อีก 7 คน');
         }
 
         function showWalletDetails() {
@@ -5523,64 +3633,10 @@
         function logout() {
             if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
                 // Clear user data and redirect to login
-                localStorage.removeItem('currentUser');
                 currentUser = null;
-                showPage('login');
-                alert('✅ ออกจากระบบเรียบร้อยแล้ว');
-            }
-        }
-
-        function loadReferrerInfo(user) {
-            const referralSection = document.getElementById('referralSection');
-
-            // Check if user has a referrer
-            if (!user.referred_by) {
-                referralSection.style.display = 'none';
-                return;
-            }
-
-            try {
-                // Get all users to find the referrer
-                const users = JSON.parse(localStorage.getItem('fingrow_users') || '[]');
-                const referrer = users.find(u => parseInt(u.id) === parseInt(user.referred_by));
-
-                if (referrer) {
-                    // Show referral section
-                    referralSection.style.display = 'block';
-
-                    // Update referrer image
-                    const referrerImage = document.getElementById('referrerImage');
-                    if (referrerImage) {
-                        referrerImage.src = referrer.profile_image || 'https://images.unsplash.com/photo-1494790108755-2616b612b647?w=60&h=60&fit=crop&crop=face';
-                    }
-
-                    // Update referrer name
-                    const referrerName = document.getElementById('referrerName');
-                    if (referrerName) {
-                        referrerName.textContent = referrer.full_name || referrer.username;
-                    }
-
-                    // Update referrer code
-                    const referrerCode = document.getElementById('referrerCode');
-                    if (referrerCode) {
-                        referrerCode.textContent = `รหัส: ${referrer.referral_code}`;
-                    }
-
-                    // Update referrer date
-                    const referrerDate = document.getElementById('referrerDate');
-                    if (referrerDate) {
-                        const joinDate = new Date(user.created_at).toLocaleDateString('th-TH');
-                        referrerDate.textContent = `แนะนำเมื่อ: ${joinDate}`;
-                    }
-
-                    console.log('✅ Referrer info loaded:', referrer.username);
-                } else {
-                    console.warn('⚠️ Referrer not found for user:', user.username);
-                    referralSection.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('❌ Error loading referrer info:', error);
-                referralSection.style.display = 'none';
+                alert('ออกจากระบบเรียบร้อยแล้ว');
+                // In a real app, this would redirect to login page
+                showPage('marketplace');
             }
         }
     </script>
