@@ -4,6 +4,8 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,43 @@ const PORT = 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadsDir = path.join(__dirname, 'uploads', 'profiles');
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 15);
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        const uniqueFileName = `profile_${req.body.userId || 'user'}_${timestamp}_${randomId}${fileExtension}`;
+        cb(null, uniqueFileName);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
+// Serve static files for uploaded images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Error handling middleware for JSON parsing
 app.use((error, req, res, next) => {
@@ -311,7 +350,7 @@ app.put('/api/users/:userId', async (req, res) => {
         const updates = req.body;
 
         // Filter out fields that don't exist in the current database schema
-        const validFields = ['id', 'world_id', 'username', 'email', 'phone', 'full_name', 'avatar_url', 'bio', 'location', 'preferred_currency', 'language', 'is_verified', 'verification_level', 'trust_score', 'total_sales', 'total_purchases', 'invite_code', 'invitor_id', 'total_invites', 'active_invites', 'is_active', 'is_suspended', 'last_login', 'created_at', 'updated_at', 'password_hash'];
+        const validFields = ['id', 'world_id', 'username', 'email', 'phone', 'full_name', 'avatar_url', 'profile_image_filename', 'bio', 'location', 'preferred_currency', 'language', 'is_verified', 'verification_level', 'trust_score', 'total_sales', 'total_purchases', 'invite_code', 'invitor_id', 'total_invites', 'active_invites', 'is_active', 'is_suspended', 'last_login', 'created_at', 'updated_at', 'password_hash'];
 
         // Field mapping for compatibility between old and new field names
         const fieldMapping = {
@@ -343,8 +382,16 @@ app.put('/api/users/:userId', async (req, res) => {
         const result = db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`).run(...values, userId);
 
         if (result.changes > 0) {
-            // Get updated user
-            const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+            // Get updated user with consistent field mapping
+            const updatedUser = db.prepare(`
+                SELECT
+                    id, username, email, full_name, phone,
+                    invite_code, invitor_id as invited_by,
+                    created_at, last_login, is_active, avatar_url as profile_image,
+                    trust_score as seller_rating, total_sales, location as province
+                FROM users
+                WHERE id = ?
+            `).get(userId);
             res.json({
                 success: true,
                 user: updatedUser
@@ -836,9 +883,67 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
+// Profile image upload endpoint
+app.post('/api/upload-profile-image', upload.single('profileImage'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const userId = req.body.userId;
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        // Generate the relative path for database storage
+        const relativePath = `/uploads/profile-images/${req.file.filename}`;
+
+        // Update user's profile image path in database
+        const updateStmt = db.prepare(`
+            UPDATE users
+            SET avatar_url = ?, profile_image_filename = ?
+            WHERE id = ?
+        `);
+
+        const result = updateStmt.run(relativePath, req.file.filename, userId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Profile image uploaded successfully',
+            data: {
+                filename: req.file.filename,
+                path: relativePath,
+                originalName: req.file.originalname
+            }
+        });
+
+    } catch (error) {
+        console.error('Error uploading profile image:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to upload profile image',
+            error: error.message
+        });
+    }
+});
+
 // Serve static files
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/', express.static(__dirname));
 
 // Start server

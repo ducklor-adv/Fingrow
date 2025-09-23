@@ -2353,13 +2353,15 @@ class FingrowAdmin {
 
         // Set profile image field and preview
         const profileImageInput = document.getElementById('editProfileImage');
+        const imageUrl = user.profile_image || user.avatar_url || '';
         console.log('[Admin] populateUserEditModal - user.profile_image:', user.profile_image);
         console.log('[Admin] populateUserEditModal - user.avatar_url:', user.avatar_url);
+        console.log('[Admin] Final imageUrl:', imageUrl);
         console.log('[Admin] profileImageInput found:', !!profileImageInput);
 
         if (profileImageInput) {
-            profileImageInput.value = user.profile_image || '';
-            this.updateProfileImagePreview(user.profile_image || '');
+            profileImageInput.value = imageUrl;
+            this.updateProfileImagePreview(imageUrl);
         } else {
             console.error('[Admin] editProfileImage input not found');
         }

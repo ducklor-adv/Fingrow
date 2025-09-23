@@ -1086,17 +1086,17 @@
 
         .invited-user-card {
             background: rgba(30, 41, 59, 0.6);
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: 8px;
+            padding: 12px;
             border: 1px solid rgba(148, 163, 184, 0.1);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .invited-user-avatar {
-            width: 48px;
-            height: 48px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: #3b82f6;
             display: flex;
@@ -1104,7 +1104,7 @@
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 14px;
             flex-shrink: 0;
         }
 
@@ -4164,6 +4164,51 @@
             }
         }
 
+        // ฟังก์ชันอัปโหลดรูปโปรไฟล์ไปเซิร์ฟเวอร์
+        async function uploadProfileImageToServer(file, userId) {
+            try {
+                // สร้าง FormData สำหรับส่งไฟล์
+                const formData = new FormData();
+                formData.append('profileImage', file);
+                formData.append('userId', userId);
+
+                console.log('Uploading profile image to server...');
+
+                // ส่งคำขออัปโหลดไฟล์
+                const response = await fetch('/api/upload-profile-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Profile image uploaded successfully:', result.data);
+
+                    // อัปเดตรูปโปรไฟล์ในหน้าเว็บ
+                    const imageUrl = result.data.path;
+                    document.getElementById('profileImage').innerHTML =
+                        '<img src="' + imageUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">';
+
+                    // อัปเดตข้อมูลผู้ใช้ใน localStorage
+                    if (currentUser) {
+                        currentUser.profile_image = imageUrl;
+                        currentUser.avatar_url = imageUrl;
+                        currentUser.profile_image_filename = result.data.filename;
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    }
+
+                    alert('✅ เปลี่ยนรูปโปรไฟล์สำเร็จ!\n\nชื่อไฟล์: ' + result.data.filename + '\nขนาดไฟล์: ' + Math.round(file.size / 1024) + ' KB');
+                } else {
+                    console.error('Upload failed:', result.message);
+                    alert('❌ อัปโหลดรูปโปรไฟล์ไม่สำเร็จ\n' + result.message);
+                }
+            } catch (error) {
+                console.error('Error uploading profile image:', error);
+                alert('❌ เกิดข้อผิดพลาดในการอัปโหลดรูปโปรไฟล์\nกรุณาลองใหม่');
+            }
+        }
+
         // Authentication Functions
         async function handleLogin() {
             const username = document.getElementById('loginUsername').value.trim();
@@ -5086,29 +5131,16 @@
                         return;
                     }
 
-                    // อ่านไฟล์และแสดงผล
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        var imageUrl = e.target.result;
+                    // สร้างชื่อไฟล์ไม่ซ้ำกัน
+                    const timestamp = Date.now();
+                    const randomId = Math.random().toString(36).substring(2, 15);
+                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                    const uniqueFileName = `profile_${currentUser.id}_${timestamp}_${randomId}.${fileExtension}`;
 
-                        // แสดงภาพใหม่
-                        document.getElementById('profileImage').innerHTML =
-                            '<img src="' + imageUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">';
+                    console.log('Uploading profile image:', uniqueFileName);
 
-                        // บันทึกรูปโปรไฟล์ในฐานข้อมูล
-                        if (currentUser) {
-                            currentUser.profile_image = imageUrl;
-                            updateUserInDatabase(currentUser);
-                        }
-
-                        alert('✅ เปลี่ยนรูปโปรไฟล์สำเร็จ!\n\nขนาดไฟล์: ' + Math.round(file.size / 1024) + ' KB');
-                    };
-
-                    reader.onerror = function() {
-                        alert('❌ ไม่สามารถอ่านไฟล์ได้\nกรุณาลองใหม่');
-                    };
-
-                    reader.readAsDataURL(file);
+                    // อัปโหลดไฟล์ไปเซิร์ฟเวอร์
+                    uploadProfileImageToServer(file, currentUser.id);
                 }
             };
 
@@ -5150,7 +5182,7 @@
             // Check if inviter has profile image
             const hasProfileImage = inviter.profile_image || inviter.avatar_url;
             const avatarContent = hasProfileImage
-                ? `<img src="${inviter.profile_image || inviter.avatar_url}" alt="${displayName}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">`
+                ? `<img src="${inviter.profile_image || inviter.avatar_url}" alt="${displayName}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
                 : initials;
 
             container.innerHTML = `
@@ -5178,9 +5210,15 @@
                 const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH') : 'ไม่ทราบ';
                 const displayName = user.full_name || user.username || 'ไม่ระบุ';
 
+                // Check if user has profile image
+                const hasProfileImage = user.profile_image || user.avatar_url;
+                const avatarContent = hasProfileImage
+                    ? `<img src="${user.profile_image || user.avatar_url}" alt="${displayName}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
+                    : initials;
+
                 return `
                     <div class="invited-user-card">
-                        <div class="invited-user-avatar">${initials}</div>
+                        <div class="invited-user-avatar">${avatarContent}</div>
                         <div class="invited-user-info">
                             <div class="invited-user-name">${displayName}</div>
                             <div class="invited-user-date">เข้าร่วม: ${joinDate}</div>
@@ -5254,8 +5292,21 @@
 
                 // Count users who were invited by this user
                 const invitedUsers = await database.getAllUsers();
+                console.log('All users for filtering:', invitedUsers.data?.map(u => ({
+                    id: u.id,
+                    username: u.username,
+                    invitor_id: u.invitor_id,
+                    invited_by: u.invited_by
+                })));
+
                 const myInvitees = invitedUsers.data ?
-                    invitedUsers.data.filter(user => user.invitor_id === currentUser.id) : [];
+                    invitedUsers.data.filter(user => {
+                        const userInvitor = user.invited_by || user.invitor_id;
+                        return userInvitor === currentUser.id;
+                    }) : [];
+
+                console.log('Current user ID:', currentUser.id);
+                console.log('Found invitees:', myInvitees.map(u => ({id: u.id, username: u.username})));
 
                 // Update real referral count
                 document.querySelector('#referrals .stat-card:first-child .stat-value').textContent = myInvitees.length;
