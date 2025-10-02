@@ -295,7 +295,7 @@ class BrowserDatabaseProxy {
     async fetchFromNode(method, params = {}) {
         try {
             // Use API endpoints instead of mock data
-            const apiBase = 'http://localhost:5000/api';
+            const apiBase = 'http://localhost:3001/api';
 
             switch (method) {
                 case 'getAllUsers':
