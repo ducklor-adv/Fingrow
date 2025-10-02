@@ -1639,6 +1639,56 @@
             <div id="sellTabContent" class="tab-content">
 
             <form id="createListingForm">
+                <!-- Fin Fee Card - MOVED TO TOP -->
+                <div class="form-section" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <h3 class="form-section-title" style="color: #10b981; display: flex; align-items: center; gap: 10px;">
+                        💰 ค่าธรรมเนียมระบบ (Fin Fee)
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label" style="color: #d1fae5;">เปอร์เซ็นต์ค่าธรรมเนียม (1-7%)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input
+                                type="range"
+                                class="form-input"
+                                id="finFeePercent"
+                                min="1"
+                                max="7"
+                                step="0.5"
+                                value="2"
+                                style="flex: 1;"
+                                oninput="updateFinFeeCalculation()">
+                            <span id="finFeePercentDisplay" style="color: #10b981; font-weight: bold; font-size: 20px; min-width: 60px; text-align: right;">2.0%</span>
+                        </div>
+                        <small class="form-help" style="color: #6ee7b7;">ลากเพื่อปรับค่าธรรมเนียมที่จะจ่ายให้ระบบ (ค่าเริ่มต้น 2%)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="color: #d1fae5;">จำนวนเงินค่าธรรมเนียม</label>
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; border: 1px solid #10b981;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: #86efac; font-size: 14px;">ราคาสินค้า:</span>
+                                <span id="productPriceDisplay" style="color: white; font-weight: 500;"><span id="priceValue">0.00</span> <span id="priceCurrencyDisplay">THB</span></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: #86efac; font-size: 14px;">ค่าธรรมเนียม (<span id="feePercentText">2.0</span>%):</span>
+                                <span id="amountFeeDisplay" style="color: #10b981; font-weight: bold; font-size: 18px;"><span id="feeValue">0.00</span> <span id="feeCurrencyDisplay">THB</span></span>
+                            </div>
+                            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #d1fae5; font-size: 14px; font-weight: 500;">คุณจะได้รับ:</span>
+                                    <span id="sellerReceiveDisplay" style="color: #10b981; font-weight: bold; font-size: 20px;"><span id="receiveValue">0.00</span> <span id="receiveCurrencyDisplay">THB</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="form-help" style="color: #6ee7b7;">💡 ค่าธรรมเนียมจะถูกหักอัตโนมัติเมื่อมีการขายสินค้า</small>
+                    </div>
+
+                    <!-- Hidden inputs to store fee data -->
+                    <input type="hidden" id="finFeePercentValue" value="2.0">
+                    <input type="hidden" id="amountFeeValue" value="0">
+                </div>
+
                 <!-- Basic Information -->
                 <div class="form-section">
                     <h3 class="form-section-title">ข้อมูลพื้นฐาน</h3>
@@ -1844,56 +1894,6 @@
                             <span class="currency-label" id="shippingCurrencyLabel">THB</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Fin Fee Card -->
-                <div class="form-section" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px;">
-                    <h3 class="form-section-title" style="color: #10b981; display: flex; align-items: center; gap: 10px;">
-                        💰 ค่าธรรมเนียมระบบ (Fin Fee)
-                    </h3>
-
-                    <div class="form-group">
-                        <label class="form-label" style="color: #d1fae5;">เปอร์เซ็นต์ค่าธรรมเนียม (1-7%)</label>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input
-                                type="range"
-                                class="form-input"
-                                id="finFeePercent"
-                                min="1"
-                                max="7"
-                                step="0.5"
-                                value="2"
-                                style="flex: 1;"
-                                oninput="updateFinFeeCalculation()">
-                            <span id="finFeePercentDisplay" style="color: #10b981; font-weight: bold; font-size: 20px; min-width: 60px; text-align: right;">2.0%</span>
-                        </div>
-                        <small class="form-help" style="color: #6ee7b7;">ลากเพื่อปรับค่าธรรมเนียมที่จะจ่ายให้ระบบ (ค่าเริ่มต้น 2%)</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" style="color: #d1fae5;">จำนวนเงินค่าธรรมเนียม</label>
-                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; border: 1px solid #10b981;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="color: #86efac; font-size: 14px;">ราคาสินค้า:</span>
-                                <span id="productPriceDisplay" style="color: white; font-weight: 500;"><span id="priceValue">0.00</span> <span id="priceCurrencyDisplay">THB</span></span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="color: #86efac; font-size: 14px;">ค่าธรรมเนียม (<span id="feePercentText">2.0</span>%):</span>
-                                <span id="amountFeeDisplay" style="color: #10b981; font-weight: bold; font-size: 18px;"><span id="feeValue">0.00</span> <span id="feeCurrencyDisplay">THB</span></span>
-                            </div>
-                            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 8px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="color: #d1fae5; font-size: 14px; font-weight: 500;">คุณจะได้รับ:</span>
-                                    <span id="sellerReceiveDisplay" style="color: #10b981; font-weight: bold; font-size: 20px;"><span id="receiveValue">0.00</span> <span id="receiveCurrencyDisplay">THB</span></span>
-                                </div>
-                            </div>
-                        </div>
-                        <small class="form-help" style="color: #6ee7b7;">💡 ค่าธรรมเนียมจะถูกหักอัตโนมัติเมื่อมีการขายสินค้า</small>
-                    </div>
-
-                    <!-- Hidden inputs to store fee data -->
-                    <input type="hidden" id="finFeePercentValue" value="2.0">
-                    <input type="hidden" id="amountFeeValue" value="0">
                 </div>
 
                 <!-- Location & Policies -->
