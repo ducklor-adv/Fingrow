@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "name": "fingrow",
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "server.js"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "/mobile/(.*)",
+      "dest": "/mobile/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
