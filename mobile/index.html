@@ -2506,6 +2506,33 @@
             maxPrice: null
         };
 
+        // Global users cache
+        let globalUsersCache = [];
+        let globalUsersCacheTimestamp = 0;
+        const GLOBAL_CACHE_DURATION = 60000; // 1 minute
+
+        // Function to load users from API
+        async function loadUsersFromAPI() {
+            const now = Date.now();
+            if (globalUsersCache.length === 0 || (now - globalUsersCacheTimestamp) > GLOBAL_CACHE_DURATION) {
+                try {
+                    const apiClient = new ApiClient();
+                    const response = await apiClient.request('/users');
+                    if (response.success && response.data) {
+                        globalUsersCache = response.data;
+                        globalUsersCacheTimestamp = now;
+                        // Also update database.users for backward compatibility
+                        if (database) {
+                            database.users = response.data;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load users from API:', error);
+                }
+            }
+            return globalUsersCache;
+        }
+
         // Helper function to normalize users data to ensure it's always an Array
         function normalizeUsers(raw) {
             // Add debug logging for development
@@ -2574,7 +2601,7 @@
                 const response = await database.getProducts(1, 50); // Load first 50 products
                 allProducts = response.data.filter(product => product.status === 'active');
                 filteredProducts = [...allProducts];
-                renderProducts();
+                await renderProducts();
                 updateProductsCount();
             } catch (error) {
                 console.error('Failed to load products:', error);
@@ -2583,7 +2610,7 @@
         }
 
         // Render products to the grid
-        function renderProducts() {
+        async function renderProducts() {
             const productGrid = document.getElementById('productGrid');
 
             if (filteredProducts.length === 0) {
@@ -2596,8 +2623,11 @@
                 return;
             }
 
+            // Load users from API
+            await loadUsersFromAPI();
+
             productGrid.innerHTML = filteredProducts.map(product => {
-                const seller = database.users.find(user => user.id === product.seller_id);
+                const seller = globalUsersCache.find(user => user.id === product.seller_id) || { username: 'unknown', seller_rating: 0 };
                 const categoryIcon = getCategoryIcon(product.category);
                 const conditionText = getConditionText(product.condition);
                 const priceDisplay = formatPrice(product);
@@ -3710,11 +3740,13 @@
         let currentImageIndex = 0;
         let currentProduct = null;
 
-        function viewProduct(productId) {
+        async function viewProduct(productId) {
             currentProduct = allProducts.find(p => p.id === productId);
             if (!currentProduct) return;
 
-            const seller = database.users.find(user => user.id === currentProduct.seller_id);
+            // Load users from API if needed
+            await loadUsersFromAPI();
+            const seller = globalUsersCache.find(user => user.id === currentProduct.seller_id);
 
             // Set product details
             document.getElementById('productDetailTitle').textContent = currentProduct.title;
@@ -3811,13 +3843,14 @@
         let currentChatSeller = null;
         let chatMessages = [];
 
-        function contactSeller() {
+        async function contactSeller() {
             if (!currentProduct) {
                 alert('ไม่มีข้อมูลสินค้า');
                 return;
             }
 
-            const seller = database.users.find(user => user.id === currentProduct.seller_id);
+            await loadUsersFromAPI();
+            const seller = globalUsersCache.find(user => user.id === currentProduct.seller_id);
             if (!seller) {
                 alert('ไม่พบข้อมูลผู้ขาย');
                 return;
@@ -3952,9 +3985,12 @@
         }
 
         // Chat List Functions
-        function loadChatsList() {
+        async function loadChatsList() {
             const currentUserId = 1; // In real app, get from auth
             const chatsContainer = document.getElementById('chatsListContainer');
+
+            // Load users from API
+            await loadUsersFromAPI();
 
             // Get all unique chat conversations for current user
             const userChats = new Map();
@@ -3971,7 +4007,7 @@
                 }
 
                 product = database.products.find(p => p.id === msg.product_id);
-                const otherUser = database.users.find(u => u.id === otherUserId);
+                const otherUser = globalUsersCache.find(u => u.id === otherUserId);
 
                 if (!otherUser || !product) return;
 
@@ -4019,10 +4055,11 @@
             }
         }
 
-        function openChatFromList(productId, sellerId) {
+        async function openChatFromList(productId, sellerId) {
             // Find product and seller
             currentChatProduct = database.products.find(p => p.id == productId);
-            currentChatSeller = database.users.find(u => u.id == sellerId);
+            await loadUsersFromAPI();
+            currentChatSeller = globalUsersCache.find(u => u.id == sellerId);
 
             if (!currentChatProduct || !currentChatSeller) {
                 alert('ไม่พบข้อมูลแชท');
@@ -4151,16 +4188,44 @@
         }
 
         // ฟังก์ชันอัพเดทข้อมูลผู้ใช้ในฐานข้อมูล
-        function updateUserInDatabase(user) {
+        async function updateUserInDatabase(user) {
             try {
                 console.log('Updating user in database:', user);
-                database.updateUser(user.id, user);
-                // Also update localStorage
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                console.log('User updated successfully');
+
+                // Use API to update user data
+                const apiClient = new ApiClient();
+                const response = await apiClient.updateUser(user.id, user);
+
+                if (response.success) {
+                    console.log('✅ User updated successfully via API');
+                    // Update localStorage with the returned user data
+                    if (response.user) {
+                        currentUser = response.user;
+                        localStorage.setItem('currentUser', JSON.stringify(response.user));
+                    } else {
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                    }
+                } else {
+                    console.error('❌ API update failed:', response.message);
+                    // Fallback to database.updateUser if API fails
+                    if (database && database.updateUser) {
+                        database.updateUser(user.id, user);
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                    }
+                }
             } catch (error) {
                 console.error('Error updating user:', error);
-                alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                // Fallback to database.updateUser if API fails
+                try {
+                    if (database && database.updateUser) {
+                        database.updateUser(user.id, user);
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        console.log('✅ User updated via fallback method');
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback update also failed:', fallbackError);
+                    alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
             }
         }
 
@@ -4237,10 +4302,13 @@
                 const result = await database.login({ username, password });
 
                 if (result.success) {
+                    // Load users from API and populate global cache
+                    await loadUsersFromAPI();
+
                     // Ensure user has all structured address fields from database
-                    if (database.users && database.users.length > 0) {
+                    if (globalUsersCache && globalUsersCache.length > 0) {
                         try {
-                            const normalizedUsers = normalizeUsers(database.users || []);
+                            const normalizedUsers = normalizeUsers(globalUsersCache || []);
                             const fullUser = normalizedUsers.find(u => u.id === result.user.id);
                             if (fullUser) {
                                 // Check if structured fields exist, if not migrate from shipping_address
@@ -4697,11 +4765,25 @@
             return true;
         }
 
-        function loadProfileData() {
+        async function loadProfileData() {
             // Use current logged in user
             if (!currentUser) {
                 console.error('❌ No user logged in!');
                 return;
+            }
+
+            // Fetch latest user data from API to ensure we have current address info
+            try {
+                const apiClient = new ApiClient();
+                const response = await apiClient.request(`/users/${currentUser.id}`);
+                if (response.success && response.data) {
+                    // Update currentUser with fresh data from API
+                    currentUser = { ...currentUser, ...response.data };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    console.log('✅ Loaded fresh user data from API:', currentUser);
+                }
+            } catch (error) {
+                console.error('⚠️ Could not fetch latest user data, using cached data:', error);
             }
 
             console.log('🔍 Debug currentUser:', currentUser);
@@ -4824,7 +4906,7 @@
         }
 
         function calculateReferralStats(userId) {
-            const referredUsers = database.users.filter(user => user.referred_by === userId).length;
+            const referredUsers = globalUsersCache.filter(user => user.referred_by === userId).length;
             const totalBonus = referredUsers * 200; // Assume 200 THB per referral
 
             return {
@@ -5070,7 +5152,7 @@
                 delete window.saveAddress;
             };
 
-            window.saveAddress = function() {
+            window.saveAddress = async function() {
                 console.log('saveAddress called');
                 const addressNumber = document.getElementById('addressNumber').value.trim();
                 const addressStreet = document.getElementById('addressStreet').value.trim();
@@ -5097,15 +5179,18 @@
                     const fullAddress = formatUserAddress(currentUser);
                     currentUser.shipping_address = fullAddress;
 
-                    // Update in database
-                    updateUserInDatabase(currentUser);
+                    // Update in database (now async)
+                    await updateUserInDatabase(currentUser);
 
                     // Update UI display
                     document.getElementById('profileShippingAddress').textContent = fullAddress || 'ยังไม่ได้ระบุ';
-                }
 
-                closeAddressModal();
-                alert('✅ บันทึกที่อยู่สำเร็จ!');
+                    closeAddressModal();
+                    alert('✅ บันทึกที่อยู่สำเร็จ!');
+                } else {
+                    closeAddressModal();
+                    alert('❌ ไม่พบข้อมูลผู้ใช้');
+                }
             };
         }
 

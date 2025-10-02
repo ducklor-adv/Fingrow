@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = 5000;
 
 // Middleware
 app.use(cors());
@@ -907,6 +907,34 @@ app.get('/api/users/:userId', async (req, res) => {
         const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
 
         if (user) {
+            // Try to get default address from addresses table
+            try {
+                const defaultAddress = db.prepare(`
+                    SELECT * FROM addresses
+                    WHERE user_id = ? AND is_default = 1
+                    ORDER BY updated_at DESC
+                    LIMIT 1
+                `).get(userId);
+
+                if (defaultAddress) {
+                    // Parse address_line1 to extract number and street if structured fields are empty
+                    const addressLine1 = defaultAddress.address_line1 || '';
+                    const parts = addressLine1.split(' ');
+
+                    user.address_number = parts[0] || '';
+                    user.address_street = parts.slice(1).join(' ') || '';
+                    user.address_district = defaultAddress.city || '';
+                    user.address_province = defaultAddress.state_province || '';
+                    user.address_postal_code = defaultAddress.postal_code || '';
+
+                    // Also keep the full formatted address for backward compatibility
+                    user.shipping_address = `${defaultAddress.address_line1} ${defaultAddress.city} ${defaultAddress.state_province} ${defaultAddress.postal_code}`.trim();
+                }
+            } catch (addressError) {
+                console.error('Error fetching address:', addressError);
+                // Continue without address data
+            }
+
             res.json({
                 success: true,
                 data: user

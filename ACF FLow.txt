@@ -1,0 +1,49 @@
+ดังนั้น ACF 
+ระบบ ACF คือ Auto connect Follower
+
+มันต้องเป็นปุ่มกด run ทำงานได้ตั้งแต่ ผู้สมัครกด ลงทะเบียน มันก็จะค่า user Id /User name /regist time (Created time)
+ไปประมวลผลต่อ
+
+เมื่อมีผู้สมัครใหม่ ACF จะมีขั้นตอนการทำงานดังนี้
+ACF จะสร้่างตารางที่เก็บข้อมูลเหล่านี้ รวมทุกทุก user
+1) ACF จะเป็นการลงทะเบียนแบบใดตรจสอบว่า non-invite-Code (NIC) คือ ลงทะเบียนโดยไม่มี invite code หรือ ไม่ผ่าน Invite Code
+By Invite code(BIC) เพื่อบันทึกเป็น  ใน regist type
+
+2) แปลง user type เป็น
+run Number 0 : user type = Anatta999
+run Number 1-จำนวนสมาชิกทั้งหมด :  user type = Atta
+
+3)Maximun follower เก็บค่าตัวเลข
+user type = Anatta : Maximun follower = 1
+user type = Atta : Maximun follower = 5
+ทั้งสองค่านี้จะเป็นค่า Default ของฟิลด์นี้
+แต่ admin จะต้องสามารรถแก้ค่านี้ของแต่ละคนได้ ล็อคให้ค่าที่ userแก้ไม่ได้  
+
+4) ตั้งค่า Max Level Royalty มีค่า Default  = 19530 
+แต่ admin จะต้องสามารรถแก้ค่านี้ของแต่ละคนได้ ล็อคให้ค่าที่ userแก้ไม่ได้ 
+
+จากนั้น มันจะเก็บไฟล์เหล่านี้เป็น jason ไฟล์จะมีชื่อเดียวกับ Use Id ของผู้่สมัครใหม่นี้
+จากนั้นมันจะวิ่งไปดูในตารางฐานข้อมูลว่า ผู้สมัครนี้เป็น User แบบใด
+ถ้า
+non-invite-Code (NIC) ก็ให้วิ่งไปดูอ่าน Jason ของไฟล์ user0 คือ Anatta999.js
+By Invite code(BIC) ก็ให้วิ่งไปดู ไฟล์ jason ของ user เจ้าของ invite code
+
+แล้วตรจสอบว่า ข้อมูลในไฟล์นั้นว่า
+มีสมาชิกคนใดที่ 
+1)สมัครก่อนสุด และ มี สมาชิกคนใดในไฟล์นั้นมี Follower Full Status= Open
+2)แล้วไปดู Folower count ในไฟล์นั้นว่า user คนไหนที่มี Folower count น้อยที่สุด
+3)ถ้ามีคนที่มี Flower count น้อยสุดเท่ากันหลายคนให้เลือกคนที่มี  regist time (Created time) ต่ำสุด
+เราก็จะได้ค่า User id ที่เป็น parent ของ user ใหม่ บันทึกใน FingrowDNA.db ในรายการของ user ใหม่นี้
+
+จากนั้น ACF ก็จะวิ่งไปแก้ไฟล์ของ ของ jason ของ parent ของเขาโดยชื่อไฟล์จะเป็นชื่อ user id ของ parent นั้น
+แล้วเพิ่ม รายละเอียด 
+1)run Number
+2)User ID
+3)regist time
+4Follower Full Status 
+ของ New User ลงไปในไฟล์ของ Parent อีก 1 record
+
+จากนั้นก็ปิดการทำงาน เข้าสู้หน้า โปรไฟล์ให้ user ใหม่ ตั้งค่าต่อไป
+
+
+

@@ -18,7 +18,8 @@
       "Bash(del rename_referral_fields.js)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []
