@@ -366,7 +366,7 @@ app.put('/api/users/:userId', async (req, res) => {
 
         const filteredUpdates = {};
 
-        // Handle address fields specially - combine them into location JSON
+        // Handle address fields specially - save to addresses table AND location field
         if (updates.address_number || updates.address_street || updates.address_district ||
             updates.address_province || updates.address_postal_code) {
             const addressObj = {
@@ -376,7 +376,62 @@ app.put('/api/users/:userId', async (req, res) => {
                 province: updates.address_province || '',
                 postal_code: updates.address_postal_code || ''
             };
+
+            // Still update location field for backward compatibility
             filteredUpdates.location = JSON.stringify(addressObj);
+
+            // Also save to addresses table
+            try {
+                // Check if user already has a default address
+                const existingAddress = db.prepare('SELECT id FROM addresses WHERE user_id = ? AND is_default = 1').get(userId);
+
+                if (existingAddress) {
+                    // Update existing default address
+                    db.prepare(`
+                        UPDATE addresses
+                        SET address_line1 = ?,
+                            city = ?,
+                            state_province = ?,
+                            postal_code = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                    `).run(
+                        `${updates.address_number || ''} ${updates.address_street || ''}`.trim(),
+                        updates.address_district || '',
+                        updates.address_province || '',
+                        updates.address_postal_code || '',
+                        new Date().toISOString(),
+                        existingAddress.id
+                    );
+                    console.log('Updated existing address in addresses table');
+                } else {
+                    // Create new default address
+                    const addressId = 'ADDR_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    db.prepare(`
+                        INSERT INTO addresses (id, user_id, label, recipient_name, phone, address_line1, city, state_province, postal_code, country, is_default, is_active, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `).run(
+                        addressId,
+                        userId,
+                        'หลัก', // Default label
+                        updates.full_name || 'ผู้ใช้',
+                        updates.phone || '',
+                        `${updates.address_number || ''} ${updates.address_street || ''}`.trim(),
+                        updates.address_district || '',
+                        updates.address_province || '',
+                        updates.address_postal_code || '',
+                        'ไทย',
+                        1, // is_default
+                        1, // is_active
+                        new Date().toISOString(),
+                        new Date().toISOString()
+                    );
+                    console.log('Created new address in addresses table:', addressId);
+                }
+            } catch (addressError) {
+                console.error('Error saving to addresses table:', addressError);
+                // Continue with user update even if address table update fails
+            }
         }
 
         Object.keys(updates).forEach(key => {
