@@ -349,8 +349,12 @@ app.put('/api/users/:userId', async (req, res) => {
         const userId = req.params.userId;
         const updates = req.body;
 
+        console.log('PUT /api/users/:userId called');
+        console.log('User ID:', userId);
+        console.log('Request body:', JSON.stringify(updates, null, 2));
+
         // Filter out fields that don't exist in the current database schema
-        const validFields = ['id', 'world_id', 'username', 'email', 'phone', 'full_name', 'avatar_url', 'profile_image_filename', 'bio', 'location', 'preferred_currency', 'language', 'is_verified', 'verification_level', 'trust_score', 'total_sales', 'total_purchases', 'invite_code', 'invitor_id', 'total_invites', 'active_invites', 'is_active', 'is_suspended', 'last_login', 'created_at', 'updated_at', 'password_hash'];
+        const validFields = ['id', 'world_id', 'username', 'email', 'phone', 'full_name', 'avatar_url', 'profile_image_filename', 'bio', 'location', 'preferred_currency', 'language', 'is_verified', 'verification_level', 'trust_score', 'total_sales', 'total_purchases', 'invite_code', 'invitor_id', 'total_invites', 'active_invites', 'is_active', 'is_suspended', 'last_login', 'created_at', 'updated_at', 'password_hash', 'address_number', 'address_street', 'address_district', 'address_province', 'address_postal_code'];
 
         // Field mapping for compatibility between old and new field names
         const fieldMapping = {
@@ -361,7 +365,26 @@ app.put('/api/users/:userId', async (req, res) => {
         };
 
         const filteredUpdates = {};
+
+        // Handle address fields specially - combine them into location JSON
+        if (updates.address_number || updates.address_street || updates.address_district ||
+            updates.address_province || updates.address_postal_code) {
+            const addressObj = {
+                number: updates.address_number || '',
+                street: updates.address_street || '',
+                district: updates.address_district || '',
+                province: updates.address_province || '',
+                postal_code: updates.address_postal_code || ''
+            };
+            filteredUpdates.location = JSON.stringify(addressObj);
+        }
+
         Object.keys(updates).forEach(key => {
+            // Skip address fields as they're handled above
+            if (['address_number', 'address_street', 'address_district', 'address_province', 'address_postal_code'].includes(key)) {
+                return;
+            }
+
             // Map old field names to new ones
             const mappedKey = fieldMapping[key] || key;
 
@@ -375,6 +398,9 @@ app.put('/api/users/:userId', async (req, res) => {
         if (updateFields.length === 0) {
             return res.json({ success: true, message: 'No valid fields to update' });
         }
+
+        console.log('Update fields:', updateFields);
+        console.log('Filtered updates:', filteredUpdates);
 
         const setClause = updateFields.map(field => `${field} = ?`).join(', ');
         const values = Object.values(filteredUpdates);
