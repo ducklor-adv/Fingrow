@@ -593,8 +593,9 @@ app.post('/api/products', async (req, res) => {
             INSERT INTO products (
                 id, title, description, price_local, seller_id, category_id,
                 condition, brand, location, currency_code, status, images,
+                fin_fee_percent, amount_fee,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = insertProduct.run(
@@ -610,6 +611,8 @@ app.post('/api/products', async (req, res) => {
             productData.currency_code || 'THB',
             productData.status || 'active',
             JSON.stringify(productData.images || []),
+            productData.fin_fee_percent || 2.0,
+            productData.amount_fee || 0,
             new Date().toISOString(),
             new Date().toISOString()
         );
