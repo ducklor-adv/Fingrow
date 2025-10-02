@@ -1063,8 +1063,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/', express.static(__dirname));
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📱 Mobile app: http://localhost:${PORT}/mobile/`);
-    console.log(`🔧 Admin panel: http://localhost:${PORT}/admin/`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📱 Mobile app: http://localhost:${PORT}/mobile/`);
+        console.log(`🔧 Admin panel: http://localhost:${PORT}/admin/`);
+    });
+}
+
+// Export for serverless deployment (Vercel)
+export default app;

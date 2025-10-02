@@ -87,6 +87,17 @@ npm run web      # Web browser
 2. Scan the QR code from the terminal
 3. The app will load on your device
 
+### 🌐 Deploy Online (ทำให้เว็บออนไลน์)
+
+Want to make your website accessible online? See the **[DEPLOYMENT.md](DEPLOYMENT.md)** guide (available in Thai) for detailed instructions on deploying to:
+- ⚡ **Vercel** (Recommended - Free & Easy)
+- 🌐 **Netlify**
+- 🚂 **Railway**
+- 📄 **GitHub Pages**
+
+**Quick Start**: Visit https://vercel.com/new and import this repository to deploy in 2 minutes!
+
+
 ## 📊 App Structure
 
 ```
