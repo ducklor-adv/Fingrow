@@ -194,6 +194,12 @@ app.post('/api/register', async (req, res) => {
             return res.json({ success: false, message: 'Email already exists' });
         }
 
+        // Hash password
+        let passwordHash = null;
+        if (userData.password) {
+            passwordHash = await bcrypt.hash(userData.password, 10);
+        }
+
         // Generate invite code
         const inviteCode = generateInviteCode(userData.username);
 
@@ -210,9 +216,9 @@ app.post('/api/register', async (req, res) => {
         const insertUser = db.prepare(`
             INSERT INTO users (
                 id, username, email, full_name, phone,
-                invite_code, invitor_id,
+                password_hash, invite_code, invitor_id,
                 created_at, last_login, location
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const userId = generateUserId();
@@ -222,6 +228,7 @@ app.post('/api/register', async (req, res) => {
             userData.email,
             userData.full_name,
             userData.phone || '',
+            passwordHash,
             inviteCode,
             invitedBy,
             new Date().toISOString(),

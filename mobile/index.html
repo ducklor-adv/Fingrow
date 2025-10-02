@@ -2096,6 +2096,81 @@
 
             <div class="auth-container">
                 <div class="auth-form">
+                    <!-- Referrer Card Section - MOVED TO TOP -->
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label class="form-label">ผู้แนะนำ</label>
+
+                        <!-- Referrer Info Card (shown when referrer is found) -->
+                        <div id="referrerInfoCard" style="display: none;">
+                            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 12px; padding: 20px; border: 2px solid #10b981; position: relative;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="flex-shrink: 0;">
+                                        <img id="referrerProfileImage" src="" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; display: none;">
+                                        <div id="referrerAvatarFallback" style="width: 70px; height: 70px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; border: 3px solid #34d399;">
+                                            <span id="referrerAvatar" style="color: white; font-weight: bold; font-size: 28px;">?</span>
+                                        </div>
+                                    </div>
+                                    <div style="flex-grow: 1;">
+                                        <div id="referrerDisplayName" style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 5px;">@username</div>
+                                        <div style="color: #86efac; font-size: 14px; margin-bottom: 3px;">รหัส: <span id="referrerCodeDisplay"></span></div>
+                                        <div style="color: #6ee7b7; font-size: 12px;">✓ ผู้แนะนำได้รับการยืนยันแล้ว</div>
+                                    </div>
+                                </div>
+                                <button type="button" id="changeReferrerBtn" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                                    🔄 เปลี่ยนผู้แนะนำ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Manual Referral Code Input (shown when changing referrer) -->
+                        <div id="manualReferralInput" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 15px; border: 2px solid #4b5563;">
+                                <label style="color: #d1d5db; font-size: 14px; display: block; margin-bottom: 8px;">กรอกรหัสแนะนำใหม่</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="manualReferralCode" class="auth-input" placeholder="เช่น TEST6DNT" style="flex-grow: 1;">
+                                    <button type="button" id="verifyReferralBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; font-weight: 500;">
+                                        ตรวจสอบ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No Referrer (default state) -->
+                        <div id="noReferrerCard" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 20px; border: 2px dashed #4b5563; text-align: center;">
+                                <div style="color: #9ca3af; font-size: 16px; margin-bottom: 15px;">ไม่มีผู้แนะนำ</div>
+                                <button type="button" id="addReferrerBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
+                                    + เพิ่มรหัสแนะนำ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="referrerLoadingCard" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 20px; border: 2px solid #4b5563; text-align: center;">
+                                <div style="color: #9ca3af; font-size: 16px;">🔍 กำลังตรวจสอบผู้แนะนำ...</div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="referrerErrorCard" style="display: none;">
+                            <div style="background: #7f1d1d; border-radius: 12px; padding: 20px; border: 2px solid #dc2626;">
+                                <div style="color: #fca5a5; font-size: 14px; margin-bottom: 10px;">❌ ไม่พบรหัสแนะนำ: <span id="errorReferralCode"></span></div>
+                                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                    <button type="button" id="retryReferralBtn" style="background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; flex: 1; font-size: 14px;">
+                                        ลองอีกครั้ง
+                                    </button>
+                                    <button type="button" id="skipReferralBtn" style="background: #6b7280; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; flex: 1; font-size: 14px;">
+                                        ข้าม
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden input to store invite code for registration -->
+                        <input type="hidden" id="confirmedInviteCode" value="">
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">ชื่อ-นามสกุล *</label>
                         <input type="text" id="registerFullName" class="auth-input" placeholder="กรอกชื่อ-นามสกุล">
@@ -2202,65 +2277,6 @@
                             <option value="อุทัยธานี">อุทัยธานี</option>
                             <option value="อุบลราชธานี">อุบลราชธานี</option>
                         </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">รหัสแนะนำ (ถ้ามี)</label>
-                        <div class="relative">
-                            <input type="text" id="registerReferralCode" class="auth-input" placeholder="ใส่รหัสแนะนำ เช่น ALI001">
-                            <button type="button" id="confirmReferralBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-sm transition-colors" style="display: none;">
-                                🔍 ตรวจสอบ
-                            </button>
-                        </div>
-
-                        <!-- Referrer Info Display (Hidden by default) -->
-                        <div id="referrerInfo" class="mt-3" style="display: none;">
-                            <div class="referrer-card" style="position: relative;">
-                                <div class="referrer-info">
-                                    <div class="referrer-avatar">
-                                        <img id="referrerProfileImage" src="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: none;">
-                                        <div id="referrerAvatarFallback" style="width: 60px; height: 60px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center;">
-                                            <span id="referrerAvatar" style="color: white; font-weight: bold; font-size: 20px;">?</span>
-                                        </div>
-                                    </div>
-                                    <div class="referrer-details">
-                                        <div class="referrer-name" id="referrerDisplayName">@username</div>
-                                        <div class="referrer-code" style="color: #10b981;">ผู้แนะนำ</div>
-                                        <div class="referrer-date" style="color: #10b981; font-size: 12px;">✓ รหัสแนะนำถูกต้อง</div>
-                                    </div>
-                                </div>
-                                <button type="button" id="editReferralBtn" style="position: absolute; top: 8px; right: 8px; background: none; border: none; color: #10b981; text-decoration: underline; font-size: 12px; cursor: pointer;">
-                                    แก้ไข
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Edit Referral Code Confirmation (Hidden by default) -->
-                        <div id="editReferralConfirm" class="mt-3 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg" style="display: none;">
-                            <p class="text-yellow-300 text-sm mb-3">⚠️ คุณต้องการแก้ไขรหัสแนะนำหรือไม่?</p>
-                            <div class="flex gap-2">
-                                <button type="button" id="confirmEditBtn" class="text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" style="background-color: #059669 !important;">
-                                    ยืนยัน
-                                </button>
-                                <button type="button" id="cancelEditBtn" class="text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" style="background-color: #ea580c !important;">
-                                    ยกเลิก
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- No Referrer Found Options (Hidden by default) -->
-                        <div id="noReferrerOptions" class="mt-3 p-3 bg-red-900/30 border border-red-500/50 rounded-lg" style="display: none;">
-                            <p class="text-red-300 text-sm mb-3">❌ ไม่พบผู้แนะนำที่ใช้รหัส "<span id="invalidReferralCode"></span>"</p>
-                            <p class="text-gray-300 text-sm mb-3">คุณต้องการให้ระบบจัดการอย่างไร?</p>
-                            <div class="flex flex-col gap-2">
-                                <button type="button" id="autoAssignBtn" class="text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors" style="background-color: #2563eb !important;">
-                                    🤖 ให้ระบบจัดสรรผู้แนะนำให้อัตโนมัติ
-                                </button>
-                                <button type="button" id="retryReferralBtn" class="text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors" style="background-color: #ca8a04 !important;">
-                                    ✏️ แก้ไขรหัสแนะนำใหม่
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
                     <button class="auth-btn primary" onclick="handleRegister()">สมัครสมาชิก</button>
@@ -3095,6 +3111,29 @@
                 loadReferralsData();
             }
 
+            // Special handling for register page - check for invite code in URL
+            if (pageId === 'register') {
+                setTimeout(async () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const inviteCode = urlParams.get('invite') || urlParams.get('ref');
+
+                    if (inviteCode) {
+                        console.log('[Register] Detected invite code from URL:', inviteCode);
+                        await verifyAndShowReferrer(inviteCode);
+                    } else {
+                        // Check sessionStorage for referral code
+                        const storedCode = sessionStorage.getItem('referralCode');
+                        if (storedCode) {
+                            console.log('[Register] Using stored invite code:', storedCode);
+                            await verifyAndShowReferrer(storedCode);
+                            sessionStorage.removeItem('referralCode');
+                        } else {
+                            showReferralState('none');
+                        }
+                    }
+                }, 100);
+            }
+
             // Legacy redirect handling
             if (pageId === 'create' || pageId === 'orders') {
                 // Redirect old pages to new listings page
@@ -3699,7 +3738,7 @@
                 // Check for referral code in URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const hashParams = new URLSearchParams(window.location.hash.substring(window.location.hash.indexOf('?') + 1));
-                const referralCode = urlParams.get('ref') || hashParams.get('ref');
+                const referralCode = urlParams.get('invite') || urlParams.get('ref') || hashParams.get('invite') || hashParams.get('ref');
 
                 if (referralCode) {
                     console.log('🔗 Referral code detected:', referralCode);
@@ -4358,32 +4397,83 @@
             }
         }
 
-        // Function to check and display referral code information
-        async function checkReferralCode(code, showNoReferrerOptions = false) {
-            if (!code || code.trim() === '') {
-                hideAllReferralElements();
-                return;
+        // New Referral Card System
+        let currentReferrerData = null;
+
+        function showReferralState(state) {
+            // Hide all states first
+            document.getElementById('referrerInfoCard').style.display = 'none';
+            document.getElementById('manualReferralInput').style.display = 'none';
+            document.getElementById('noReferrerCard').style.display = 'none';
+            document.getElementById('referrerLoadingCard').style.display = 'none';
+            document.getElementById('referrerErrorCard').style.display = 'none';
+
+            // Show requested state
+            if (state === 'info') {
+                document.getElementById('referrerInfoCard').style.display = 'block';
+            } else if (state === 'manual') {
+                document.getElementById('manualReferralInput').style.display = 'block';
+            } else if (state === 'none') {
+                document.getElementById('noReferrerCard').style.display = 'block';
+            } else if (state === 'loading') {
+                document.getElementById('referrerLoadingCard').style.display = 'block';
+            } else if (state === 'error') {
+                document.getElementById('referrerErrorCard').style.display = 'block';
+            }
+        }
+
+        async function verifyAndShowReferrer(inviteCode) {
+            if (!inviteCode || inviteCode.trim() === '') {
+                showReferralState('none');
+                return false;
             }
 
+            showReferralState('loading');
+
             try {
-                console.log('[Mobile] Checking referral code:', code);
-                const users = await database.getUsers(1, 1000);
-                const referrer = users.data.find(u => u.referral_code === code.trim());
+                console.log('[Referral] Verifying invite code:', inviteCode);
+                const response = await database.getUsers();
+                console.log('[Referral] API response:', response);
+                const usersData = response.data || response || [];
+                const referrer = usersData.find(u => u.invite_code === inviteCode.trim());
 
                 if (referrer) {
-                    console.log('[Mobile] Found referrer:', referrer);
-                    hideAllReferralElements();
-                    showReferrerInfo(referrer);
-                } else {
-                    console.log('[Mobile] Referral code not found');
-                    hideAllReferralElements();
-                    if (showNoReferrerOptions) {
-                        showNoReferrerOptions(code.trim());
+                    console.log('[Referral] Found referrer:', referrer);
+                    currentReferrerData = referrer;
+
+                    // Update card with referrer info
+                    document.getElementById('referrerDisplayName').textContent = `@${referrer.username}`;
+                    document.getElementById('referrerCodeDisplay').textContent = referrer.invite_code;
+                    document.getElementById('referrerAvatar').textContent = referrer.username.charAt(0).toUpperCase();
+
+                    // Handle profile image
+                    const profileImg = document.getElementById('referrerProfileImage');
+                    const avatarFallback = document.getElementById('referrerAvatarFallback');
+                    if (referrer.profile_image) {
+                        profileImg.src = referrer.profile_image;
+                        profileImg.style.display = 'block';
+                        avatarFallback.style.display = 'none';
+                    } else {
+                        profileImg.style.display = 'none';
+                        avatarFallback.style.display = 'flex';
                     }
+
+                    // Store confirmed invite code
+                    document.getElementById('confirmedInviteCode').value = referrer.invite_code;
+
+                    showReferralState('info');
+                    return true;
+                } else {
+                    console.log('[Referral] Invite code not found');
+                    document.getElementById('errorReferralCode').textContent = inviteCode;
+                    showReferralState('error');
+                    return false;
                 }
             } catch (error) {
-                console.error('[Mobile] Error checking referral code:', error);
-                hideAllReferralElements();
+                console.error('[Referral] Error verifying invite code:', error);
+                document.getElementById('errorReferralCode').textContent = inviteCode;
+                showReferralState('error');
+                return false;
             }
         }
 
@@ -4391,7 +4481,7 @@
         async function getRandomInvitor() {
             try {
                 const users = await database.getUsers(1, 1000);
-                const activeUsers = users.data.filter(u => u.status === 'active' && u.referral_code);
+                const activeUsers = users.data.filter(u => u.is_active && u.invite_code);
                 if (activeUsers.length > 0) {
                     const randomIndex = Math.floor(Math.random() * activeUsers.length);
                     return activeUsers[randomIndex];
@@ -4502,132 +4592,75 @@
 
         // Initialize referral code checking on input change
         document.addEventListener('DOMContentLoaded', function() {
-            const referralInput = document.getElementById('registerReferralCode');
-            const editReferralBtn = document.getElementById('editReferralBtn');
-            const confirmEditBtn = document.getElementById('confirmEditBtn');
-            const cancelEditBtn = document.getElementById('cancelEditBtn');
-            const confirmReferralBtn = document.getElementById('confirmReferralBtn');
-            const autoAssignBtn = document.getElementById('autoAssignBtn');
+            // New Referral Card System Event Listeners
+            const changeReferrerBtn = document.getElementById('changeReferrerBtn');
+            const addReferrerBtn = document.getElementById('addReferrerBtn');
+            const verifyReferralBtn = document.getElementById('verifyReferralBtn');
             const retryReferralBtn = document.getElementById('retryReferralBtn');
+            const skipReferralBtn = document.getElementById('skipReferralBtn');
+            const manualReferralCode = document.getElementById('manualReferralCode');
 
-            let isEditMode = false; // Flag to prevent auto-check during edit
-
-            if (referralInput) {
-                // Debounced input checking
-                let timeout;
-                referralInput.addEventListener('input', function() {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => {
-                        if (!this.readOnly && !isEditMode) {
-                            checkReferralCode(this.value, true);
-                        }
-                    }, 500);
-                });
-
-                // Clear edit mode when user starts typing
-                referralInput.addEventListener('keydown', function() {
-                    if (isEditMode) {
-                        isEditMode = false;
+            // Button: Change Referrer
+            if (changeReferrerBtn) {
+                changeReferrerBtn.addEventListener('click', function() {
+                    showReferralState('manual');
+                    if (manualReferralCode) {
+                        manualReferralCode.value = '';
+                        manualReferralCode.focus();
                     }
                 });
             }
 
-            if (editReferralBtn) {
-                editReferralBtn.addEventListener('click', function() {
-                    showEditConfirmation();
-                });
-            }
-
-            if (confirmEditBtn) {
-                confirmEditBtn.addEventListener('click', function() {
-                    isEditMode = true; // Set edit mode flag
-                    hideAllReferralElements();
-                    enableReferralEdit();
-                    // Don't check current value to allow editing
-                    // User will trigger check when they type
-                });
-            }
-
-            if (cancelEditBtn) {
-                cancelEditBtn.addEventListener('click', function() {
-                    hideAllReferralElements();
-                    // Re-show referrer info if there was one
-                    const currentValue = referralInput ? referralInput.value : '';
-                    if (currentValue) {
-                        checkReferralCode(currentValue, false);
+            // Button: Add Referrer
+            if (addReferrerBtn) {
+                addReferrerBtn.addEventListener('click', function() {
+                    showReferralState('manual');
+                    if (manualReferralCode) {
+                        manualReferralCode.focus();
                     }
                 });
             }
 
-            if (autoAssignBtn) {
-                autoAssignBtn.addEventListener('click', async function() {
-                    this.disabled = true;
-                    this.innerHTML = '🔄 กำลังค้นหาผู้แนะนำ...';
-
-                    const randomInvitor = await getRandomInvitor();
-                    if (randomInvitor) {
-                        if (referralInput) {
-                            referralInput.value = randomInvitor.referral_code;
-                        }
-                        hideAllReferralElements();
-                        showReferrerInfo(randomInvitor);
-                        alert(`✅ ระบบได้จัดสรร @${randomInvitor.username} เป็นผู้แนะนำให้คุณแล้ว`);
+            // Button: Verify Referral Code
+            if (verifyReferralBtn) {
+                verifyReferralBtn.addEventListener('click', async function() {
+                    const code = manualReferralCode ? manualReferralCode.value.trim() : '';
+                    if (code) {
+                        await verifyAndShowReferrer(code);
                     } else {
-                        alert('❌ ไม่สามารถหาผู้แนะนำได้ในขณะนี้');
+                        alert('❌ กรุณากรอกรหัสแนะนำ');
                     }
-
-                    this.disabled = false;
-                    this.innerHTML = '🤖 ให้ระบบจัดสรรผู้แนะนำให้อัตโนมัติ';
                 });
             }
 
-
+            // Button: Retry (from error state)
             if (retryReferralBtn) {
                 retryReferralBtn.addEventListener('click', function() {
-                    isEditMode = true; // Set edit mode flag
-                    hideAllReferralElements();
-                    enableReferralEdit();
+                    showReferralState('manual');
+                    if (manualReferralCode) {
+                        manualReferralCode.value = '';
+                        manualReferralCode.focus();
+                    }
                 });
             }
 
-            if (confirmReferralBtn) {
-                confirmReferralBtn.addEventListener('click', async function() {
-                    const currentCode = referralInput ? referralInput.value.trim() : '';
+            // Button: Skip (from error state)
+            if (skipReferralBtn) {
+                skipReferralBtn.addEventListener('click', function() {
+                    document.getElementById('confirmedInviteCode').value = '';
+                    showReferralState('none');
+                });
+            }
 
-                    if (!currentCode) {
-                        hideAllReferralElements();
-                        hideConfirmButton();
-                        return;
-                    }
-
-                    // Disable button during check
-                    this.disabled = true;
-                    this.innerHTML = '🔄 ตรวจสอบ...';
-
-                    try {
-                        console.log('[Mobile] Confirming referral code:', currentCode);
-                        const users = await database.getUsers(1, 1000);
-                        const referrer = users.data.find(u => u.referral_code === currentCode);
-
-                        if (referrer) {
-                            console.log('[Mobile] Found referrer:', referrer);
-                            hideAllReferralElements();
-                            hideConfirmButton();
-                            showReferrerInfo(referrer);
-                            isEditMode = false;
-                        } else {
-                            console.log('[Mobile] Referral code not found');
-                            hideAllReferralElements();
-                            showNoReferrerOptions(currentCode);
+            // Allow Enter key to verify
+            if (manualReferralCode) {
+                manualReferralCode.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (verifyReferralBtn) {
+                            verifyReferralBtn.click();
                         }
-                    } catch (error) {
-                        console.error('[Mobile] Error confirming referral code:', error);
-                        alert('❌ เกิดข้อผิดพลาดในการตรวจสอบรหัสแนะนำ');
                     }
-
-                    // Re-enable button
-                    this.disabled = false;
-                    this.innerHTML = '🔍 ตรวจสอบ';
                 });
             }
         });
@@ -4639,7 +4672,7 @@
             const password = document.getElementById('registerPassword').value.trim();
             const phone = document.getElementById('registerPhone').value.trim();
             const province = document.getElementById('registerProvince').value;
-            const referralCode = document.getElementById('registerReferralCode').value.trim();
+            const confirmedInviteCode = document.getElementById('confirmedInviteCode').value.trim();
 
             // Validation
             if (!fullName || !username || !email || !password) {
@@ -4664,12 +4697,12 @@
                 password: password,
                 phone: phone,
                 province: province,
-                referral_code: referralCode
+                invite_code: confirmedInviteCode
             };
 
             // Debug logging
             console.log('[Mobile] Registering user with data:', userData);
-            console.log('[Mobile] Referral code being sent:', referralCode);
+            console.log('[Mobile] Invite code being sent:', confirmedInviteCode);
 
             // Ensure database is initialized
             if (!database) {
@@ -4681,7 +4714,7 @@
                 const result = await database.register(userData);
 
                 if (result.success) {
-                    alert(`✅ สมัครสมาชิกสำเร็จ!\nยินดีต้อนรับ ${result.user.full_name}\nรหัสแนะนำของคุณ: ${result.user.referral_code}`);
+                    alert(`✅ สมัครสมาชิกสำเร็จ!\nยินดีต้อนรับ ${result.user.full_name}\nรหัสแนะนำของคุณ: ${result.user.invite_code}`);
 
                     // Auto login after registration
                     localStorage.setItem('currentUser', JSON.stringify(result.user));
@@ -4872,7 +4905,7 @@
                 // Update referral information
                 const profileReferralCode = document.getElementById('profileReferralCode');
                 if (profileReferralCode) {
-                    profileReferralCode.textContent = currentUser.referral_code;
+                    profileReferralCode.textContent = currentUser.invite_code;
                 }
 
                 // Load referrer information
@@ -4917,7 +4950,7 @@
 
         function copyReferralCode() {
             if (currentUser) {
-                navigator.clipboard.writeText(currentUser.referral_code).then(() => {
+                navigator.clipboard.writeText(currentUser.invite_code).then(() => {
                     // Show success message
                     const copyBtn = document.querySelector('.copy-btn');
                     const originalText = copyBtn.textContent;
@@ -5699,7 +5732,7 @@
                     // Update referrer code
                     const referrerCode = document.getElementById('referrerCode');
                     if (referrerCode) {
-                        referrerCode.textContent = `รหัส: ${referrer.referral_code}`;
+                        referrerCode.textContent = `รหัส: ${referrer.invite_code}`;
                     }
 
                     // Update referrer date
