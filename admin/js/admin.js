@@ -492,8 +492,12 @@ class FingrowAdmin {
                     const earningsElement = document.getElementById('earnings-content');
                     if (earningsElement) {
                         earningsElement.style.display = 'block';
-                        // Load earnings data when showing the page
-                        await this.loadEarningsData();
+                        // Load network DNA data when showing the page
+                        setTimeout(() => {
+                            if (typeof loadNetworkDNA === 'function') {
+                                loadNetworkDNA();
+                            }
+                        }, 100);
                     } else {
                         console.error('earnings-content element not found');
                         // Fallback: show earnings in content area
@@ -2942,6 +2946,12 @@ class FingrowAdmin {
     }
 
     async loadEarningsData() {
+        // DEPRECATED: This function is replaced by loadNetworkDNA()
+        // Old earnings system - no longer used
+        console.log('[Admin] loadEarningsData() is deprecated. Use loadNetworkDNA() instead.');
+        return;
+
+        /* COMMENTED OUT - OLD CODE
         try {
             // Get all users with referral data
             const result = await this.db.getAllUsers();
@@ -2982,6 +2992,7 @@ class FingrowAdmin {
             console.error('Error loading earnings data:', error);
             throw error;
         }
+        */
     }
 
     async loadUsersReferralTable(page = 1, pageSize = 10, searchTerm = '') {
@@ -3302,3 +3313,736 @@ window.clearCache = () => {
         alert('ล้างแคชเรียบร้อยแล้ว!');
     }
 };
+
+// ==================== EARNINGS DASHBOARD ====================
+
+/**
+ * Load Earnings Dashboard
+ * Called when earnings tab is shown
+ */
+window.loadEarningsDashboard = async () => {
+    try {
+        // Load users for filter dropdown
+        const usersRes = await fetch('/api/users');
+        const users = await usersRes.json();
+
+        const userSelect = document.getElementById('earningsUserFilter');
+        const breakdownSelect = document.getElementById('breakdownUserSelect');
+
+        // Populate user dropdowns
+        [userSelect, breakdownSelect].forEach(select => {
+            select.innerHTML = '<option value="">All Users / Select user...</option>';
+            if (users.data) {
+                users.data.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.full_name || user.username} (${user.id})`;
+                    select.appendChild(option);
+                });
+            }
+        });
+
+        // Load summary and top earners
+        await Promise.all([
+            fetchEarningsSummary(),
+            fetchTopEarners()
+        ]);
+
+    } catch (error) {
+        console.error('Error loading earnings dashboard:', error);
+        alert('Error loading earnings data: ' + error.message);
+    }
+};
+
+/**
+ * Fetch Earnings Summary
+ */
+async function fetchEarningsSummary() {
+    try {
+        const userId = document.getElementById('earningsUserFilter').value;
+        const from = document.getElementById('earningsFromDate').value;
+        const to = document.getElementById('earningsToDate').value;
+
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (from) params.append('from', from);
+        if (to) params.append('to', to);
+
+        const res = await fetch(`/api/admin/earnings/summary?${params}`);
+        const result = await res.json();
+
+        if (result.success) {
+            const data = result.data;
+
+            // Format numbers in Thai locale
+            const formatTHB = (num) => {
+                return new Intl.NumberFormat('th-TH', {
+                    style: 'currency',
+                    currency: 'THB'
+                }).format(num);
+            };
+
+            document.getElementById('kpiTotalSubtree').textContent = formatTHB(data.totalSubtree);
+            document.getElementById('kpiSelfOnly').textContent = formatTHB(data.totalSelf);
+            document.getElementById('kpiMembers').textContent = data.members.toLocaleString('th-TH');
+            document.getElementById('kpiMaxDepth').textContent = data.depth;
+        } else {
+            console.error('Failed to fetch summary:', result.message);
+        }
+    } catch (error) {
+        console.error('Error fetching summary:', error);
+    }
+}
+
+/**
+ * Fetch Top Earners
+ */
+async function fetchTopEarners() {
+    try {
+        const from = document.getElementById('earningsFromDate').value;
+        const to = document.getElementById('earningsToDate').value;
+
+        const params = new URLSearchParams();
+        params.append('limit', '20');
+        if (from) params.append('from', from);
+        if (to) params.append('to', to);
+
+        const res = await fetch(`/api/admin/earnings/top?${params}`);
+        const result = await res.json();
+
+        if (result.success) {
+            renderTopEarnersTable(result.data);
+        } else {
+            console.error('Failed to fetch top earners:', result.message);
+        }
+    } catch (error) {
+        console.error('Error fetching top earners:', error);
+    }
+}
+
+/**
+ * Render Top Earners Table
+ */
+function renderTopEarnersTable(earners) {
+    const tbody = document.getElementById('topEarnersTable');
+
+    if (!earners || earners.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">No data available</td></tr>';
+        return;
+    }
+
+    const formatTHB = (num) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(num);
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        return new Date(dateStr).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    tbody.innerHTML = earners.map(earner => `
+        <tr class="border-b border-gray-700 hover:bg-gray-700 transition-colors">
+            <td class="py-4">
+                <div class="flex items-center">
+                    ${earner.avatar_url ?
+                        `<img src="${earner.avatar_url}" class="w-10 h-10 rounded-full mr-3" alt="${earner.username}">` :
+                        `<div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold mr-3">${(earner.full_name || earner.username).charAt(0).toUpperCase()}</div>`
+                    }
+                    <span class="text-white">${earner.full_name || earner.username}</span>
+                </div>
+            </td>
+            <td class="py-4 text-gray-300">${earner.username}</td>
+            <td class="py-4 text-gray-300">${earner.members}</td>
+            <td class="py-4 text-emerald-400 font-semibold">${formatTHB(earner.subtree_total)}</td>
+            <td class="py-4 text-gray-300">${formatDate(earner.last_earning_at)}</td>
+            <td class="py-4">
+                <button onclick="viewUserBreakdown('${earner.user_id}')" class="text-blue-400 hover:text-blue-300">
+                    <i class="fas fa-eye mr-1"></i>View
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Show Earnings Tab
+ */
+window.showEarningsTab = (tab) => {
+    // Hide all tabs
+    document.getElementById('topEarnersTab').style.display = 'none';
+    document.getElementById('breakdownTab').style.display = 'none';
+    document.getElementById('rawTab').style.display = 'none';
+
+    // Reset tab buttons
+    ['tabTopEarners', 'tabBreakdown', 'tabRaw'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.classList.remove('bg-gray-700', 'border-emerald-500', 'text-white');
+        btn.classList.add('text-gray-400');
+    });
+
+    // Show selected tab
+    if (tab === 'top') {
+        document.getElementById('topEarnersTab').style.display = 'block';
+        document.getElementById('tabTopEarners').classList.add('bg-gray-700', 'border-emerald-500', 'text-white');
+        document.getElementById('tabTopEarners').classList.remove('text-gray-400');
+    } else if (tab === 'breakdown') {
+        document.getElementById('breakdownTab').style.display = 'block';
+        document.getElementById('tabBreakdown').classList.add('bg-gray-700', 'border-emerald-500', 'text-white');
+        document.getElementById('tabBreakdown').classList.remove('text-gray-400');
+    } else if (tab === 'raw') {
+        document.getElementById('rawTab').style.display = 'block';
+        document.getElementById('tabRaw').classList.add('bg-gray-700', 'border-emerald-500', 'text-white');
+        document.getElementById('tabRaw').classList.remove('text-gray-400');
+    }
+};
+
+/**
+ * View User Breakdown
+ */
+window.viewUserBreakdown = (userId) => {
+    // Switch to breakdown tab
+    showEarningsTab('breakdown');
+    // Set user in dropdown
+    document.getElementById('breakdownUserSelect').value = userId;
+    // Load breakdown
+    loadUserBreakdown();
+};
+
+/**
+ * Load User Breakdown
+ */
+window.loadUserBreakdown = async () => {
+    const userId = document.getElementById('breakdownUserSelect').value;
+
+    if (!userId) {
+        document.getElementById('breakdownContent').innerHTML = '<p class="text-gray-400 text-center py-8">Select a user to view breakdown</p>';
+        return;
+    }
+
+    try {
+        const from = document.getElementById('earningsFromDate').value;
+        const to = document.getElementById('earningsToDate').value;
+
+        const params = new URLSearchParams();
+        if (from) params.append('from', from);
+        if (to) params.append('to', to);
+
+        const res = await fetch(`/api/admin/earnings/user/${userId}?${params}`);
+        const result = await res.json();
+
+        if (result.success) {
+            renderUserBreakdown(result.data);
+        } else {
+            document.getElementById('breakdownContent').innerHTML = `<p class="text-red-400 text-center py-8">Error: ${result.message}</p>`;
+        }
+    } catch (error) {
+        console.error('Error loading user breakdown:', error);
+        document.getElementById('breakdownContent').innerHTML = `<p class="text-red-400 text-center py-8">Error: ${error.message}</p>`;
+    }
+};
+
+/**
+ * Render User Breakdown
+ */
+function renderUserBreakdown(data) {
+    const formatTHB = (num) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(num);
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        return new Date(dateStr).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const html = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-gray-700 rounded-lg p-4">
+                <p class="text-gray-400 text-sm">Self Earnings</p>
+                <p class="text-2xl font-bold text-white mt-2">${formatTHB(data.self)}</p>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-4">
+                <p class="text-gray-400 text-sm">Subtree Total</p>
+                <p class="text-2xl font-bold text-emerald-400 mt-2">${formatTHB(data.subtreeTotal)}</p>
+            </div>
+            <div class="bg-gray-700 rounded-lg p-4">
+                <p class="text-gray-400 text-sm">Orders Linked</p>
+                <p class="text-2xl font-bold text-blue-400 mt-2">${data.ordersLinked}</p>
+            </div>
+        </div>
+
+        <h4 class="text-lg font-semibold text-white mb-4">Earnings by Generation</h4>
+        <div class="space-y-3 mb-6">
+            ${Object.entries(data.byGeneration).map(([gen, amount]) => `
+                <div class="flex items-center justify-between bg-gray-700 rounded-lg p-4">
+                    <span class="text-gray-300">Generation ${gen}</span>
+                    <span class="text-white font-semibold">${formatTHB(amount)}</span>
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="text-sm text-gray-400">
+            <p>Last Earning: ${formatDate(data.lastEarningAt)}</p>
+        </div>
+    `;
+
+    document.getElementById('breakdownContent').innerHTML = html;
+}
+
+/**
+ * Export Earnings CSV
+ */
+window.exportEarningsCSV = () => {
+    const from = document.getElementById('earningsFromDate').value;
+    const to = document.getElementById('earningsToDate').value;
+
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+
+    const url = `/api/admin/earnings/export.csv?${params}`;
+    window.open(url, '_blank');
+};
+
+// ==================== NETWORK DNA FUNCTIONS ====================
+
+let currentNetworkData = [];
+let currentTreeRoot = null;
+let navigationHistory = []; // Stack for navigation history
+
+// Load Network DNA data
+async function loadNetworkDNA() {
+    try {
+        const userId = document.getElementById('earningsUserFilter').value;
+        const fromDate = document.getElementById('earningsFromDate').value;
+        const toDate = document.getElementById('earningsToDate').value;
+
+        const params = new URLSearchParams();
+        if (userId) params.append('userId', userId);
+        if (fromDate) params.append('fromDate', fromDate);
+        if (toDate) params.append('toDate', toDate);
+
+        const response = await fetch(`/api/admin/network-dna?${params}`);
+        const result = await response.json();
+
+        if (result.success) {
+            currentNetworkData = result.data;
+            renderDNATable(result.data);
+            populateUserSelectors(result.data);
+
+            // Load tree for first user (root)
+            if (result.data.length > 0) {
+                const root = result.data[0];
+                loadNetworkTree(root.user_id);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading network DNA:', error);
+        showError('Failed to load network data');
+    }
+}
+
+// Switch network tabs
+function switchNetworkTab(tabName) {
+    // Update tab buttons
+    const tableTab = document.getElementById('tabTableView');
+    const treeTab = document.getElementById('tabTreeView');
+
+    if (tabName === 'table') {
+        // Activate table tab
+        tableTab.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+        tableTab.classList.add('text-white', 'bg-gray-700', 'border-b-2', 'border-emerald-500');
+        treeTab.classList.remove('text-white', 'bg-gray-700', 'border-b-2', 'border-emerald-500');
+        treeTab.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+
+        // Show/hide content
+        document.getElementById('networkTableTab').style.display = 'block';
+        document.getElementById('networkTreeTab').style.display = 'none';
+    } else if (tabName === 'tree') {
+        // Activate tree tab
+        treeTab.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+        treeTab.classList.add('text-white', 'bg-gray-700', 'border-b-2', 'border-emerald-500');
+        tableTab.classList.remove('text-white', 'bg-gray-700', 'border-b-2', 'border-emerald-500');
+        tableTab.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-gray-700');
+
+        // Show/hide content
+        document.getElementById('networkTableTab').style.display = 'none';
+        document.getElementById('networkTreeTab').style.display = 'block';
+    }
+}
+
+// Render DNA table
+function renderDNATable(data) {
+    const tbody = document.getElementById('dnaTableBody');
+    const recordCount = document.getElementById('tableRecordCount');
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-gray-400">No data found</td></tr>';
+        if (recordCount) recordCount.textContent = '0';
+        return;
+    }
+
+    // Update record count
+    if (recordCount) recordCount.textContent = data.length;
+
+    tbody.innerHTML = data.map(row => `
+        <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+            <td class="px-2 py-2 text-center tabular-nums">${row.run_number || 0}</td>
+            <td class="px-2 py-2 font-mono text-xs">${row.user_id}</td>
+            <td class="px-2 py-2">${row.username || '-'}</td>
+            <td class="px-2 py-2 font-mono text-[10px]">${formatDateTime(row.regist_time)}</td>
+            <td class="px-2 py-2">${row.regist_type}</td>
+            <td class="px-2 py-2 font-mono text-xs">${row.invitor || '-'}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.follower_count}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.child_count}</td>
+            <td class="px-2 py-2 font-mono text-xs">${row.parent_id || '-'}</td>
+            <td class="px-2 py-2 text-right tabular-nums">${Number(row.own_finpoint || 0).toLocaleString()}</td>
+            <td class="px-2 py-2 text-right tabular-nums">${Number(row.total_finpoint || 0).toLocaleString()}</td>
+            <td class="px-2 py-2 text-center">
+                <span class="px-2 py-0.5 text-[10px] rounded-full ${row.follower_full_status === 'Full' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}">
+                    ${row.follower_full_status}
+                </span>
+            </td>
+            <td class="px-2 py-2 text-center">${row.user_type || 'Atta'}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.level}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.max_follower}</td>
+        </tr>
+    `).join('');
+}
+
+// Populate user selectors
+function populateUserSelectors(data) {
+    const earningsFilter = document.getElementById('earningsUserFilter');
+    const treeSelector = document.getElementById('treeRootSelector');
+
+    const options = data.map(u =>
+        `<option value="${u.user_id}">${u.user_id} - ${u.username || 'Unknown'}</option>`
+    ).join('');
+
+    if (earningsFilter) {
+        earningsFilter.innerHTML = '<option value="">All Users</option>' + options;
+    }
+
+    if (treeSelector) {
+        treeSelector.innerHTML = '<option value="">Select user...</option>' + options;
+        treeSelector.value = data[0]?.user_id || '';
+    }
+}
+
+// Load network tree
+async function loadNetworkTree(userId, generations = 6, addToHistory = true) {
+    try {
+        const response = await fetch(`/api/admin/network-tree/${userId}?generations=${generations}`);
+        const result = await response.json();
+
+        if (result.success) {
+            // Add to navigation history
+            if (addToHistory && currentTreeRoot && currentTreeRoot.user_id !== userId) {
+                navigationHistory.push(currentTreeRoot.user_id);
+            }
+
+            currentTreeRoot = result.root;
+            renderNetworkTree(result.data, result.root);
+        }
+    } catch (error) {
+        console.error('Error loading network tree:', error);
+        showError('Failed to load network tree');
+    }
+}
+
+// Navigate back in tree
+function navigateBack() {
+    if (navigationHistory.length > 0) {
+        const previousUserId = navigationHistory.pop();
+        loadNetworkTree(previousUserId, 6, false); // Don't add to history when going back
+    }
+}
+
+// Render network tree (horizontal layout with profile pictures)
+function renderNetworkTree(data, root) {
+    const container = document.getElementById('networkTreeContainer');
+    const rootAvatar = document.getElementById('treeRootAvatar');
+    const rootInfo = document.getElementById('treeRootInfo');
+
+    // Update root info
+    if (rootInfo) {
+        rootInfo.innerHTML = `${root.user_id} <span class="text-gray-400">· ${root.username || 'Unknown'} · <span class="text-emerald-400">${root.child_count || 0} children</span></span>`;
+    }
+
+    // Update root avatar
+    if (rootAvatar) {
+        const avatarUrl = getAvatarUrl(root);
+        if (avatarUrl) {
+            rootAvatar.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-full" />`;
+        } else {
+            rootAvatar.innerHTML = `<i class="fas fa-user text-gray-400"></i>`;
+        }
+    }
+
+    // Build parent-child map
+    const childrenMap = {};
+    data.forEach(node => {
+        if (node.parent_id) {
+            if (!childrenMap[node.parent_id]) {
+                childrenMap[node.parent_id] = [];
+            }
+            childrenMap[node.parent_id].push(node);
+        }
+    });
+
+    // Sort children by registration time (earliest first)
+    Object.keys(childrenMap).forEach(parentId => {
+        childrenMap[parentId].sort((a, b) => {
+            return new Date(a.regist_time) - new Date(b.regist_time);
+        });
+    });
+
+    // Get direct children of root (first column - max 5)
+    const directChildren = (childrenMap[root.user_id] || []).slice(0, 5);
+
+    // Render tree with new grid structure
+    container.innerHTML = `
+        ${navigationHistory.length > 0 ? `
+            <div class="mb-4">
+                <button onclick="navigateBack()"
+                        class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors inline-flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Previous Level
+                    <span class="text-xs text-gray-400 ml-2">(${navigationHistory.length} level${navigationHistory.length > 1 ? 's' : ''} back)</span>
+                </button>
+            </div>
+        ` : ''}
+
+        <style>
+            .network-rows {
+                display: grid;
+                grid-auto-rows: 1fr;
+                row-gap: 16px;
+            }
+            .network-rows .row {
+                display: grid;
+                grid-template-columns: 280px 1fr;
+                column-gap: 16px;
+                align-items: stretch;
+            }
+            .parent-card, .children-wrap {
+                height: 100%;
+            }
+            .parent-card {
+                display: flex;
+                flex-direction: column;
+                padding: 12px;
+                border-radius: 8px;
+                background: rgba(31, 41, 55, 0.5);
+                border: 1px solid rgb(55, 65, 81);
+                transition: all 0.2s;
+                cursor: pointer;
+            }
+            .parent-card:hover {
+                background: rgb(31, 41, 55);
+                border-color: rgb(16, 185, 129);
+            }
+            .children-wrap {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(120px, 1fr));
+                gap: 12px;
+                align-content: start;
+                padding: 8px;
+                border-left: 2px solid rgb(55, 65, 81);
+            }
+            .child-card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 8px;
+                border-radius: 8px;
+                background: rgba(31, 41, 55, 0.3);
+                border: 1px solid rgb(55, 65, 81);
+                transition: all 0.2s;
+                cursor: pointer;
+                min-height: 120px;
+            }
+            .child-card:hover {
+                background: rgb(31, 41, 55);
+                border-color: rgb(6, 182, 212);
+            }
+            .child-card.empty {
+                border: 2px dashed rgb(55, 65, 81);
+                cursor: default;
+                background: transparent;
+            }
+            .child-card.empty:hover {
+                background: transparent;
+                border-color: rgb(55, 65, 81);
+            }
+        </style>
+
+        <section class="network-rows">
+            ${directChildren.length > 0 ? directChildren.map((parent, idx) => {
+                const grandChildren = (childrenMap[parent.user_id] || []).slice(0, 5);
+                const parentChildCount = parent.child_count || 0;
+                const emptySlots = Math.max(0, 5 - grandChildren.length);
+
+                return `
+                    <div class="row">
+                        <!-- Parent Card -->
+                        <article class="parent-card" onclick="loadNetworkTree('${parent.user_id}')">
+                            <div class="flex items-center gap-3 mb-2">
+                                ${renderAvatarWithBadge(parent, 'ring-emerald-400', parentChildCount)}
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-semibold text-white truncate">${parent.username || parent.user_id}</div>
+                                    <div class="text-[10px] text-gray-400">${parent.user_id}</div>
+                                </div>
+                            </div>
+                            <div class="text-[10px] text-emerald-400 mt-auto">
+                                <i class="fas fa-sitemap mr-1"></i>${parentChildCount} children
+                            </div>
+                        </article>
+
+                        <!-- Children Wrap -->
+                        <div class="children-wrap">
+                            <div class="col-span-5 text-xs font-semibold text-gray-400 mb-2">
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                Children of <span class="text-white">${parent.username || parent.user_id}</span>
+                                <span class="text-gray-500 ml-2">(${grandChildren.length}/5)</span>
+                            </div>
+                            ${grandChildren.map(child => {
+                                const childCount = child.child_count || 0;
+                                return `
+                                    <div class="child-card" onclick="loadNetworkTree('${child.user_id}')">
+                                        ${renderAvatarWithBadge(child, 'ring-cyan-400', childCount)}
+                                        <div class="text-[10px] mt-2 text-center truncate w-full text-gray-300">
+                                            ${child.username || child.user_id}
+                                        </div>
+                                        <div class="text-[9px] text-cyan-400 mt-1">
+                                            <i class="fas fa-sitemap"></i> ${childCount}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${Array.from({ length: emptySlots }).map((_, i) => `
+                                <div class="child-card empty">
+                                    <div class="w-10 h-10 rounded-full border-2 border-dashed border-gray-600"></div>
+                                    <div class="text-[9px] mt-2 text-gray-600">Slot ${grandChildren.length + i + 1}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('') : `
+                <div class="text-center py-12 text-gray-500 col-span-2">
+                    <i class="fas fa-users-slash text-4xl mb-3"></i>
+                    <p>No children yet</p>
+                </div>
+            `}
+        </section>
+    `;
+}
+
+// Build chain of generations (first child path)
+function buildChain(startId, allData, childrenMap, maxGen = 6) {
+    const chain = [];
+    let current = allData.find(n => n.user_id === startId);
+    let depth = 0;
+
+    while (current && depth < maxGen) {
+        chain.push(current);
+        const children = childrenMap[current.user_id] || [];
+        if (children.length === 0) break;
+        current = children[0]; // Follow first child
+        depth++;
+    }
+
+    return chain;
+}
+
+// Render avatar
+function renderAvatar(user, ringClass = 'ring-gray-500') {
+    const avatarUrl = getAvatarUrl(user);
+    const avatarClass = `w-10 h-10 rounded-full overflow-hidden ring-2 ${ringClass} bg-gray-700 flex items-center justify-center`;
+
+    if (avatarUrl) {
+        return `<div class="${avatarClass}"><img src="${avatarUrl}" alt="${user.username}" class="w-full h-full object-cover" /></div>`;
+    } else {
+        return `<div class="${avatarClass}"><span class="text-[10px] text-gray-400">N/A</span></div>`;
+    }
+}
+
+// Render avatar with child count badge
+function renderAvatarWithBadge(user, ringClass = 'ring-gray-500', childCount = 0) {
+    const avatarUrl = getAvatarUrl(user);
+    const avatarClass = `w-10 h-10 rounded-full overflow-hidden ring-2 ${ringClass} bg-gray-700 flex items-center justify-center`;
+
+    const avatarHtml = avatarUrl
+        ? `<img src="${avatarUrl}" alt="${user.username}" class="w-full h-full object-cover" />`
+        : `<span class="text-[10px] text-gray-400">N/A</span>`;
+
+    return `
+        <div class="relative">
+            <div class="${avatarClass}">${avatarHtml}</div>
+            ${childCount > 0 ? `
+                <div class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-gray-900">
+                    ${childCount}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Get avatar URL
+function getAvatarUrl(user) {
+    if (user.profile_image_filename) {
+        return `/uploads/profiles/${user.profile_image_filename}`;
+    } else if (user.avatar_url) {
+        return user.avatar_url;
+    } else {
+        // Fallback to pravatar
+        return `https://i.pravatar.cc/120?u=${user.user_id}`;
+    }
+}
+
+// Change tree root
+function changeTreeRoot() {
+    const selector = document.getElementById('treeRootSelector');
+    const userId = selector.value;
+    if (userId) {
+        loadNetworkTree(userId);
+    }
+}
+
+// Format datetime
+function formatDateTime(isoString) {
+    if (!isoString) return '-';
+    const date = new Date(isoString);
+    return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Show error
+function showError(message) {
+    console.error(message);
+    // You can add a toast notification here
+}
+
+// ==================== END NETWORK DNA FUNCTIONS ====================
+
+// Auto-load when earnings tab is shown
+document.addEventListener('DOMContentLoaded', () => {
+    // Hook into navigation
+    const earningsLink = document.querySelector('a[href="#earnings"]');
+    if (earningsLink) {
+        earningsLink.addEventListener('click', () => {
+            setTimeout(() => {
+                loadNetworkDNA();
+            }, 100);
+        });
+    }
+});

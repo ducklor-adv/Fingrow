@@ -79,6 +79,61 @@ try {
     db.exec('PRAGMA foreign_keys = OFF');
 
     console.log('✅ Database connected:', dbPath);
+
+    // Run migrations
+    try {
+        // Add parent_id column if it doesn't exist
+        const columns = db.prepare("PRAGMA table_info(users)").all();
+        const hasParentId = columns.some(col => col.name === 'parent_id');
+
+        if (!hasParentId) {
+            console.log('🔄 Running migration: Adding parent_id column...');
+            db.exec('ALTER TABLE users ADD COLUMN parent_id TEXT');
+            console.log('✅ Migration complete: parent_id added');
+        }
+
+        // Create indices
+        db.exec(`
+            CREATE INDEX IF NOT EXISTS idx_users_parent_id ON users(parent_id);
+            CREATE INDEX IF NOT EXISTS idx_users_invitor_id ON users(invitor_id);
+            CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+            CREATE INDEX IF NOT EXISTS idx_earnings_user_id ON earnings(user_id);
+            CREATE INDEX IF NOT EXISTS idx_earnings_created_at ON earnings(created_at);
+        `);
+
+        // Backfill parent_id for existing users
+        const needsBackfill = db.prepare('SELECT COUNT(*) as count FROM users WHERE parent_id IS NULL AND invitor_id IS NOT NULL').get();
+        if (needsBackfill.count > 0) {
+            console.log(`🔄 Backfilling parent_id for ${needsBackfill.count} users...`);
+            db.exec('UPDATE users SET parent_id = invitor_id WHERE parent_id IS NULL AND invitor_id IS NOT NULL');
+            console.log('✅ Backfill complete');
+        }
+
+        // Ensure root user exists (for NIC registration)
+        const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+        if (!rootUser) {
+            console.log('🔄 Creating root user (Anatta999)...');
+            const rootId = '25AAA0000';
+            const rootInviteCode = 'ANATTA999ROOT';
+            db.prepare(`
+                INSERT INTO users (id, username, email, full_name, invite_code, created_at, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                rootId,
+                'Anatta999',
+                'root@fingrow.app',
+                'Anatta Boonnuam',
+                rootInviteCode,
+                new Date().toISOString(),
+                new Date().toISOString()
+            );
+            console.log(`✅ Root user created: ${rootId}`);
+        }
+
+    } catch (migrationError) {
+        console.error('⚠️  Migration warning:', migrationError.message);
+    }
+
 } catch (error) {
     console.error('❌ Failed to connect to database:', error);
     process.exit(1);
@@ -126,6 +181,122 @@ function generateUserId() {
     }
 
     return yearSuffix + nextSequence;
+}
+
+/**
+ * ACF (Auto-Connect Follower) Allocation Logic
+ * Finds the best parent for a new user within the invitor's network
+ * Rules:
+ * - Max 5 direct children per user
+ * - Max 7 levels depth
+ * - Layer-first (closest to invitor) → Earliest-first → Lowest childCount → Lowest runNumber
+ * - If invitor's direct slot is full, search in invitor's child subtree only
+ */
+function allocateParent(invitorId) {
+    const MAX_CHILDREN = 5;
+    const MAX_DEPTH = 7;
+
+    // Get invitor
+    const invitor = db.prepare('SELECT id, parent_id FROM users WHERE id = ?').get(invitorId);
+    if (!invitor) {
+        throw new Error('Invitor not found');
+    }
+
+    // Calculate invitor's current depth
+    let invitorDepth = 0;
+    let currentId = invitor.parent_id;
+    while (currentId && invitorDepth < MAX_DEPTH) {
+        invitorDepth++;
+        const parent = db.prepare('SELECT parent_id FROM users WHERE id = ?').get(currentId);
+        if (!parent) break;
+        currentId = parent.parent_id;
+    }
+
+    // Check if we can add to invitor directly (FILE scope)
+    const invitorChildCount = db.prepare(
+        'SELECT COUNT(*) as count FROM users WHERE parent_id = ?'
+    ).get(invitorId);
+
+    if (invitorChildCount.count < MAX_CHILDREN && invitorDepth + 1 < MAX_DEPTH) {
+        return {
+            parentId: invitorId,
+            parentLevel: invitorDepth
+        };
+    }
+
+    // FILE scope is full, search NETWORK scope (invitor's child subtree)
+    // Build BFS layers using parent_id edges
+    const candidates = [];
+    const visited = new Set([invitorId]);
+    let queue = [{ id: invitorId, level: invitorDepth }];
+
+    while (queue.length > 0 && candidates.length === 0) {
+        const nextQueue = [];
+
+        for (const node of queue) {
+            // Get children of this node
+            const children = db.prepare(`
+                SELECT id, created_at
+                FROM users
+                WHERE parent_id = ?
+                ORDER BY created_at ASC
+            `).all(node.id);
+
+            for (const child of children) {
+                if (visited.has(child.id)) continue;
+                visited.add(child.id);
+
+                const childLevel = node.level + 1;
+
+                // Check if this child can accept a new node
+                if (childLevel + 1 < MAX_DEPTH) {
+                    const childCount = db.prepare(
+                        'SELECT COUNT(*) as count FROM users WHERE parent_id = ?'
+                    ).get(child.id);
+
+                    if (childCount.count < MAX_CHILDREN) {
+                        candidates.push({
+                            id: child.id,
+                            level: childLevel,
+                            created_at: child.created_at,
+                            childCount: childCount.count
+                        });
+                    }
+                }
+
+                // Add to next layer
+                if (childLevel < MAX_DEPTH) {
+                    nextQueue.push({ id: child.id, level: childLevel });
+                }
+            }
+        }
+
+        // If we found candidates in this layer, stop (layer-first)
+        if (candidates.length > 0) {
+            break;
+        }
+
+        queue = nextQueue;
+    }
+
+    if (candidates.length === 0) {
+        throw new Error('No available slot in network (5×7 constraint reached)');
+    }
+
+    // Sort candidates: earliest created_at → lowest childCount
+    candidates.sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return a.childCount - b.childCount;
+    });
+
+    const bestCandidate = candidates[0];
+
+    return {
+        parentId: bestCandidate.id,
+        parentLevel: bestCandidate.level
+    };
 }
 
 // Helper function to increment letters (AAA -> AAB -> ... -> ZZZ)
@@ -203,22 +374,58 @@ app.post('/api/register', async (req, res) => {
         // Generate invite code
         const inviteCode = generateInviteCode(userData.username);
 
-        // Check if invite code exists
-        let invitedBy = null;
-        if (userData.invite_code) {
-            const invitor = db.prepare('SELECT id FROM users WHERE invite_code = ?').get(userData.invite_code);
+        // Resolve invitor (BIC or NIC)
+        let invitorId = null;
+        let parentId = null;
+        let registrationType = 'NIC'; // No Invite Code
+
+        if (userData.invite_code && userData.invite_code.trim() !== '') {
+            // BIC (By Invite Code)
+            const invitor = db.prepare('SELECT id FROM users WHERE invite_code = ?').get(userData.invite_code.trim());
             if (invitor) {
-                invitedBy = invitor.id;
+                invitorId = invitor.id;
+                registrationType = 'BIC';
+            } else {
+                return res.json({ success: false, message: 'Invalid invite code' });
             }
         }
 
-        // Insert new user
+        // If no invitor (NIC), use root user
+        if (!invitorId) {
+            const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+            if (rootUser) {
+                invitorId = rootUser.id;
+            } else {
+                return res.json({ success: false, message: 'System root user not found' });
+            }
+        }
+
+        // ACF Allocation: find best parent
+        try {
+            const allocation = allocateParent(invitorId);
+            parentId = allocation.parentId;
+
+            // Validate depth constraint
+            if (allocation.parentLevel + 1 >= 7) {
+                return res.json({
+                    success: false,
+                    message: 'Network depth limit reached (max 7 levels)'
+                });
+            }
+        } catch (allocationError) {
+            return res.json({
+                success: false,
+                message: allocationError.message
+            });
+        }
+
+        // Insert new user with ACF allocation
         const insertUser = db.prepare(`
             INSERT INTO users (
                 id, username, email, full_name, phone,
-                password_hash, invite_code, invitor_id,
+                password_hash, invite_code, invitor_id, parent_id,
                 created_at, last_login, location
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const userId = generateUserId();
@@ -230,11 +437,17 @@ app.post('/api/register', async (req, res) => {
             userData.phone || '',
             passwordHash,
             inviteCode,
-            invitedBy,
+            invitorId,
+            parentId,
             new Date().toISOString(),
             new Date().toISOString(),
             userData.province || ''
         );
+
+        // Update invitor's total_invites count
+        if (invitorId) {
+            db.prepare('UPDATE users SET total_invites = COALESCE(total_invites, 0) + 1 WHERE id = ?').run(invitorId);
+        }
 
         // Get the created user
         const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
@@ -1058,6 +1271,586 @@ app.post('/api/upload-profile-image', upload.single('profileImage'), async (req,
         });
     }
 });
+
+// ==================== ADMIN EARNINGS API ====================
+
+/**
+ * Helper: Get subtree with 7-level depth limit using parent_id edges
+ */
+function getSubtreeWithLimit(rootId, maxDepth = 7) {
+    const subtree = [];
+    const queue = [{ id: rootId, level: 0 }];
+    const visited = new Set();
+
+    while (queue.length > 0) {
+        const node = queue.shift();
+        if (visited.has(node.id) || node.level > maxDepth) continue;
+        visited.add(node.id);
+
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(node.id);
+        if (user) {
+            subtree.push({ ...user, level: node.level });
+
+            // Get children using parent_id
+            const children = db.prepare('SELECT id FROM users WHERE parent_id = ?').all(node.id);
+            children.forEach(child => {
+                queue.push({ id: child.id, level: node.level + 1 });
+            });
+        }
+    }
+
+    return subtree;
+}
+
+/**
+ * GET /api/admin/earnings/summary
+ * Returns: { totalSelf, totalSubtree, totalAll, currency, members, depth, generatedAt }
+ */
+app.get('/api/admin/earnings/summary', (req, res) => {
+    try {
+        const { userId, from, to } = req.query;
+
+        // Default to root user if no userId specified
+        let targetUserId = userId;
+        if (!targetUserId) {
+            const root = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+            targetUserId = root ? root.id : null;
+        }
+
+        if (!targetUserId) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        // Get subtree (7-level limit)
+        const subtree = getSubtreeWithLimit(targetUserId, 7);
+        const userIds = subtree.map(u => u.id);
+
+        // Build date filter
+        let dateFilter = '';
+        const params = [targetUserId];
+
+        if (from && to) {
+            dateFilter = 'AND e.created_at BETWEEN ? AND ?';
+            params.push(from, to);
+        } else if (from) {
+            dateFilter = 'AND e.created_at >= ?';
+            params.push(from);
+        } else if (to) {
+            dateFilter = 'AND e.created_at <= ?';
+            params.push(to);
+        }
+
+        // Calculate totals
+        const selfEarnings = db.prepare(`
+            SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+            FROM earnings e
+            WHERE e.user_id = ? ${dateFilter}
+        `).get(...params);
+
+        // Subtree earnings (including self)
+        const subtreeQuery = `
+            SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+            FROM earnings e
+            WHERE e.user_id IN (${userIds.map(() => '?').join(',')}) ${dateFilter}
+        `;
+        const subtreeEarnings = db.prepare(subtreeQuery).get(...userIds, ...(from ? [from] : []), ...(to ? [to] : []));
+
+        // Max depth found
+        const maxDepth = Math.max(...subtree.map(u => u.level));
+
+        res.json({
+            success: true,
+            data: {
+                totalSelf: selfEarnings.total,
+                totalSubtree: subtreeEarnings.total,
+                totalAll: subtreeEarnings.total, // Same as subtree in this context
+                currency: 'THB',
+                members: subtree.length,
+                depth: maxDepth,
+                generatedAt: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching earnings summary:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/admin/earnings/top
+ * Returns top users by subtree earnings
+ */
+app.get('/api/admin/earnings/top', (req, res) => {
+    try {
+        const { limit = 20, from, to } = req.query;
+
+        // Get all users
+        const allUsers = db.prepare('SELECT id, username, full_name, avatar_url, profile_image, created_at FROM users').all();
+
+        // Calculate subtree earnings for each user
+        const userEarnings = allUsers.map(user => {
+            const subtree = getSubtreeWithLimit(user.id, 7);
+            const userIds = subtree.map(u => u.id);
+
+            let dateFilter = '';
+            const params = [];
+
+            if (from && to) {
+                dateFilter = 'AND created_at BETWEEN ? AND ?';
+                params.push(from, to);
+            } else if (from) {
+                dateFilter = 'AND created_at >= ?';
+                params.push(from);
+            } else if (to) {
+                dateFilter = 'AND created_at <= ?';
+                params.push(to);
+            }
+
+            const query = `
+                SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total,
+                       MAX(created_at) as last_earning_at
+                FROM earnings
+                WHERE user_id IN (${userIds.map(() => '?').join(',')}) ${dateFilter}
+            `;
+
+            const earnings = db.prepare(query).get(...userIds, ...params);
+
+            // Get last earning date for this specific user
+            const userLastEarning = db.prepare(`
+                SELECT MAX(created_at) as last_earning_at
+                FROM earnings
+                WHERE user_id = ?
+            `).get(user.id);
+
+            return {
+                user_id: user.id,
+                username: user.username,
+                full_name: user.full_name,
+                avatar_url: user.avatar_url || user.profile_image,
+                members: subtree.length,
+                subtree_total: earnings.total,
+                last_earning_at: userLastEarning.last_earning_at || earnings.last_earning_at
+            };
+        });
+
+        // Sort by subtree_total descending
+        userEarnings.sort((a, b) => b.subtree_total - a.subtree_total);
+
+        // Apply limit
+        const topEarners = userEarnings.slice(0, parseInt(limit));
+
+        res.json({
+            success: true,
+            data: topEarners
+        });
+
+    } catch (error) {
+        console.error('Error fetching top earners:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/admin/earnings/user/:userId
+ * Per-user breakdown by generation
+ */
+app.get('/api/admin/earnings/user/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { from, to } = req.query;
+
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        if (!user) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+
+        // Get subtree with levels
+        const subtree = getSubtreeWithLimit(userId, 7);
+
+        // Group by generation
+        const byGeneration = {};
+        for (let i = 1; i <= 7; i++) {
+            byGeneration[i] = 0;
+        }
+
+        let dateFilter = '';
+        const params = [];
+        if (from && to) {
+            dateFilter = 'AND created_at BETWEEN ? AND ?';
+            params.push(from, to);
+        } else if (from) {
+            dateFilter = 'AND created_at >= ?';
+            params.push(from);
+        } else if (to) {
+            dateFilter = 'AND created_at <= ?';
+            params.push(to);
+        }
+
+        // Calculate earnings by generation
+        subtree.forEach(member => {
+            if (member.level > 0 && member.level <= 7) {
+                const earnings = db.prepare(`
+                    SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+                    FROM earnings
+                    WHERE user_id = ? ${dateFilter}
+                `).get(member.id, ...params);
+
+                byGeneration[member.level] += earnings.total;
+            }
+        });
+
+        // Self earnings
+        const selfEarnings = db.prepare(`
+            SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+            FROM earnings
+            WHERE user_id = ? ${dateFilter}
+        `).get(userId, ...params);
+
+        // Subtree total
+        const userIds = subtree.map(u => u.id);
+        const subtreeQuery = `
+            SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+            FROM earnings
+            WHERE user_id IN (${userIds.map(() => '?').join(',')}) ${dateFilter}
+        `;
+        const subtreeTotal = db.prepare(subtreeQuery).get(...userIds, ...params);
+
+        // Get orders linked to earnings
+        const ordersLinked = db.prepare(`
+            SELECT COUNT(DISTINCT order_id) as count
+            FROM earnings
+            WHERE user_id = ? AND order_id IS NOT NULL ${dateFilter}
+        `).get(userId, ...params);
+
+        // Last earning
+        const lastEarning = db.prepare(`
+            SELECT MAX(created_at) as last_earning_at
+            FROM earnings
+            WHERE user_id = ?
+        `).get(userId);
+
+        res.json({
+            success: true,
+            data: {
+                user_id: userId,
+                username: user.username,
+                full_name: user.full_name,
+                self: selfEarnings.total,
+                byGeneration,
+                subtreeTotal: subtreeTotal.total,
+                ordersLinked: ordersLinked.count,
+                lastEarningAt: lastEarning.last_earning_at
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching user earnings:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/admin/earnings/export.csv
+ * Export earnings data as CSV
+ */
+app.get('/api/admin/earnings/export.csv', (req, res) => {
+    try {
+        const { from, to } = req.query;
+
+        // Get all users
+        const allUsers = db.prepare('SELECT id, username, created_at FROM users ORDER BY created_at ASC').all();
+
+        // Build CSV
+        let csv = 'user_id,username,level,subtree_total,self_total,members,first_join,last_join\n';
+
+        allUsers.forEach(user => {
+            const subtree = getSubtreeWithLimit(user.id, 7);
+            const userIds = subtree.map(u => u.id);
+
+            let dateFilter = '';
+            const params = [];
+            if (from && to) {
+                dateFilter = 'AND created_at BETWEEN ? AND ?';
+                params.push(from, to);
+            }
+
+            // Self total
+            const selfQuery = `
+                SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+                FROM earnings
+                WHERE user_id = ? ${dateFilter}
+            `;
+            const selfTotal = db.prepare(selfQuery).get(user.id, ...params);
+
+            // Subtree total
+            const subtreeQuery = `
+                SELECT COALESCE(SUM(COALESCE(amount_local, amount)), 0) as total
+                FROM earnings
+                WHERE user_id IN (${userIds.map(() => '?').join(',')}) ${dateFilter}
+            `;
+            const subtreeTotal = db.prepare(subtreeQuery).get(...userIds, ...params);
+
+            // Level calculation
+            let level = 0;
+            let currentId = user.parent_id;
+            while (currentId && level < 7) {
+                level++;
+                const parent = db.prepare('SELECT parent_id FROM users WHERE id = ?').get(currentId);
+                if (!parent) break;
+                currentId = parent.parent_id;
+            }
+
+            // First and last join in subtree
+            const joins = subtree.map(u => u.created_at).filter(d => d).sort();
+            const firstJoin = joins[0] || user.created_at;
+            const lastJoin = joins[joins.length - 1] || user.created_at;
+
+            csv += `${user.id},${user.username},${level},${subtreeTotal.total},${selfTotal.total},${subtree.length},${firstJoin},${lastJoin}\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="earnings_export_${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(csv);
+
+    } catch (error) {
+        console.error('Error exporting earnings:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ==================== END ADMIN EARNINGS API ====================
+
+// ==================== NETWORK DNA API ====================
+
+// Get all DNA records with user info
+app.get('/api/admin/network-dna', (req, res) => {
+    try {
+        const { userId, fromDate, toDate } = req.query;
+
+        let query = `
+            SELECT
+                d.*,
+                u.username,
+                u.profile_image_filename,
+                u.avatar_url,
+                u.created_at as user_created_at
+            FROM fingrow_dna d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+
+        if (userId) {
+            query += ` AND d.user_id = ?`;
+            params.push(userId);
+        }
+
+        if (fromDate) {
+            query += ` AND d.regist_time >= ?`;
+            params.push(fromDate);
+        }
+
+        if (toDate) {
+            query += ` AND d.regist_time <= ?`;
+            params.push(toDate);
+        }
+
+        query += ` ORDER BY d.run_number ASC`;
+
+        const records = db.prepare(query).all(...params);
+
+        res.json({
+            success: true,
+            data: records,
+            total: records.length
+        });
+
+    } catch (error) {
+        console.error('Error fetching network DNA:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get network tree for a specific user (BFS traversal)
+app.get('/api/admin/network-tree/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { generations = 6 } = req.query;
+
+        // Start with root user
+        const root = db.prepare(`
+            SELECT
+                d.*,
+                u.username,
+                u.profile_image_filename,
+                u.avatar_url
+            FROM fingrow_dna d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.user_id = ?
+        `).get(userId);
+
+        if (!root) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        const tree = [root];
+        const queue = [root];
+        let currentGen = 0;
+
+        while (queue.length > 0 && currentGen < parseInt(generations)) {
+            const parent = queue.shift();
+
+            // Get children of this parent
+            const children = db.prepare(`
+                SELECT
+                    d.*,
+                    u.username,
+                    u.profile_image_filename,
+                    u.avatar_url
+                FROM fingrow_dna d
+                LEFT JOIN users u ON d.user_id = u.id
+                WHERE d.parent_id = ?
+                ORDER BY d.regist_time ASC
+            `).all(parent.user_id);
+
+            children.forEach(child => {
+                tree.push(child);
+                queue.push(child);
+            });
+
+            currentGen++;
+        }
+
+        res.json({
+            success: true,
+            data: tree,
+            root: root,
+            total: tree.length
+        });
+
+    } catch (error) {
+        console.error('Error fetching network tree:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get network statistics
+app.get('/api/admin/network-stats', (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        // Total users
+        const totalUsers = db.prepare('SELECT COUNT(*) as count FROM fingrow_dna').get();
+
+        // Users by level
+        const byLevel = db.prepare(`
+            SELECT level, COUNT(*) as count
+            FROM fingrow_dna
+            GROUP BY level
+            ORDER BY level
+        `).all();
+
+        // Users by status
+        const byStatus = db.prepare(`
+            SELECT follower_full_status, COUNT(*) as count
+            FROM fingrow_dna
+            GROUP BY follower_full_status
+        `).all();
+
+        // Total finpoints
+        const totalFinpoints = db.prepare(`
+            SELECT
+                SUM(own_finpoint) as total_own,
+                SUM(total_finpoint) as total_subtree
+            FROM fingrow_dna
+        `).get();
+
+        // Top earners
+        const topEarners = db.prepare(`
+            SELECT
+                d.user_id,
+                d.total_finpoint,
+                d.level,
+                d.child_count,
+                u.username
+            FROM fingrow_dna d
+            LEFT JOIN users u ON d.user_id = u.id
+            ORDER BY d.total_finpoint DESC
+            LIMIT 10
+        `).all();
+
+        res.json({
+            success: true,
+            data: {
+                totalUsers: totalUsers.count,
+                byLevel,
+                byStatus,
+                totalFinpoints,
+                topEarners
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching network stats:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get user list for filters
+app.get('/api/admin/network-users', (req, res) => {
+    try {
+        const users = db.prepare(`
+            SELECT
+                d.user_id,
+                u.username,
+                d.level,
+                d.follower_full_status
+            FROM fingrow_dna d
+            LEFT JOIN users u ON d.user_id = u.id
+            ORDER BY d.run_number ASC
+        `).all();
+
+        res.json({
+            success: true,
+            data: users
+        });
+
+    } catch (error) {
+        console.error('Error fetching network users:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ==================== END NETWORK DNA API ====================
 
 // Serve static files
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
