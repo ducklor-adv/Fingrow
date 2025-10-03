@@ -1599,10 +1599,23 @@
             </div>
 
             <div class="products">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h2 class="section-title" id="productsSectionTitle">สินค้าทั้งหมด</h2>
                     <div style="font-size: 12px; color: #a1a1aa;" id="productsCount">กำลังโหลด...</div>
                 </div>
+
+                <!-- Filter Toggle Buttons -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <button id="filterAvailable" onclick="toggleProductFilter('available')"
+                            style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: #10b981; color: white; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                        พร้อมขาย
+                    </button>
+                    <button id="filterAll" onclick="toggleProductFilter('all')"
+                            style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: rgba(30, 41, 59, 0.8); color: #a1a1aa; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                        ทั้งหมด
+                    </button>
+                </div>
+
                 <div class="product-grid" id="productGrid">
                     <!-- Products will be loaded dynamically -->
                     <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #a1a1aa;">
@@ -2754,11 +2767,45 @@
             }
         }
 
+        // Product filter state
+        let productFilterMode = 'available'; // 'available' or 'all'
+
+        // Toggle product filter
+        function toggleProductFilter(mode) {
+            productFilterMode = mode;
+
+            // Update button styles
+            const availableBtn = document.getElementById('filterAvailable');
+            const allBtn = document.getElementById('filterAll');
+
+            if (mode === 'available') {
+                availableBtn.style.background = '#10b981';
+                availableBtn.style.color = 'white';
+                allBtn.style.background = 'rgba(30, 41, 59, 0.8)';
+                allBtn.style.color = '#a1a1aa';
+            } else {
+                availableBtn.style.background = 'rgba(30, 41, 59, 0.8)';
+                availableBtn.style.color = '#a1a1aa';
+                allBtn.style.background = '#10b981';
+                allBtn.style.color = 'white';
+            }
+
+            // Re-render products with new filter
+            loadProducts();
+        }
+
         // Load products from database
         async function loadProducts() {
             try {
                 const response = await database.getProducts(1, 50); // Load first 50 products
-                allProducts = response.data.filter(product => product.status === 'active');
+
+                // Filter based on current filter mode
+                if (productFilterMode === 'available') {
+                    allProducts = response.data.filter(product => product.status === 'active');
+                } else {
+                    allProducts = response.data; // Show all products including sold ones
+                }
+
                 filteredProducts = [...allProducts];
                 await renderProducts();
                 updateProductsCount();
@@ -2794,20 +2841,27 @@
                 const hasImages = product.images && product.images.length > 0;
                 const firstImage = hasImages ? product.images[0] : null;
 
+                const isSold = product.status === 'sold';
+
                 return `
-                    <div class="product-card" onclick="viewProduct(${product.id})">
-                        <div class="product-image">
+                    <div class="product-card" onclick="viewProduct(${product.id})" style="${isSold ? 'opacity: 0.7;' : ''}">
+                        <div class="product-image" style="position: relative;">
                             ${firstImage
                                 ? `<img
                                     src="${firstImage}"
                                     alt="${product.title}"
-                                    style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                                    style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; ${isSold ? 'filter: grayscale(0.3);' : ''}"
                                     onerror="this.style.display='none'; this.parentElement.textContent='${categoryIcon} ${product.title.split(' ')[0]}'"
                                 />`
                                 : `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #10b981; font-size: 24px;">${categoryIcon}</div>`
                             }
+                            ${isSold ? `
+                                <div style="position: absolute; top: 8px; right: 8px; background: rgba(239, 68, 68, 0.95); color: white; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                                    ขายแล้ว
+                                </div>
+                            ` : ''}
                         </div>
-                        <div class="product-title">${product.title}</div>
+                        <div class="product-title" style="${isSold ? 'color: #9ca3af;' : ''}">${product.title}</div>
                         <div class="product-price">${priceDisplay}</div>
                         <div class="product-seller">
                             <div style="display: flex; align-items: center; justify-content: space-between;">

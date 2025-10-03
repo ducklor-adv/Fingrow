@@ -1138,7 +1138,9 @@ class FingrowAdmin {
     }
 
     async loadReviewsContent() {
-        const reviews = await this.fetchReviews();
+        const reviewsResponse = await this.fetchReviews();
+        const reviews = Array.isArray(reviewsResponse) ? reviewsResponse : (reviewsResponse?.data || []);
+        console.log('[Admin] Reviews loaded:', { reviewsResponse, reviews, count: reviews.length });
 
         return `
             <div class="mb-6">
