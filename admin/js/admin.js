@@ -597,6 +597,7 @@ class FingrowAdmin {
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ยอดซื้อ</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จำนวนขาย</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ยอดขาย</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Paid Fee</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">รายได้รวม</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Follower</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จัดการ</th>
@@ -668,6 +669,7 @@ class FingrowAdmin {
                 <td class="py-3 px-2 text-blue-300 text-sm">${this.formatCurrency(purchases.totalAmount, 'THB')}</td>
                 <td class="py-3 px-2 text-emerald-400 text-sm font-medium">${sales.count}</td>
                 <td class="py-3 px-2 text-emerald-300 text-sm">${this.formatCurrency(sales.totalAmount, 'THB')}</td>
+                <td class="py-3 px-2 text-red-400 text-sm font-medium">${this.formatCurrency(user.total_fees_paid || 0, 'THB')}</td>
                 <td class="py-3 px-2 text-yellow-400 text-sm font-medium">${this.formatCurrency(earnings.total, 'THB')}</td>
                 <td class="py-3 px-2 text-purple-400 text-sm">${followerCount}</td>
                 <td class="py-3 px-2">
