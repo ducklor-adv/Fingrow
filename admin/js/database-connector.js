@@ -232,6 +232,11 @@ class BrowserDatabaseProxy {
         return this.getCachedOrFetch('orders', () => this.fetchFromNode('getAllOrders'));
     }
 
+    async updateOrderStatus(orderId, status, adminNotes = '') {
+        this.clearCache('orders');
+        return await this.fetchFromNode('updateOrderStatus', { orderId, status, adminNotes });
+    }
+
     async getDashboardStats() {
         return this.getCachedOrFetch('stats', () => this.fetchFromNode('getDashboardStats'), 10000); // 10 second cache for stats
     }
@@ -322,7 +327,7 @@ class BrowserDatabaseProxy {
                     const productsResponse = await fetch(`${apiBase}/products`);
                     const productsResult = await productsResponse.json();
                     if (productsResult.success) {
-                        return productsResult.data; // Return just the data array
+                        return productsResult; // Return the full response object like getAllUsers
                     }
                     break;
 
@@ -353,7 +358,15 @@ class BrowserDatabaseProxy {
                 case 'getAllOrders':
                     const ordersResponse = await fetch(`${apiBase}/orders`);
                     const ordersResult = await ordersResponse.json();
-                    return ordersResult.success ? ordersResult.data : [];
+                    return ordersResult; // Return the full response object like getAllUsers
+
+                case 'updateOrderStatus':
+                    const updateOrderResponse = await fetch(`${apiBase}/orders/${params.orderId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: params.status, admin_notes: params.adminNotes })
+                    });
+                    return await updateOrderResponse.json();
 
                 case 'getAllCategories':
                     const categoriesResponse = await fetch(`${apiBase}/categories`);
@@ -603,6 +616,7 @@ class BrowserDatabaseProxy {
             case 'deleteUser':
             case 'updateProductStatus':
             case 'deleteProduct':
+            case 'updateOrderStatus':
                 return true;
             default:
                 return null;

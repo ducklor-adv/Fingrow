@@ -88,6 +88,11 @@ class FingrowAdmin {
                 return this.normalizeUsers(parsed); // Recursive call to handle nested cases
             }
 
+            // If it's an object with 'data' property (API response format)
+            if (raw && typeof raw === 'object' && Array.isArray(raw.data)) {
+                return raw.data;
+            }
+
             // If it's an object with users property, use that
             if (raw && typeof raw === 'object' && Array.isArray(raw.users)) {
                 return raw.users;
@@ -489,21 +494,36 @@ class FingrowAdmin {
                     }
                     break;
                 case 'earnings':
-                    const earningsElement = document.getElementById('earnings-content');
+                    let earningsElement = document.getElementById('earnings-content');
                     if (earningsElement) {
                         earningsElement.style.display = 'block';
-                        // Load network DNA data when showing the page
-                        setTimeout(() => {
-                            if (typeof loadNetworkDNA === 'function') {
-                                loadNetworkDNA();
-                            }
-                        }, 100);
                     } else {
-                        console.error('earnings-content element not found');
-                        // Fallback: show earnings in content area
+                        console.warn('earnings-content element not found, creating it...');
+                        // Create earnings-content element if it doesn't exist
                         const contentArea = document.getElementById('content-area');
-                        contentArea.innerHTML = await this.loadEarningsContent();
+                        if (!contentArea) {
+                            console.error('content-area not found!');
+                            break;
+                        }
+
+                        // Check if there's already an earnings-content in the DOM
+                        const existingEarnings = contentArea.querySelector('#earnings-content');
+                        if (existingEarnings) {
+                            earningsElement = existingEarnings;
+                            earningsElement.style.display = 'block';
+                        } else {
+                            // Reload the page to get fresh HTML
+                            window.location.reload(true);
+                            return;
+                        }
                     }
+
+                    // Load network DNA data when showing the page
+                    setTimeout(() => {
+                        if (typeof loadNetworkDNA === 'function') {
+                            loadNetworkDNA();
+                        }
+                    }, 100);
                     break;
                 case 'users':
                 case 'products':
@@ -562,7 +582,9 @@ class FingrowAdmin {
         const users = result.data || [];
 
         // Get all products to count per user
-        const products = await this.fetchProducts();
+        const productsResponse = await this.fetchProducts();
+        const products = Array.isArray(productsResponse) ? productsResponse : (productsResponse?.data || []);
+        console.log('[Admin] Products loaded for users page:', { productsResponse, products, count: products.length });
 
         return `
             <div class="mb-6">
@@ -600,6 +622,9 @@ class FingrowAdmin {
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Paid Fee</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">รายได้รวม</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Follower</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Size</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Fees</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Loyalty Fee</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จัดการ</th>
                             </tr>
                         </thead>
@@ -630,9 +655,16 @@ class FingrowAdmin {
         const sales = stats.sales || { count: 0, totalAmount: 0 };
         const earnings = stats.earnings || { total: 0 };
         const referrals = stats.referrals || { total: 0 };
+        const network = stats.network || { size: 0, fees: 0, sales: 0, orders: 0 };
 
         // Use follower_count directly from user object if available
         const followerCount = user.follower_count || referrals.total || 0;
+
+        // Use network stats from user object if available
+        const networkSize = user.network_size || network.size || 0;
+        const networkFees = user.network_fees || network.fees || 0;
+        const loyaltyFee = user.loyalty_fee || network.loyaltyFee || 0;
+        const networkBreakdown = user.network_breakdown || network.breakdown || [];
 
         // Count products by this seller
         const userProducts = products.filter(p => p.seller_id === user.id);
@@ -672,6 +704,9 @@ class FingrowAdmin {
                 <td class="py-3 px-2 text-red-400 text-sm font-medium">${this.formatCurrency(user.total_fees_paid || 0, 'THB')}</td>
                 <td class="py-3 px-2 text-yellow-400 text-sm font-medium">${this.formatCurrency(earnings.total, 'THB')}</td>
                 <td class="py-3 px-2 text-purple-400 text-sm">${followerCount}</td>
+                <td class="py-3 px-2 text-cyan-400 text-sm font-medium">${networkSize}</td>
+                <td class="py-3 px-2 text-cyan-300 text-sm cursor-pointer hover:text-cyan-200" onclick="window.adminApp.showNetworkBreakdown('${user.id}', '${user.username}', ${networkFees}, ${JSON.stringify(networkBreakdown).replace(/"/g, '&quot;')})">${this.formatCurrency(networkFees, 'THB')}</td>
+                <td class="py-3 px-2 text-green-400 text-sm font-medium">${this.formatCurrency(loyaltyFee, 'THB')}</td>
                 <td class="py-3 px-2">
                     <button class="text-blue-400 hover:text-blue-300 mr-2 text-sm" onclick="editUser('${user.id}')" title="แก้ไขผู้ใช้">
                         <i class="fas fa-edit"></i>
@@ -700,7 +735,9 @@ class FingrowAdmin {
     }
 
     async loadProductsContent() {
-        const products = await this.fetchProducts();
+        const productsResponse = await this.fetchProducts();
+        const products = Array.isArray(productsResponse) ? productsResponse : (productsResponse?.data || []);
+        console.log('[Admin] Products loaded for products page:', { productsResponse, products, count: products.length });
 
         return `
             <div class="mb-6">
@@ -848,29 +885,40 @@ class FingrowAdmin {
     }
 
     async loadOrdersContent() {
-        // Load all products instead of orders
-        const products = await this.fetchProducts();
+        // Load all orders from database
+        const ordersResponse = await this.fetchOrders();
+        const orders = Array.isArray(ordersResponse) ? ordersResponse : (ordersResponse?.data || []);
+        console.log('[Admin] Orders loaded:', { ordersResponse, orders, count: orders.length });
 
-        // Get all users to show seller info
+        // Get all users to show buyer/seller info
         const usersResponse = await this.fetchUsers();
         const users = this.normalizeUsers(usersResponse);
+        console.log('[Admin] Users loaded:', { usersResponse, users, count: users.length });
+
+        // Get all products to show product info
+        const productsResponse = await this.fetchProducts();
+        const products = Array.isArray(productsResponse) ? productsResponse : (productsResponse?.data || []);
+        console.log('[Admin] Products loaded:', { productsResponse, products, count: products.length });
 
         return `
             <div class="mb-6">
                 <h2 class="text-3xl font-bold text-white mb-2">รายการซื้อขาย</h2>
-                <p class="text-gray-400">ดูรายละเอียดสินค้าทั้งหมดที่มีในระบบ</p>
+                <p class="text-gray-400">ดูรายละเอียดคำสั่งซื้อทั้งหมดในระบบ</p>
             </div>
 
             <div class="card rounded-lg p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold text-white">สินค้าทั้งหมด (${products.length} รายการ)</h3>
+                    <h3 class="text-xl font-semibold text-white">คำสั่งซื้อทั้งหมด (${orders.length} รายการ)</h3>
                     <div class="flex space-x-4">
-                        <input type="text" id="productSearch" placeholder="ค้นหาสินค้า..." class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-emerald-500 focus:outline-none">
-                        <select id="productStatusFilter" class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600">
+                        <input type="text" id="orderSearch" placeholder="ค้นหาคำสั่งซื้อ..." class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-emerald-500 focus:outline-none">
+                        <select id="orderStatusFilter" class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-600">
                             <option value="all">สถานะทั้งหมด</option>
-                            <option value="active">พร้อมขาย</option>
-                            <option value="sold">ขายแล้ว</option>
-                            <option value="suspended">ระงับ</option>
+                            <option value="pending">รอดำเนินการ</option>
+                            <option value="processing">กำลังดำเนินการ</option>
+                            <option value="shipped">จัดส่งแล้ว</option>
+                            <option value="completed">เสร็จสิ้น</option>
+                            <option value="cancelled">ยกเลิก</option>
+                            <option value="refunded">คืนเงิน</option>
                         </select>
                     </div>
                 </div>
@@ -879,25 +927,25 @@ class FingrowAdmin {
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-700">
-                                <th class="text-left py-3 px-4 text-gray-400">รูปภาพ</th>
-                                <th class="text-left py-3 px-4 text-gray-400">ชื่อสินค้า</th>
+                                <th class="text-left py-3 px-4 text-gray-400">Order ID</th>
+                                <th class="text-left py-3 px-4 text-gray-400">สินค้า</th>
+                                <th class="text-left py-3 px-4 text-gray-400">ผู้ซื้อ</th>
                                 <th class="text-left py-3 px-4 text-gray-400">ผู้ขาย</th>
-                                <th class="text-left py-3 px-4 text-gray-400">ราคา</th>
-                                <th class="text-left py-3 px-4 text-gray-400">Fin Fee</th>
-                                <th class="text-left py-3 px-4 text-gray-400">สภาพ</th>
+                                <th class="text-left py-3 px-4 text-gray-400">ยอดรวม</th>
+                                <th class="text-left py-3 px-4 text-gray-400">การชำระเงิน</th>
                                 <th class="text-left py-3 px-4 text-gray-400">สถานะ</th>
-                                <th class="text-left py-3 px-4 text-gray-400">วันที่ลงขาย</th>
+                                <th class="text-left py-3 px-4 text-gray-400">วันที่สั่งซื้อ</th>
                                 <th class="text-left py-3 px-4 text-gray-400">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="productsTableBody">
-                            ${products.map(product => this.renderProductRowForOrders(product, users)).join('')}
+                        <tbody id="ordersTableBody">
+                            ${orders.map(order => this.renderOrderRowEnhanced(order, users, products)).join('')}
                         </tbody>
                     </table>
                 </div>
 
                 <div class="flex justify-between items-center mt-6">
-                    <div class="text-gray-400">แสดง ${Math.min(products.length, 20)} จาก ${products.length} รายการ</div>
+                    <div class="text-gray-400">แสดง ${Math.min(orders.length, 20)} จาก ${orders.length} รายการ</div>
                     <div class="flex space-x-2">
                         <button class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm">ก่อนหน้า</button>
                         <button class="bg-emerald-600 px-3 py-1 rounded text-sm">1</button>
@@ -945,7 +993,8 @@ class FingrowAdmin {
 
         // Calculate Fin Fee
         const finFeePercent = product.fin_fee_percent || 0;
-        const finFeeAmount = product.amount_fee || 0;
+        const productPrice = product.price_local || 0;
+        const finFeeAmount = product.amount_fee || (productPrice * finFeePercent / 100);
 
         return `
             <tr class="border-b border-gray-800 hover:bg-gray-800" data-product-id="${product.id}">
@@ -961,11 +1010,11 @@ class FingrowAdmin {
                     <div class="text-gray-400 text-sm">${seller ? seller.username : ''}</div>
                 </td>
                 <td class="py-3 px-4">
-                    <div class="text-emerald-400 font-bold">${product.price_local?.toLocaleString() || 0} ฿</div>
+                    <div class="text-emerald-400 font-bold">${this.formatCurrency(product.price_local || 0, 'THB')}</div>
                 </td>
                 <td class="py-3 px-4">
                     <div class="text-blue-400">${finFeePercent}%</div>
-                    <div class="text-gray-400 text-sm">${finFeeAmount.toLocaleString()} ฿</div>
+                    <div class="text-gray-400 text-sm">${this.formatCurrency(finFeeAmount || 0, 'THB')}</div>
                 </td>
                 <td class="py-3 px-4">
                     <span class="text-gray-300">${product.condition || '-'}</span>
@@ -991,7 +1040,12 @@ class FingrowAdmin {
         `;
     }
 
-    renderOrderRow(order) {
+    renderOrderRowEnhanced(order, users, products) {
+        // Find buyer, seller, and product info
+        const buyer = users.find(u => u.id === order.buyer_id);
+        const seller = users.find(u => u.id === order.seller_id);
+        const product = products.find(p => p.id === order.product_id);
+
         const statusColors = {
             'pending': 'yellow',
             'processing': 'blue',
@@ -1012,11 +1066,12 @@ class FingrowAdmin {
 
         const paymentTexts = {
             'wallet': 'กระเป๋าเงิน',
-            'wld': 'WLD Token'
+            'wld': 'WLD Token',
+            'cash': 'เงินสด'
         };
 
         const statusColor = statusColors[order.status] || 'gray';
-        const statusText = statusTexts[order.status] || 'ไม่ทราบ';
+        const statusText = statusTexts[order.status] || order.status;
         const paymentText = paymentTexts[order.payment_method] || order.payment_method;
 
         return `
@@ -1026,40 +1081,40 @@ class FingrowAdmin {
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-white font-medium">${order.product?.title || 'ไม่ทราบ'}</p>
-                        <p class="text-gray-400 text-sm">จำนวน: ${order.quantity}</p>
+                        <p class="text-white font-medium">${product ? product.title : 'ไม่ทราบ'}</p>
+                        <p class="text-gray-400 text-sm">${product ? (product.brand || '') + ' ' + (product.model || '') : ''}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-gray-300">@${order.buyer?.username || 'ไม่ทราบ'}</p>
-                        <p class="text-gray-500 text-sm">ID: ${order.buyer_id}</p>
+                        <p class="text-gray-300">@${buyer ? buyer.username : 'ไม่ทราบ'}</p>
+                        <p class="text-gray-500 text-sm">${buyer ? (buyer.full_name || 'ID: ' + order.buyer_id) : 'ID: ' + order.buyer_id}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-gray-300">@${order.seller?.username || 'ไม่ทราบ'}</p>
-                        <p class="text-gray-500 text-sm">ID: ${order.seller_id}</p>
+                        <p class="text-gray-300">@${seller ? seller.username : 'ไม่ทราบ'}</p>
+                        <p class="text-gray-500 text-sm">${seller ? (seller.full_name || 'ID: ' + order.seller_id) : 'ID: ' + order.seller_id}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-emerald-400 font-bold">${this.formatCurrency(order.total_amount)}</p>
-                        <p class="text-gray-500 text-sm">คอม: ${this.formatCurrency(order.commission_amount)}</p>
+                        <p class="text-emerald-400 font-bold">${this.formatCurrency(order.total_amount || 0)}</p>
+                        <p class="text-gray-500 text-sm">Fee: ${this.formatCurrency(order.community_fee || 0)}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
                     <span class="bg-gray-600 text-gray-100 px-2 py-1 rounded-full text-xs">${paymentText}</span>
                 </td>
                 <td class="py-3 px-4">
-                    <span class="bg-${statusColor}-600 text-${statusColor}-100 px-2 py-1 rounded-full text-xs">${statusText}</span>
+                    <span class="px-2 py-1 bg-${statusColor}-500 bg-opacity-20 text-${statusColor}-400 rounded text-xs">${statusText}</span>
                 </td>
-                <td class="py-3 px-4 text-gray-400 text-sm">${this.formatDateTime(order.created_at)}</td>
+                <td class="py-3 px-4 text-gray-400 text-sm">${this.formatDateTime(order.order_date || order.created_at)}</td>
                 <td class="py-3 px-4">
-                    <button class="text-blue-400 hover:text-blue-300 mr-2 text-sm" onclick="viewOrder('${order.id}')">
+                    <button class="text-blue-400 hover:text-blue-300 mr-2 text-sm" onclick="admin.viewOrder('${order.id}')">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="text-emerald-400 hover:text-emerald-300 text-sm" onclick="updateOrderStatus('${order.id}')">
+                    <button class="text-emerald-400 hover:text-emerald-300 text-sm" onclick="admin.updateOrderStatus('${order.id}')">
                         <i class="fas fa-edit"></i>
                     </button>
                 </td>
@@ -2825,8 +2880,8 @@ class FingrowAdmin {
     // Utility methods
     formatCurrency(amount, currency = 'THB') {
         return new Intl.NumberFormat('th-TH', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }).format(amount) + ` ${currency}`;
     }
 
@@ -2840,6 +2895,10 @@ class FingrowAdmin {
             month: 'short',
             day: 'numeric'
         });
+    }
+
+    showNetworkBreakdown(userId, username, totalFees, breakdownData) {
+        showNetworkBreakdown(userId, username, totalFees, breakdownData);
     }
 
     showSuccess(message) {
@@ -3344,16 +3403,36 @@ window.deleteProduct = (productId) => {
 };
 
 // Order management functions
-window.viewOrder = (orderId) => {
+window.viewOrder = async (orderId) => {
     console.log('Global viewOrder called with orderId:', orderId);
-    console.log('Order details view functionality coming soon...');
-    // TODO: Implement order details modal
+    if (window.admin && typeof window.admin.viewOrderDetails === 'function') {
+        await window.admin.viewOrderDetails(orderId);
+    } else {
+        alert('กำลังพัฒนาฟีเจอร์นี้...');
+    }
 };
 
-window.updateOrderStatus = (orderId) => {
+window.updateOrderStatus = async (orderId) => {
     console.log('Global updateOrderStatus called with orderId:', orderId);
-    console.log('Order status update functionality coming soon...');
-    // TODO: Implement order status update modal
+    if (window.admin && typeof window.admin.updateOrderStatusModal === 'function') {
+        await window.admin.updateOrderStatusModal(orderId);
+    } else {
+        const newStatus = prompt('เปลี่ยนสถานะเป็น (pending/processing/shipped/completed/cancelled/refunded):');
+        if (newStatus) {
+            try {
+                const result = await window.admin.db.updateOrderStatus(orderId, newStatus);
+                if (result) {
+                    alert('อัปเดตสถานะสำเร็จ');
+                    window.location.reload();
+                } else {
+                    alert('ไม่สามารถอัปเดตสถานะได้');
+                }
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                alert('เกิดข้อผิดพลาด: ' + error.message);
+            }
+        }
+    }
 };
 
 // Review management functions
@@ -3713,9 +3792,19 @@ let navigationHistory = []; // Stack for navigation history
 // Load Network DNA data
 async function loadNetworkDNA() {
     try {
-        const userId = document.getElementById('earningsUserFilter').value;
-        const fromDate = document.getElementById('earningsFromDate').value;
-        const toDate = document.getElementById('earningsToDate').value;
+        // Check if elements exist
+        const userFilterEl = document.getElementById('earningsUserFilter');
+        const fromDateEl = document.getElementById('earningsFromDate');
+        const toDateEl = document.getElementById('earningsToDate');
+
+        if (!userFilterEl || !fromDateEl || !toDateEl) {
+            console.warn('Filter elements not found yet, skipping loadNetworkDNA');
+            return;
+        }
+
+        const userId = userFilterEl.value;
+        const fromDate = fromDateEl.value;
+        const toDate = toDateEl.value;
 
         const params = new URLSearchParams();
         if (userId) params.append('userId', userId);
@@ -4107,6 +4196,80 @@ function changeTreeRoot() {
     const userId = selector.value;
     if (userId) {
         loadNetworkTree(userId);
+    }
+}
+
+// Show network breakdown modal
+function showNetworkBreakdown(userId, username, totalFees, breakdownData) {
+    const breakdown = typeof breakdownData === 'string' ? JSON.parse(breakdownData) : breakdownData;
+
+    const modalHTML = `
+        <div id="networkBreakdownModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onclick="closeNetworkBreakdown(event)">
+            <div class="bg-gray-900 rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Network Fees Breakdown</h2>
+                    <button onclick="closeNetworkBreakdown()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-xl text-cyan-400 mb-2">เครือข่ายของ: ${username}</h3>
+                    <p class="text-gray-300">Total Network Fees: <span class="text-cyan-300 font-bold">${window.adminApp ? window.adminApp.formatCurrency(totalFees, 'THB') : totalFees + ' ฿'}</span></p>
+                    <p class="text-gray-300">Loyalty Fee (14%): <span class="text-green-400 font-bold">${window.adminApp ? window.adminApp.formatCurrency(totalFees * 0.14, 'THB') : (totalFees * 0.14).toFixed(2) + ' ฿'}</span></p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-4 text-gray-400">Member</th>
+                                <th class="text-left py-3 px-4 text-gray-400">Orders</th>
+                                <th class="text-left py-3 px-4 text-gray-400">Total Sales</th>
+                                <th class="text-left py-3 px-4 text-gray-400">Fees Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${breakdown.map(member => `
+                                <tr class="border-b border-gray-800 hover:bg-gray-800">
+                                    <td class="py-3 px-4">
+                                        <div>
+                                            <p class="text-white font-medium">${member.username || member.full_name || 'Unknown'}</p>
+                                            <p class="text-gray-500 text-sm">ID: ${member.id}</p>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-blue-400">${member.order_count || 0}</td>
+                                    <td class="py-3 px-4 text-emerald-400">${window.adminApp ? window.adminApp.formatCurrency(member.total_sales || 0, 'THB') : (member.total_sales || 0) + ' ฿'}</td>
+                                    <td class="py-3 px-4 text-cyan-400 font-medium">${window.adminApp ? window.adminApp.formatCurrency(member.total_fees || 0, 'THB') : (member.total_fees || 0) + ' ฿'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-gray-600 font-bold">
+                                <td class="py-3 px-4 text-white">Total</td>
+                                <td class="py-3 px-4 text-blue-400">${breakdown.reduce((sum, m) => sum + (m.order_count || 0), 0)}</td>
+                                <td class="py-3 px-4 text-emerald-400">${window.adminApp ? window.adminApp.formatCurrency(breakdown.reduce((sum, m) => sum + (m.total_sales || 0), 0), 'THB') : breakdown.reduce((sum, m) => sum + (m.total_sales || 0), 0) + ' ฿'}</td>
+                                <td class="py-3 px-4 text-cyan-400">${window.adminApp ? window.adminApp.formatCurrency(totalFees, 'THB') : totalFees + ' ฿'}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button onclick="closeNetworkBreakdown()" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Close network breakdown modal
+function closeNetworkBreakdown(event) {
+    if (!event || event.target.id === 'networkBreakdownModal') {
+        const modal = document.getElementById('networkBreakdownModal');
+        if (modal) {
+            modal.remove();
+        }
     }
 }
 

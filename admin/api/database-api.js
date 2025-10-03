@@ -49,7 +49,96 @@ class AdminDatabaseService {
                 ORDER BY u.created_at DESC
             `).all();
 
-            return users.map(user => ({
+            // Calculate network statistics for each user
+            const usersWithNetwork = users.map(user => {
+                try {
+                    // Get all network member IDs using recursive CTE
+                    const networkMembers = database.prepare(`
+                        WITH RECURSIVE network_tree AS (
+                            SELECT id, 0 as depth
+                            FROM users
+                            WHERE id = ?
+
+                            UNION ALL
+
+                            SELECT u.id, nt.depth + 1 as depth
+                            FROM users u
+                            INNER JOIN network_tree nt ON u.parent_id = nt.id
+                            WHERE nt.depth < 7
+                        )
+                        SELECT id FROM network_tree
+                    `).all(user.id);
+
+                    const networkIds = networkMembers.map(m => m.id);
+                    const networkSize = networkIds.length;
+
+                    // Calculate network fees and sales
+                    let networkFees = 0;
+                    let networkSales = 0;
+                    let networkOrders = 0;
+                    let networkBreakdown = [];
+
+                    if (networkIds.length > 0) {
+                        const placeholders = networkIds.map(() => '?').join(',');
+                        const networkStats = database.prepare(`
+                            SELECT
+                                COUNT(o.id) as total_orders,
+                                SUM(o.total_amount) as total_sales,
+                                SUM(o.community_fee) as total_fees
+                            FROM orders o
+                            WHERE o.seller_id IN (${placeholders})
+                            AND o.status = 'completed'
+                        `).get(...networkIds);
+
+                        networkFees = networkStats.total_fees || 0;
+                        networkSales = networkStats.total_sales || 0;
+                        networkOrders = networkStats.total_orders || 0;
+
+                        // Get breakdown by member
+                        networkBreakdown = database.prepare(`
+                            SELECT
+                                u.id,
+                                u.username,
+                                u.full_name,
+                                COUNT(o.id) as order_count,
+                                SUM(o.total_amount) as total_sales,
+                                SUM(o.community_fee) as total_fees
+                            FROM users u
+                            LEFT JOIN orders o ON o.seller_id = u.id AND o.status = 'completed'
+                            WHERE u.id IN (${placeholders})
+                            GROUP BY u.id, u.username, u.full_name
+                            HAVING total_fees > 0
+                            ORDER BY total_fees DESC
+                        `).all(...networkIds);
+                    }
+
+                    // Calculate loyalty fee (14% of network fees)
+                    const loyaltyFee = networkFees * 0.14;
+
+                    return {
+                        ...user,
+                        network_size: networkSize,
+                        network_fees: networkFees,
+                        network_sales: networkSales,
+                        network_orders: networkOrders,
+                        network_breakdown: networkBreakdown,
+                        loyalty_fee: loyaltyFee
+                    };
+                } catch (error) {
+                    console.error(`Error calculating network for user ${user.id}:`, error);
+                    return {
+                        ...user,
+                        network_size: 0,
+                        network_fees: 0,
+                        network_sales: 0,
+                        network_orders: 0,
+                        network_breakdown: [],
+                        loyalty_fee: 0
+                    };
+                }
+            });
+
+            return usersWithNetwork.map(user => ({
                 ...user,
                 is_verified: Boolean(user.is_verified),
                 is_active: Boolean(user.is_active),
@@ -64,6 +153,14 @@ class AdminDatabaseService {
                 total_fees_paid: user.total_fees_paid || 0,
                 total_earnings: user.total_earnings || 0,
                 products_count: user.products_count || 0,
+
+                // Network stats
+                network_size: user.network_size || 0,
+                network_fees: user.network_fees || 0,
+                network_sales: user.network_sales || 0,
+                network_orders: user.network_orders || 0,
+                network_breakdown: user.network_breakdown || [],
+                loyalty_fee: user.loyalty_fee || 0,
 
                 location: user.location ? JSON.parse(user.location) : null,
 
@@ -82,6 +179,14 @@ class AdminDatabaseService {
                     },
                     referrals: {
                         total: user.follower_count || 0
+                    },
+                    network: {
+                        size: user.network_size || 0,
+                        fees: user.network_fees || 0,
+                        sales: user.network_sales || 0,
+                        orders: user.network_orders || 0,
+                        breakdown: user.network_breakdown || [],
+                        loyaltyFee: user.loyalty_fee || 0
                     }
                 }
             }));

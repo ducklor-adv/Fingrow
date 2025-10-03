@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Fingrow Admin Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -476,8 +480,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/database-connector.js"></script>
-    <script src="js/admin.js"></script>
+    <script>
+        // Dynamic cache busting
+        const timestamp = Date.now();
+        document.write('<script src="js/database-connector.js?v=' + timestamp + '"><\/script>');
+        document.write('<script src="js/admin.js?v=' + timestamp + '"><\/script>');
+    </script>
 
     <!-- Standalone WLD Price Script (same as mobile) -->
     <script>
