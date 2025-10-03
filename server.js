@@ -323,20 +323,68 @@ app.get('/api/users', async (req, res) => {
     try {
         const query = `
             SELECT
-                id, username, email, full_name, phone,
-                invite_code, invitor_id as invited_by,
-                created_at, last_login, is_active, avatar_url as profile_image,
-                trust_score as seller_rating, total_sales, location as province
-            FROM users
-            ORDER BY created_at DESC
+                u.id, u.username, u.email, u.full_name, u.phone,
+                u.invite_code, u.invitor_id as invited_by,
+                u.created_at, u.last_login, u.is_active, u.avatar_url as profile_image,
+                u.trust_score as seller_rating, u.total_sales, u.location as province,
+
+                -- Follower count (people who used this user's invite code)
+                (SELECT COUNT(*) FROM users WHERE invitor_id = u.id) as follower_count,
+
+                -- Purchase stats (as buyer)
+                (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as purchase_count,
+                (SELECT SUM(total_amount) FROM orders WHERE buyer_id = u.id AND status = 'completed') as total_spent,
+
+                -- Sales stats (as seller)
+                (SELECT COUNT(*) FROM orders WHERE seller_id = u.id) as sales_count,
+                (SELECT SUM(total_amount) FROM orders WHERE seller_id = u.id AND status = 'completed') as total_sales_amount,
+                (SELECT SUM(community_fee) FROM orders WHERE seller_id = u.id AND status = 'completed') as total_fees_paid,
+
+                -- Earnings (from referrals and sales)
+                (SELECT SUM(amount_local) FROM earnings WHERE user_id = u.id) as total_earnings,
+
+                -- Products listed
+                (SELECT COUNT(*) FROM products WHERE seller_id = u.id) as products_count
+            FROM users u
+            ORDER BY u.created_at DESC
         `;
 
         const users = db.prepare(query).all();
 
+        // Format users with stats object
+        const formattedUsers = users.map(user => ({
+            ...user,
+            is_active: Boolean(user.is_active),
+            follower_count: user.follower_count || 0,
+            purchase_count: user.purchase_count || 0,
+            total_spent: user.total_spent || 0,
+            sales_count: user.sales_count || 0,
+            total_sales_amount: user.total_sales_amount || 0,
+            total_fees_paid: user.total_fees_paid || 0,
+            total_earnings: user.total_earnings || 0,
+            products_count: user.products_count || 0,
+            stats: {
+                purchases: {
+                    count: user.purchase_count || 0,
+                    totalAmount: user.total_spent || 0
+                },
+                sales: {
+                    count: user.sales_count || 0,
+                    totalAmount: user.total_sales_amount || 0
+                },
+                earnings: {
+                    total: user.total_earnings || 0
+                },
+                referrals: {
+                    total: user.follower_count || 0
+                }
+            }
+        }));
+
         res.json({
             success: true,
-            data: users,
-            total: users.length
+            data: formattedUsers,
+            total: formattedUsers.length
         });
     } catch (error) {
         console.error('Error getting users:', error);

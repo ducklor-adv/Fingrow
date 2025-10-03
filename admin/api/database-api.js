@@ -28,9 +28,23 @@ class AdminDatabaseService {
         try {
             const users = database.prepare(`
                 SELECT u.*,
-                       (SELECT COUNT(*) FROM referrals WHERE referrer_id = u.id) as referral_count,
-                       (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as total_orders,
-                       (SELECT SUM(total_amount) FROM orders WHERE buyer_id = u.id AND status = 'completed') as total_spent
+                       -- Follower count (people who used this user's invite code)
+                       (SELECT COUNT(*) FROM users WHERE invitor_id = u.id) as follower_count,
+
+                       -- Purchase stats (as buyer)
+                       (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as purchase_count,
+                       (SELECT SUM(total_amount) FROM orders WHERE buyer_id = u.id AND status = 'completed') as total_spent,
+
+                       -- Sales stats (as seller)
+                       (SELECT COUNT(*) FROM orders WHERE seller_id = u.id) as sales_count,
+                       (SELECT SUM(total_amount) FROM orders WHERE seller_id = u.id AND status = 'completed') as total_sales,
+                       (SELECT SUM(community_fee) FROM orders WHERE seller_id = u.id AND status = 'completed') as total_fees_paid,
+
+                       -- Earnings (from referrals and sales)
+                       (SELECT SUM(amount_local) FROM earnings WHERE user_id = u.id) as total_earnings,
+
+                       -- Products listed
+                       (SELECT COUNT(*) FROM products WHERE seller_id = u.id) as products_count
                 FROM users u
                 ORDER BY u.created_at DESC
             `).all();
@@ -40,10 +54,36 @@ class AdminDatabaseService {
                 is_verified: Boolean(user.is_verified),
                 is_active: Boolean(user.is_active),
                 is_suspended: Boolean(user.is_suspended),
-                referral_count: user.referral_count || 0,
-                total_orders: user.total_orders || 0,
+
+                // Stats for display
+                follower_count: user.follower_count || 0,
+                purchase_count: user.purchase_count || 0,
                 total_spent: user.total_spent || 0,
-                location: user.location ? JSON.parse(user.location) : null
+                sales_count: user.sales_count || 0,
+                total_sales: user.total_sales || 0,
+                total_fees_paid: user.total_fees_paid || 0,
+                total_earnings: user.total_earnings || 0,
+                products_count: user.products_count || 0,
+
+                location: user.location ? JSON.parse(user.location) : null,
+
+                // Format stats object for backward compatibility
+                stats: {
+                    purchases: {
+                        count: user.purchase_count || 0,
+                        totalAmount: user.total_spent || 0
+                    },
+                    sales: {
+                        count: user.sales_count || 0,
+                        totalAmount: user.total_sales || 0
+                    },
+                    earnings: {
+                        total: user.total_earnings || 0
+                    },
+                    referrals: {
+                        total: user.follower_count || 0
+                    }
+                }
             }));
         } catch (error) {
             console.error('Error getting users:', error);
