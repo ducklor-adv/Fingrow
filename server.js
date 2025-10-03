@@ -925,6 +925,7 @@ app.get('/api/products', async (req, res) => {
             location: product.location,
             currency: product.currency_code || 'THB',
             images: product.images ? JSON.parse(product.images) : [],
+            amount_fee: product.amount_fee || 0,
             created_at: product.created_at,
             updated_at: product.updated_at
         }));
@@ -971,10 +972,10 @@ app.post('/api/products', async (req, res) => {
             productData.category_id || 'cat-general',
             productData.condition || 'ดี',
             productData.brand || null,
-            JSON.stringify(productData.location || { city: 'Bangkok', district: 'Central' }),
+            typeof productData.location === 'string' ? productData.location : JSON.stringify(productData.location || { city: 'Bangkok', district: 'Central' }),
             productData.currency_code || 'THB',
             productData.status || 'active',
-            JSON.stringify(productData.images || []),
+            typeof productData.images === 'string' ? productData.images : JSON.stringify(productData.images || []),
             productData.fin_fee_percent || 2.0,
             productData.amount_fee || 0,
             new Date().toISOString(),
@@ -1004,28 +1005,87 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:productId', async (req, res) => {
     try {
         const productId = req.params.productId;
-        const { status, admin_notes } = req.body;
+        const updates = req.body;
 
-        // Update product status
+        // If only status update (admin action)
+        if (updates.status && Object.keys(updates).length <= 2) {
+            const result = db.prepare(`
+                UPDATE products
+                SET status = ?, updated_at = ?
+                WHERE id = ?
+            `).run(updates.status, new Date().toISOString(), productId);
+
+            if (result.changes > 0) {
+                return res.json({
+                    success: true,
+                    message: 'Product status updated successfully'
+                });
+            } else {
+                return res.json({ success: false, message: 'Product not found' });
+            }
+        }
+
+        // Full product update
         const result = db.prepare(`
             UPDATE products
-            SET status = ?, admin_notes = ?, updated_at = ?
+            SET title = ?,
+                description = ?,
+                price_local = ?,
+                currency_code = ?,
+                category_id = ?,
+                sub_category = ?,
+                condition = ?,
+                brand = ?,
+                model = ?,
+                quantity = ?,
+                location = ?,
+                fin_fee_percent = ?,
+                amount_fee = ?,
+                color = ?,
+                size = ?,
+                weight = ?,
+                images = ?,
+                shipping_options = ?,
+                updated_at = ?
             WHERE id = ?
-        `).run(status, admin_notes || '', new Date().toISOString(), productId);
+        `).run(
+            updates.title,
+            updates.description,
+            updates.price_local,
+            updates.currency_code || 'THB',
+            updates.category_id || 'cat-general',
+            updates.sub_category || null,
+            updates.condition,
+            updates.brand || null,
+            updates.model || null,
+            updates.quantity || 1,
+            updates.location,
+            updates.fin_fee_percent || 2.0,
+            updates.amount_fee || 0,
+            updates.color || null,
+            updates.size || null,
+            updates.weight || null,
+            updates.images || '[]',
+            updates.shipping_options || null,
+            new Date().toISOString(),
+            productId
+        );
 
         if (result.changes > 0) {
+            const updatedProduct = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
             res.json({
                 success: true,
-                message: 'Product status updated successfully'
+                product: updatedProduct,
+                message: 'Product updated successfully'
             });
         } else {
             res.json({ success: false, message: 'Product not found' });
         }
     } catch (error) {
-        console.error('Update product status error:', error);
+        console.error('Update product error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update product status',
+            message: 'Failed to update product',
             error: error.message
         });
     }
@@ -1126,6 +1186,199 @@ app.put('/api/orders/:id', async (req, res) => {
             success: false,
             message: 'Failed to update order status',
             error: error.message
+        });
+    }
+});
+
+// Get chat messages
+app.get('/api/messages', async (req, res) => {
+    try {
+        const { product_id, user1, user2 } = req.query;
+
+        if (!product_id || !user1 || !user2) {
+            return res.json({
+                success: true,
+                data: [],
+                total: 0
+            });
+        }
+
+        // Find chat room
+        let chatRoom = db.prepare(`
+            SELECT * FROM chat_rooms
+            WHERE product_id = ?
+            AND ((buyer_id = ? AND seller_id = ?) OR (buyer_id = ? AND seller_id = ?))
+        `).get(product_id, user1, user2, user2, user1);
+
+        if (!chatRoom) {
+            return res.json({
+                success: true,
+                data: [],
+                total: 0
+            });
+        }
+
+        // Get messages for this chat room
+        const messages = db.prepare(`
+            SELECT
+                id,
+                chat_room_id,
+                sender_id,
+                content as message,
+                message_type as type,
+                is_read,
+                read_at,
+                created_at
+            FROM messages
+            WHERE chat_room_id = ?
+            ORDER BY created_at ASC
+        `).all(chatRoom.id);
+
+        res.json({
+            success: true,
+            data: messages,
+            total: messages.length
+        });
+    } catch (error) {
+        console.error('Error getting messages:', error);
+        res.json({
+            success: true,
+            data: [],
+            total: 0
+        });
+    }
+});
+
+// POST create new message
+app.post('/api/messages', async (req, res) => {
+    try {
+        const { sender_id, receiver_id, product_id, message, type = 'text' } = req.body;
+
+        if (!sender_id || !receiver_id || !product_id || !message) {
+            return res.json({
+                success: false,
+                error: 'Missing required fields'
+            });
+        }
+
+        // Find or create chat room
+        let chatRoom = db.prepare(`
+            SELECT * FROM chat_rooms
+            WHERE product_id = ?
+            AND ((buyer_id = ? AND seller_id = ?) OR (buyer_id = ? AND seller_id = ?))
+        `).get(product_id, sender_id, receiver_id, receiver_id, sender_id);
+
+        if (!chatRoom) {
+            // Create new chat room
+            const chatRoomId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+            db.prepare(`
+                INSERT INTO chat_rooms (id, product_id, buyer_id, seller_id, is_active, last_message_at, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+            `).run(chatRoomId, product_id, sender_id, receiver_id, now, now, now);
+
+            chatRoom = { id: chatRoomId };
+        }
+
+        // Insert message
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const created_at = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+        db.prepare(`
+            INSERT INTO messages (id, chat_room_id, sender_id, content, message_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(messageId, chatRoom.id, sender_id, message, type, created_at);
+
+        // Update chat room last_message_at
+        db.prepare(`
+            UPDATE chat_rooms
+            SET last_message_at = ?, updated_at = ?
+            WHERE id = ?
+        `).run(created_at, created_at, chatRoom.id);
+
+        res.json({
+            success: true,
+            data: {
+                id: messageId,
+                chat_room_id: chatRoom.id,
+                sender_id,
+                message,
+                type,
+                created_at
+            }
+        });
+    } catch (error) {
+        console.error('Error creating message:', error);
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// GET all messages for a user
+app.get('/api/messages/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Get all chat rooms for this user
+        const chatRooms = db.prepare(`
+            SELECT * FROM chat_rooms
+            WHERE buyer_id = ? OR seller_id = ?
+            ORDER BY last_message_at DESC
+        `).all(userId, userId);
+
+        if (chatRooms.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                total: 0
+            });
+        }
+
+        // Get all messages from these chat rooms
+        const chatRoomIds = chatRooms.map(room => room.id);
+        const placeholders = chatRoomIds.map(() => '?').join(',');
+
+        const messages = db.prepare(`
+            SELECT
+                id,
+                chat_room_id,
+                sender_id,
+                content as message,
+                message_type as type,
+                is_read,
+                read_at,
+                created_at
+            FROM messages
+            WHERE chat_room_id IN (${placeholders})
+            ORDER BY created_at ASC
+        `).all(...chatRoomIds);
+
+        // Add product_id to each message from chat_room
+        const messagesWithProduct = messages.map(msg => {
+            const room = chatRooms.find(r => r.id === msg.chat_room_id);
+            return {
+                ...msg,
+                product_id: room ? room.product_id : null,
+                receiver_id: msg.sender_id === userId ?
+                    (room.buyer_id === userId ? room.seller_id : room.buyer_id) :
+                    userId
+            };
+        });
+
+        res.json({
+            success: true,
+            data: messagesWithProduct,
+            total: messagesWithProduct.length
+        });
+    } catch (error) {
+        console.error('Error getting user messages:', error);
+        res.json({
+            success: true,
+            data: [],
+            total: 0
         });
     }
 });
