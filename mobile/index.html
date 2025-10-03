@@ -1514,7 +1514,8 @@
         <div class="container">
             <div class="header">
                 <div class="logo">🌱 Fingrow</div>
-                <div class="currency-display">
+                <!-- WLD currency display hidden for now -->
+                <div class="currency-display" style="display: none;">
                     <div id="wldPriceMobile">1 WLD = ฿Loading...</div>
                     <div style="font-size: 10px; color: #71717a; margin-top: 2px;" id="lastUpdated">Loading...</div>
                 </div>
@@ -2881,28 +2882,18 @@
             }).join('');
         }
 
-        // Format price display (card view)
+        // Format price display (card view) - WLD hidden
         function formatPrice(product) {
-            if (product.price_currency === 'WLD') {
-                // Convert WLD to THB for display (1 WLD ≈ 318 THB)
-                const thbPrice = (product.price * 318).toLocaleString();
-                return `฿${thbPrice} <small style="color: #a1a1aa;">(${product.price} WLD)</small>`;
-            } else {
-                const currencySymbol = getCurrencySymbol(product.price_currency);
-                return `${currencySymbol}${product.price.toLocaleString()} <small style="color: #a1a1aa;">(${product.wld_price} WLD)</small>`;
-            }
+            const currencySymbol = getCurrencySymbol(product.price_currency || 'THB');
+            const price = product.price || 0;
+            return `${currencySymbol}${price.toLocaleString()}`;
         }
 
-        // Format price for popup (with dual currency display)
+        // Format price for popup (with dual currency display) - WLD hidden
         function formatPriceForPopup(product) {
-            if (product.price_currency === 'WLD') {
-                // Convert WLD to THB for display (1 WLD ≈ 318 THB)
-                const thbPrice = (product.price * 318).toLocaleString();
-                return `฿${thbPrice} <span style="color: #10b981; font-weight: 500;">(${product.price} WLD)</span>`;
-            } else {
-                const currencySymbol = getCurrencySymbol(product.price_currency);
-                return `${currencySymbol}${product.price.toLocaleString()} <span style="color: #10b981; font-weight: 500;">(${product.wld_price} WLD)</span>`;
-            }
+            const currencySymbol = getCurrencySymbol(product.price_currency || 'THB');
+            const price = product.price || 0;
+            return `${currencySymbol}${price.toLocaleString()}`;
         }
 
 
