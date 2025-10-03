@@ -1267,7 +1267,8 @@ class FingrowAdmin {
 
     async fetchReviews() {
         const result = await this.db.getReviews();
-        return result.data; // Return review array
+        // getReviews() already returns the data array, not {success, data, total}
+        return result; // Return review array directly
     }
 
     async loadEarningsContent() {
