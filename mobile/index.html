@@ -2844,7 +2844,7 @@
                 const isSold = product.status === 'sold';
 
                 return `
-                    <div class="product-card" onclick="viewProduct(${product.id})" style="${isSold ? 'opacity: 0.7;' : ''}">
+                    <div class="product-card" onclick="viewProduct('${product.id}')" style="${isSold ? 'opacity: 0.7;' : ''}">
                         <div class="product-image" style="position: relative;">
                             ${firstImage
                                 ? `<img
@@ -3226,7 +3226,7 @@
                         const viewCount = product.view_count || Math.floor(Math.random() * 50) + 1;
 
                         productsHTML += `
-                            <div class="product-card" onclick="viewProduct(${product.id})">
+                            <div class="product-card" onclick="viewProduct('${product.id}')">
                                 <div class="product-image" style="position: relative;">
                                     <img
                                         src="${product.images ? product.images[0] : ''}"

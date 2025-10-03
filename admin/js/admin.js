@@ -1236,14 +1236,14 @@ class FingrowAdmin {
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-gray-300">@${review.reviewer?.username || 'ไม่ทราบ'}</p>
+                        <p class="text-gray-300">@${review.reviewer_username || 'ไม่ทราบ'}</p>
                         <p class="text-gray-500 text-sm">ID: ${review.reviewer_id}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="text-gray-300">@${review.reviewee?.username || 'ไม่ทราบ'}</p>
-                        <p class="text-gray-500 text-sm">ID: ${review.reviewee_id}</p>
+                        <p class="text-gray-300">@${review.reviewed_user_username || 'ไม่ทราบ'}</p>
+                        <p class="text-gray-500 text-sm">ID: ${review.reviewed_user_id}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
