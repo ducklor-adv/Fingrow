@@ -205,6 +205,42 @@ try {
     process.exit(1);
 }
 
+// Helper function: Create notification
+function createNotification(userId, type, title, message, icon, referenceId = null) {
+    try {
+        const id = 'NOTIF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        // Store icon and referenceId in data as JSON
+        const data = JSON.stringify({ icon: icon, referenceId: referenceId });
+
+        db.prepare(`
+            INSERT INTO notifications (id, user_id, type, title, body, data, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(id, userId, type, title, message, data);
+
+        console.log(`✅ Notification created for user ${userId}: ${title}`);
+        return id;
+    } catch (error) {
+        console.error('❌ Error creating notification:', error);
+        return null;
+    }
+}
+
+// Helper function: Create broadcast notification
+function createBroadcastNotification(type, title, message, icon) {
+    try {
+        const users = db.prepare('SELECT id FROM users WHERE id IS NOT NULL').all();
+        users.forEach(user => {
+            createNotification(user.id, type, title, message, icon, null);
+        });
+        console.log(`✅ Broadcast notification sent to ${users.length} users`);
+        return true;
+    } catch (error) {
+        console.error('❌ Error creating broadcast notification:', error);
+        return false;
+    }
+}
+
 // Helper function to generate invite code
 function generateInviteCode(username) {
     const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -584,69 +620,93 @@ app.get('/api/users', async (req, res) => {
 
 // Register new user
 app.post('/api/register', async (req, res) => {
+    console.log('\n========================================');
+    console.log('📝 REGISTRATION REQUEST RECEIVED');
+    console.log('========================================');
     try {
         const userData = req.body;
+        console.log('📋 User Data:', JSON.stringify(userData, null, 2));
 
         // Check if username exists
+        console.log('🔍 Checking if username exists:', userData.username);
         const existingUsername = db.prepare('SELECT id FROM users WHERE username = ?').get(userData.username);
         if (existingUsername) {
+            console.log('❌ Username already exists');
             return res.json({ success: false, message: 'Username already exists' });
         }
+        console.log('✅ Username available');
 
         // Check if email exists
+        console.log('🔍 Checking if email exists:', userData.email);
         const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(userData.email);
         if (existingEmail) {
+            console.log('❌ Email already exists');
             return res.json({ success: false, message: 'Email already exists' });
         }
+        console.log('✅ Email available');
 
         // Hash password
+        console.log('🔐 Hashing password...');
         let passwordHash = null;
         if (userData.password) {
             passwordHash = await bcrypt.hash(userData.password, 10);
+            console.log('✅ Password hashed');
         }
 
         // Generate invite code
+        console.log('🎫 Generating invite code...');
         const inviteCode = generateInviteCode(userData.username);
+        console.log('✅ Invite code generated:', inviteCode);
 
         // Resolve invitor (BIC or NIC)
         let invitorId = null;
         let parentId = null;
         let registrationType = 'NIC'; // No Invite Code
 
+        console.log('👤 Resolving invitor with code:', userData.invite_code);
         if (userData.invite_code && userData.invite_code.trim() !== '') {
             // BIC (By Invite Code)
             const invitor = db.prepare('SELECT id FROM users WHERE invite_code = ?').get(userData.invite_code.trim());
             if (invitor) {
                 invitorId = invitor.id;
                 registrationType = 'BIC';
+                console.log('✅ BIC Registration - Invitor found:', invitorId);
             } else {
+                console.log('❌ Invalid invite code');
                 return res.json({ success: false, message: 'Invalid invite code' });
             }
         }
 
         // If no invitor (NIC), use root user
         if (!invitorId) {
+            console.log('🔍 NIC Registration - Finding root user...');
             const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
             if (rootUser) {
                 invitorId = rootUser.id;
+                console.log('✅ Root user found:', invitorId);
             } else {
+                console.log('❌ Root user not found');
                 return res.json({ success: false, message: 'System root user not found' });
             }
         }
 
         // ACF Allocation: find best parent
+        console.log('🌳 Starting ACF allocation for invitor:', invitorId);
         try {
             const allocation = allocateParent(invitorId);
             parentId = allocation.parentId;
+            console.log('✅ ACF allocation successful - Parent:', parentId, 'Level:', allocation.parentLevel);
 
             // Validate depth constraint
             if (allocation.parentLevel + 1 >= 7) {
+                console.log('❌ Network depth limit reached');
                 return res.json({
                     success: false,
                     message: 'Network depth limit reached (max 7 levels)'
                 });
             }
         } catch (allocationError) {
+            console.log('❌ ACF allocation error:', allocationError.message);
             return res.json({
                 success: false,
                 message: allocationError.message
@@ -654,6 +714,7 @@ app.post('/api/register', async (req, res) => {
         }
 
         // Insert new user with ACF allocation
+        console.log('💾 Preparing to insert user into database...');
         const insertUser = db.prepare(`
             INSERT INTO users (
                 id, username, email, full_name, phone,
@@ -663,6 +724,18 @@ app.post('/api/register', async (req, res) => {
         `);
 
         const userId = generateUserId();
+        console.log('🆔 Generated user ID:', userId);
+        console.log('💾 Inserting user with:');
+        console.log('   - ID:', userId);
+        console.log('   - Username:', userData.username);
+        console.log('   - Email:', userData.email);
+        console.log('   - Full Name:', userData.full_name);
+        console.log('   - Phone:', userData.phone || '');
+        console.log('   - Invite Code:', inviteCode);
+        console.log('   - Invitor ID:', invitorId);
+        console.log('   - Parent ID:', parentId);
+        console.log('   - Location:', userData.province || '');
+
         const result = insertUser.run(
             userId,
             userData.username,
@@ -677,22 +750,49 @@ app.post('/api/register', async (req, res) => {
             new Date().toISOString(),
             userData.province || ''
         );
+        console.log('✅ User inserted successfully. Result:', JSON.stringify(result, null, 2));
 
         // Update invitor's total_invites count
         if (invitorId) {
+            console.log('📊 Updating invitor total_invites count...');
             db.prepare('UPDATE users SET total_invites = COALESCE(total_invites, 0) + 1 WHERE id = ?').run(invitorId);
+            console.log('✅ Invitor total_invites updated');
+
+            // Create notification #10: New referral to referrer (if BIC registration)
+            if (registrationType === 'BIC') {
+                console.log('🔔 Creating notification for invitor:', invitorId);
+                createNotification(
+                    invitorId,
+                    'new_referral',
+                    '👥 มีสมาชิกใหม่',
+                    `${userData.full_name} ได้สมัครสมาชิกผ่านรหัสแนะนำของคุณ`,
+                    '👥',
+                    userId
+                );
+                console.log('✅ Notification created for invitor');
+            }
         }
 
         // Get the created user
+        console.log('🔍 Retrieving created user from database...');
         const newUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        if (newUser) {
+            console.log('✅ User retrieved successfully:', newUser.username);
+        } else {
+            console.log('⚠️ WARNING: User not found after insertion!');
+        }
 
+        console.log('✅ REGISTRATION COMPLETED SUCCESSFULLY');
+        console.log('========================================\n');
         res.json({
             success: true,
             user: newUser
         });
 
     } catch (error) {
-        console.error('Registration error:', error);
+        console.error('❌ REGISTRATION ERROR:', error);
+        console.error('Error stack:', error.stack);
+        console.log('========================================\n');
         res.status(500).json({
             success: false,
             message: 'Registration failed',
@@ -2649,6 +2749,17 @@ app.post('/api/orders', (req, res) => {
 
         itemStmt.run(itemId, orderId, product_id, product.title, product.condition, product.image_url, subtotal, subtotal);
 
+        // Create notification #1: New order to seller
+        const buyer = db.prepare('SELECT full_name FROM users WHERE id = ?').get(buyer_id);
+        createNotification(
+            seller_id,
+            'new_order',
+            '🛒 คำสั่งซื้อใหม่',
+            `${buyer.full_name} สั่งซื้อสินค้า ${product.title} (${orderNumber})`,
+            '🛒',
+            orderId
+        );
+
         const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
         res.json({ success: true, data: order });
     } catch (error) {
@@ -2663,16 +2774,18 @@ app.get('/api/orders/buyer/:userId', (req, res) => {
         const { userId } = req.params;
 
         const orders = db.prepare(`
-            SELECT o.*, u.name as seller_name, u.phone as seller_phone
+            SELECT o.*, u.full_name as seller_name, u.phone as seller_phone
             FROM orders o
             LEFT JOIN users u ON o.seller_id = u.id
             WHERE o.buyer_id = ?
             ORDER BY o.created_at DESC
         `).all(userId);
 
-        // Get items for each order
+        // Get items for each order and check if reviewed
         orders.forEach(order => {
             order.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+            const review = db.prepare('SELECT id FROM reviews WHERE order_id = ?').get(order.id);
+            order.reviewed = !!review;
         });
 
         res.json({ success: true, data: orders });
@@ -2688,7 +2801,7 @@ app.get('/api/orders/seller/:userId', (req, res) => {
         const { userId } = req.params;
 
         const orders = db.prepare(`
-            SELECT o.*, u.name as buyer_name, u.phone as buyer_phone
+            SELECT o.*, u.full_name as buyer_name, u.phone as buyer_phone
             FROM orders o
             LEFT JOIN users u ON o.buyer_id = u.id
             WHERE o.seller_id = ?
@@ -2703,6 +2816,436 @@ app.get('/api/orders/seller/:userId', (req, res) => {
         res.json({ success: true, data: orders });
     } catch (error) {
         console.error('Error fetching seller orders:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get single order by ID
+app.get('/api/orders/:orderId', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = db.prepare(`
+            SELECT o.*,
+                   buyer.full_name as buyer_name, buyer.phone as buyer_phone,
+                   seller.full_name as seller_name, seller.phone as seller_phone
+            FROM orders o
+            LEFT JOIN users buyer ON o.buyer_id = buyer.id
+            LEFT JOIN users seller ON o.seller_id = seller.id
+            WHERE o.id = ?
+        `).get(orderId);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Get order items
+        order.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+
+        // Check if order has been reviewed
+        const review = db.prepare('SELECT id FROM reviews WHERE order_id = ?').get(orderId);
+        order.reviewed = !!review;
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error fetching order:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Seller confirms order (pending → confirmed)
+app.post('/api/orders/:orderId/confirm', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'confirmed', updated_at = datetime('now')
+            WHERE id = ?
+        `).run(orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const seller = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.seller_id);
+
+        // Create notification #5: Seller confirmed order to buyer
+        createNotification(
+            order.buyer_id,
+            'order_confirmed',
+            '✅ คำสั่งซื้อได้รับการยืนยัน',
+            `${seller.full_name} ยืนยันคำสั่งซื้อ ${orderItems[0].product_title} (${order.order_number}) กรุณาชำระเงินภายใน 24 ชั่วโมง`,
+            '✅',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error confirming order:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Buyer marks as paid (simplified version without file upload)
+app.post('/api/orders/:orderId/mark-paid', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'paid', updated_at = datetime('now')
+            WHERE id = ?
+        `).run(orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const buyer = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.buyer_id);
+
+        // Create notification #2: Payment confirmed to seller
+        createNotification(
+            order.seller_id,
+            'order_paid',
+            '💳 ผู้ซื้อยืนยันการโอนเงิน',
+            `${buyer.full_name} ยืนยันการโอนเงินสำหรับ ${orderItems[0].product_title} (${order.order_number}) กรุณาตรวจสอบและยืนยัน`,
+            '💳',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error marking as paid:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Buyer uploads payment slip (confirmed → paid)
+app.post('/api/orders/:orderId/upload-payment', upload.single('paymentSlip'), (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const paymentSlipPath = req.file ? `/uploads/${req.file.filename}` : null;
+
+        db.prepare(`
+            UPDATE orders
+            SET payment_status = 'paid', payment_slip_url = ?, updated_at = datetime('now')
+            WHERE id = ?
+        `).run(paymentSlipPath, orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const buyer = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.buyer_id);
+
+        // Create notification #2: Payment slip uploaded to seller
+        createNotification(
+            order.seller_id,
+            'payment_uploaded',
+            '💳 ได้รับสลิปการชำระเงิน',
+            `${buyer.full_name} อัพโหลดสลิปการชำระเงินสำหรับ ${orderItems[0].product_title} (${order.order_number}) กรุณาตรวจสอบและยืนยัน`,
+            '💳',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error uploading payment:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Seller confirms payment (paid → payment_verified)
+app.post('/api/orders/:orderId/verify-payment', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        db.prepare(`
+            UPDATE orders
+            SET payment_status = 'payment_verified', status = 'payment_verified', updated_at = datetime('now')
+            WHERE id = ?
+        `).run(orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const seller = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.seller_id);
+
+        // Create notification #6: Seller confirmed payment to buyer
+        createNotification(
+            order.buyer_id,
+            'payment_verified',
+            '✅ ชำระเงินสำเร็จ',
+            `${seller.full_name} ยืนยันการชำระเงินสำหรับ ${orderItems[0].product_title} (${order.order_number}) รอการจัดส่งสินค้า`,
+            '✅',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error verifying payment:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Seller ships item (payment_verified → shipped)
+app.post('/api/orders/:orderId/ship', (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { tracking_number, shipping_provider } = req.body;
+
+        // Combine shipping provider and tracking number
+        const trackingInfo = shipping_provider && tracking_number
+            ? `${shipping_provider}: ${tracking_number}`
+            : tracking_number || null;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'shipped', tracking_number = ?, shipped_at = datetime('now'), updated_at = datetime('now')
+            WHERE id = ?
+        `).run(trackingInfo, orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const seller = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.seller_id);
+
+        // Create notification #7: Seller shipped item to buyer
+        const trackingDisplay = trackingInfo ? `\n\n${trackingInfo}` : '';
+        createNotification(
+            order.buyer_id,
+            'order_shipped',
+            '📦 สินค้าถูกจัดส่งแล้ว',
+            `${seller.full_name} จัดส่งสินค้า ${orderItems[0].product_title} (${order.order_number})${trackingDisplay}`,
+            '📦',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error shipping order:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Mark order as delivered (shipped → delivered)
+app.post('/api/orders/:orderId/deliver', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'delivered', delivered_at = datetime('now'), updated_at = datetime('now')
+            WHERE id = ?
+        `).run(orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const seller = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.seller_id);
+
+        // Create notification #8: Item delivered to buyer
+        createNotification(
+            order.buyer_id,
+            'order_delivered',
+            '🎉 สินค้าถึงปลายทางแล้ว',
+            `สินค้า ${orderItems[0].product_title} (${order.order_number}) ถูกจัดส่งสำเร็จ กรุณายืนยันการรับสินค้า`,
+            '🎉',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error marking as delivered:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Buyer confirms receipt (delivered → completed)
+app.post('/api/orders/:orderId/complete', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now')
+            WHERE id = ?
+        `).run(orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+        const buyer = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.buyer_id);
+
+        // Create notification #3: Buyer confirmed receipt to seller
+        createNotification(
+            order.seller_id,
+            'order_completed',
+            '✅ การสั่งซื้อสำเร็จ',
+            `${buyer.full_name} ยืนยันการรับสินค้า ${orderItems[0].product_title} (${order.order_number}) ธุรกรรมสำเร็จ`,
+            '✅',
+            orderId
+        );
+
+        // Create notification #11: Commission received notification
+        // Calculate 5% commission from community_fee
+        const commissionAmount = order.community_fee;
+
+        // Notify seller about their potential commission earnings
+        const seller = db.prepare('SELECT * FROM users WHERE id = ?').get(order.seller_id);
+        if (seller && seller.parent_id) {
+            createNotification(
+                seller.parent_id,
+                'commission_earned',
+                '💰 ได้รับค่าคอมมิชชั่น',
+                `คุณได้รับค่าคอมมิชชั่น ${commissionAmount.toFixed(2)} THB จากการซื้อขายของเครือข่าย (${order.order_number})`,
+                '💰',
+                orderId
+            );
+        }
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error completing order:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Submit review for completed order
+app.post('/api/orders/:orderId/review', (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { rating, comment } = req.body;
+
+        // Get order details
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (order.status !== 'completed') {
+            return res.status(400).json({ success: false, message: 'Can only review completed orders' });
+        }
+
+        // Get product from order_items
+        const orderItem = db.prepare('SELECT product_id FROM order_items WHERE order_id = ? LIMIT 1').get(orderId);
+
+        if (!orderItem || !orderItem.product_id) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
+        // Drop and recreate reviews table to ensure correct schema
+        db.exec(`DROP TABLE IF EXISTS reviews`);
+        db.exec(`
+            CREATE TABLE reviews (
+                id TEXT PRIMARY KEY,
+                order_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                buyer_id TEXT NOT NULL,
+                seller_id TEXT NOT NULL,
+                rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+                comment TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        `);
+
+        // Check if review already exists for this order
+        const existingReview = db.prepare('SELECT id FROM reviews WHERE order_id = ?').get(orderId);
+
+        if (existingReview) {
+            return res.status(400).json({ success: false, message: 'Review already submitted for this order' });
+        }
+
+        // Insert review
+        const reviewId = 'REVIEW-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        db.prepare(`
+            INSERT INTO reviews (id, order_id, product_id, buyer_id, seller_id, rating, comment, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(reviewId, orderId, orderItem.product_id, order.buyer_id, order.seller_id, rating, comment);
+
+        // Get buyer name for notification
+        const buyer = db.prepare('SELECT full_name FROM users WHERE id = ?').get(order.buyer_id);
+        const orderItems = db.prepare('SELECT product_title FROM order_items WHERE order_id = ?').all(orderId);
+
+        // Create notification to seller
+        createNotification(
+            order.seller_id,
+            'review_received',
+            '⭐ ได้รับรีวิวใหม่',
+            `${buyer.full_name} ให้คะแนน ${rating} ดาว สำหรับสินค้า ${orderItems[0].product_title}`,
+            '⭐',
+            orderId
+        );
+
+        // Update seller's average rating
+        const sellerReviews = db.prepare('SELECT AVG(rating) as avg_rating FROM reviews WHERE seller_id = ?').get(order.seller_id);
+        if (sellerReviews && sellerReviews.avg_rating) {
+            db.prepare('UPDATE users SET trust_score = ? WHERE id = ?').run(sellerReviews.avg_rating, order.seller_id);
+        }
+
+        res.json({ success: true, data: { reviewId, rating, comment } });
+    } catch (error) {
+        console.error('Error submitting review:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get review for order
+app.get('/api/orders/:orderId/review', (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const review = db.prepare(`
+            SELECT r.*, u.full_name as buyer_name
+            FROM reviews r
+            LEFT JOIN users u ON r.buyer_id = u.id
+            WHERE r.order_id = ?
+        `).get(orderId);
+
+        if (!review) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
+        }
+
+        res.json({ success: true, data: review });
+    } catch (error) {
+        console.error('Error getting review:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Cancel order
+app.post('/api/orders/:orderId/cancel', (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { cancelled_by, reason } = req.body;
+
+        db.prepare(`
+            UPDATE orders
+            SET status = 'cancelled', cancelled_by = ?, cancellation_reason = ?, cancelled_at = datetime('now'), updated_at = datetime('now')
+            WHERE id = ?
+        `).run(cancelled_by, reason || null, orderId);
+
+        // Get order details for notification
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+
+        // Create notification #9: Order cancelled
+        // Notify the other party (if buyer cancelled, notify seller and vice versa)
+        const notifyUserId = cancelled_by === order.buyer_id ? order.seller_id : order.buyer_id;
+        const cancelledByUser = db.prepare('SELECT full_name FROM users WHERE id = ?').get(cancelled_by);
+
+        createNotification(
+            notifyUserId,
+            'order_cancelled',
+            '❌ คำสั่งซื้อถูกยกเลิก',
+            `${cancelledByUser.full_name} ยกเลิกคำสั่งซื้อ ${orderItems[0].product_title} (${order.order_number})${reason ? ` เหตุผล: ${reason}` : ''}`,
+            '❌',
+            orderId
+        );
+
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error cancelling order:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -2735,7 +3278,7 @@ app.post('/api/notifications/:id/read', (req, res) => {
 
         db.prepare(`
             UPDATE notifications
-            SET is_read = 1, updated_at = datetime('now')
+            SET is_read = 1, read_at = datetime('now')
             WHERE id = ?
         `).run(id);
 
@@ -2753,7 +3296,7 @@ app.post('/api/notifications/:userId/read-all', (req, res) => {
 
         db.prepare(`
             UPDATE notifications
-            SET is_read = 1, updated_at = datetime('now')
+            SET is_read = 1, read_at = datetime('now')
             WHERE user_id = ? AND is_read = 0
         `).run(userId);
 
@@ -2764,22 +3307,23 @@ app.post('/api/notifications/:userId/read-all', (req, res) => {
     }
 });
 
-// Create notification (helper function for internal use)
-function createNotification(userId, type, title, message, icon, referenceId = null) {
+// Admin endpoint to send broadcast notifications (#15 maintenance, #16 promotions)
+app.post('/api/admin/broadcast-notification', (req, res) => {
     try {
-        const id = 'NOTIF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const { type, title, message, icon } = req.body;
 
-        db.prepare(`
-            INSERT INTO notifications (id, user_id, type, title, message, icon, reference_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        `).run(id, userId, type, title, message, icon, referenceId);
+        if (!type || !title || !message) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
 
-        return id;
+        createBroadcastNotification(type, title, message, icon || '📢');
+
+        res.json({ success: true, message: 'Broadcast sent to all users' });
     } catch (error) {
-        console.error('Error creating notification:', error);
-        return null;
+        console.error('Error sending broadcast:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
-}
+});
 
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
