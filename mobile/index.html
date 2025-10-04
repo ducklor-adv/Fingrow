@@ -1855,37 +1855,6 @@
                         <div id="wldConversion" class="form-help" style="color: #10b981; font-weight: 500; margin-top: 8px;">≈ 0.00 WLD</div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">ราคาเป็น WLD (แปลงอัตโนมัติ)</label>
-                        <div class="price-input-container">
-                            <input type="number" class="form-input" id="wldPriceField" step="0.0001" placeholder="0.0000" readonly style="background: rgba(15, 23, 42, 0.5); cursor: not-allowed;">
-                            <span class="currency-label">WLD</span>
-                        </div>
-                        <small class="form-help" style="color: #10b981;">ราคานี้จะถูกคำนวณอัตโนมัติตามอัตราแลกเปลี่ยนที่เลือก</small>
-
-                        <!-- Exchange Rate Lock Section -->
-                        <div id="exchangeRateSection" class="form-group" style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 8px; border-left: 4px solid #10b981; margin-top: 16px; display: none;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <label class="form-label" style="margin: 0; font-size: 14px;">อัตราแลกเปลี่ยน</label>
-                                <span id="exchangeRateStatus" style="font-size: 12px; color: #a1a1aa;">กำลังโหลด...</span>
-                            </div>
-                            <div id="exchangeRateInfo" style="font-size: 14px; color: #f4f4f5; margin-bottom: 12px;">
-                                1 <span id="currentCurrency">THB</span> = <span id="currentRate">0.003140</span> WLD
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button type="button" id="lockRateBtn" class="btn" style="flex: 1; padding: 8px 16px; font-size: 14px;">
-                                    🔒 ล็อคอัตราแลกเปลี่ยน
-                                </button>
-                                <button type="button" id="refreshRateBtn" class="btn-secondary" style="flex: 1; padding: 8px 16px; font-size: 14px;">
-                                    🔄 รีเฟรชอัตรา
-                                </button>
-                            </div>
-                            <div id="rateLockedInfo" style="display: none; margin-top: 12px; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 6px;">
-                                <div style="color: #10b981; font-weight: 500; font-size: 13px;">✓ อัตราแลกเปลี่ยนถูกล็อคแล้ว</div>
-                                <div style="color: #a1a1aa; font-size: 12px;">ราคา WLD จะไม่เปลี่ยนแปลงจนกว่าจะยกเลิกการล็อค</div>
-                            </div>
-                        </div>
-                    </div>
 
                     <div id="auctionFields" class="auction-fields" style="display: none;">
                         <div class="form-group">
@@ -2390,82 +2359,63 @@
                 <div class="logo">💰 รายได้</div>
             </div>
 
-            <!-- Earnings Summary Card -->
-            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 2px solid #10b981;">
-                <h3 style="color: #10b981; font-size: 18px; margin-bottom: 16px;">💵 สรุปรายได้</h3>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <div>
-                        <div style="color: #86efac; font-size: 14px; margin-bottom: 4px;">รายได้รวมทั้งหมด</div>
-                        <div style="color: white; font-size: 32px; font-weight: bold;">
-                            <span id="totalEarnings">0.00</span> <span style="font-size: 18px;">THB</span>
-                        </div>
+            <!-- Consumer Network Bonus (CNB) -->
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 16px; padding: 24px; margin-bottom: 16px; border: 2px solid #10b981;">
+                <div style="color: #86efac; font-size: 13px; margin-bottom: 6px; text-align: center;">✨ Consumer Network Bonus (CNB)</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 38px; font-weight: bold; margin-bottom: 4px;">
+                        <span id="loyaltyFee">0.00</span>
                     </div>
-                    <div style="font-size: 48px;">💰</div>
+                    <div style="color: #10b981; font-size: 15px;">THB</div>
                 </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; border: 1px solid #10b981;">
-                        <div style="color: #86efac; font-size: 12px; margin-bottom: 4px;">ยอดขายทั้งหมด</div>
-                        <div style="color: #10b981; font-size: 20px; font-weight: bold;">
-                            <span id="totalSales">0</span>
-                        </div>
-                        <div style="color: #6ee7b7; font-size: 11px;">รายการ</div>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 12px; border: 1px solid #10b981;">
-                        <div style="color: #86efac; font-size: 12px; margin-bottom: 4px;">ค่าธรรมเนียมจ่าย</div>
-                        <div style="color: #fbbf24; font-size: 20px; font-weight: bold;">
-                            <span id="totalFees">0.00</span>
-                        </div>
-                        <div style="color: #fde68a; font-size: 11px;">THB</div>
-                    </div>
-                </div>
+                <div style="color: #6ee7b7; font-size: 11px; text-align: center; margin-top: 8px; opacity: 0.8;">รายได้จากเครือข่าย (14% ของ Network Fees)</div>
             </div>
 
-            <!-- Income Breakdown -->
-            <div class="form-section">
-                <h3 class="form-section-title">📊 รายละเอียดรายได้</h3>
-
-                <div style="margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin-bottom: 8px;">
-                        <span style="color: #d1d5db;">จากการขายสินค้า</span>
-                        <span style="color: #10b981; font-weight: bold;"><span id="salesIncome">0.00</span> THB</span>
+            <!-- Your Network Bonus -->
+            <div style="background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%); border-radius: 16px; padding: 24px; margin-bottom: 16px; border: 2px solid #06b6d4;">
+                <div style="color: #67e8f9; font-size: 13px; margin-bottom: 6px; text-align: center;">💎 Your Network Bonus</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 38px; font-weight: bold; margin-bottom: 4px;">
+                        <span id="networkFees">0.00</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin-bottom: 8px;">
-                        <span style="color: #d1d5db;">จากการแนะนำ</span>
-                        <span style="color: #10b981; font-weight: bold;"><span id="referralIncome">0.00</span> THB</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(15, 23, 42, 0.5); border-radius: 8px;">
-                        <span style="color: #d1d5db;">โบนัสพิเศษ</span>
-                        <span style="color: #10b981; font-weight: bold;"><span id="bonusIncome">0.00</span> THB</span>
-                    </div>
+                    <div style="color: #06b6d4; font-size: 15px;">THB</div>
                 </div>
+                <div style="color: #67e8f9; font-size: 11px; text-align: center; margin-top: 8px; opacity: 0.8;">ยอด Network Fees ที่สร้างได้จากเครือข่ายทั้งหมด</div>
             </div>
 
-            <!-- Earnings History -->
-            <div class="form-section">
-                <h3 class="form-section-title">📝 ประวัติรายได้</h3>
-                <div id="earningsHistory">
-                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-                        <div>ยังไม่มีประวัติรายได้</div>
+            <!-- Network Sales -->
+            <div style="background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 2px solid #f97316;">
+                <div style="color: #fed7aa; font-size: 13px; margin-bottom: 6px; text-align: center;">📊 Network Sales</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 38px; font-weight: bold; margin-bottom: 4px;">
+                        <span id="networkSales">0.00</span>
                     </div>
+                    <div style="color: #fb923c; font-size: 15px;">THB</div>
                 </div>
+                <div style="color: #fed7aa; font-size: 11px; text-align: center; margin-top: 8px; opacity: 0.8;">ยอดขายรวมจากเครือข่าย (ACF 5×7)</div>
             </div>
 
-            <!-- Withdraw Section -->
+            <!-- เครือข่าย Section -->
             <div class="form-section">
-                <h3 class="form-section-title">💳 ถอนเงิน</h3>
-                <div style="background: rgba(15, 23, 42, 0.5); padding: 20px; border-radius: 12px;">
-                    <div style="margin-bottom: 16px;">
-                        <label style="color: #d1d5db; display: block; margin-bottom: 8px;">จำนวนเงินที่ต้องการถอน</label>
-                        <input type="number" id="withdrawAmount" class="form-input" placeholder="0.00" step="0.01">
+                <h3 class="form-section-title">🤝 เครือข่าย</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                    <!-- Follower -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                        <div style="color: #e9d5ff; font-size: 11px; margin-bottom: 4px;">Follower</div>
+                        <div style="color: #c084fc; font-size: 24px; font-weight: bold;"><span id="followerCount">0</span></div>
+                        <div style="color: #e9d5ff; font-size: 10px;">คน</div>
                     </div>
-                    <button class="btn" onclick="handleWithdraw()" style="width: 100%;">
-                        💸 ถอนเงิน
-                    </button>
-                    <div style="color: #9ca3af; font-size: 12px; margin-top: 12px; text-align: center;">
-                        ยอดเงินขั้นต่ำในการถอน: 100 THB
+                    <!-- Child -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                        <div style="color: #e9d5ff; font-size: 11px; margin-bottom: 4px;">Child</div>
+                        <div style="color: #c084fc; font-size: 24px; font-weight: bold;"><span id="childCount">0</span></div>
+                        <div style="color: #e9d5ff; font-size: 10px;">คน</div>
+                    </div>
+                    <!-- Network Size -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                        <div style="color: #67e8f9; font-size: 11px; margin-bottom: 4px;">Network</div>
+                        <div style="color: #06b6d4; font-size: 24px; font-weight: bold;"><span id="networkSize">0</span></div>
+                        <div style="color: #67e8f9; font-size: 10px;">คน</div>
                     </div>
                 </div>
             </div>
@@ -2527,49 +2477,6 @@
                 </div>
             </div>
 
-            <!-- Wallet Information Section -->
-            <div class="profile-section">
-                <h3 class="section-title">💰 กระเป๋าเงิน</h3>
-                <div class="wallet-grid">
-                    <div class="wallet-card">
-                        <div class="wallet-icon">💵</div>
-                        <div class="wallet-info">
-                            <div class="wallet-label">ยอดเงิน THB</div>
-                            <div id="profileThbBalance" class="wallet-value">฿32,150.75</div>
-                        </div>
-                    </div>
-                    <div class="wallet-card">
-                        <div class="wallet-icon">🌍</div>
-                        <div class="wallet-info">
-                            <div class="wallet-label">ยอดเงิน WLD</div>
-                            <div id="profileWldBalance" class="wallet-value">89.5 WLD</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sales Statistics Section -->
-            <div class="profile-section">
-                <h3 class="section-title">📊 สถิติการขาย</h3>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div id="profileTotalSales" class="stat-value">34</div>
-                        <div class="stat-label">ขายแล้ว</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">8</div>
-                        <div class="stat-label">ซื้อแล้ว</div>
-                    </div>
-                    <div class="stat-card">
-                        <div id="profileSellerRating" class="stat-value">4.9</div>
-                        <div class="stat-label">คะแนนผู้ขาย</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">942</div>
-                        <div class="stat-label">ยอดดู</div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Referral System Section -->
             <div class="profile-section" id="referralSection" style="display: none;">
@@ -5813,48 +5720,40 @@
             if (!currentUser) return;
 
             try {
-                // TODO: Fetch real earnings data from API
-                // For now, using mock data
-                const earnings = {
-                    total: 0,
-                    sales: 0,
-                    salesIncome: 0,
-                    referralIncome: 0,
-                    bonusIncome: 0,
-                    totalFees: 0,
-                    history: []
-                };
+                // Fetch all users and find current user (to get network stats)
+                const response = await fetch(`/api/users`);
+                const result = await response.json();
 
-                // Update UI
-                document.getElementById('totalEarnings').textContent = earnings.total.toFixed(2);
-                document.getElementById('totalSales').textContent = earnings.sales;
-                document.getElementById('salesIncome').textContent = earnings.salesIncome.toFixed(2);
-                document.getElementById('referralIncome').textContent = earnings.referralIncome.toFixed(2);
-                document.getElementById('bonusIncome').textContent = earnings.bonusIncome.toFixed(2);
-                document.getElementById('totalFees').textContent = earnings.totalFees.toFixed(2);
-
-                // Load history
-                const historyContainer = document.getElementById('earningsHistory');
-                if (earnings.history.length > 0) {
-                    historyContainer.innerHTML = earnings.history.map(item => `
-                        <div style="padding: 16px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="color: white; font-weight: 500; margin-bottom: 4px;">${item.description}</div>
-                                    <div style="color: #9ca3af; font-size: 12px;">${item.date}</div>
-                                </div>
-                                <div style="color: #10b981; font-weight: bold; font-size: 18px;">+${item.amount.toFixed(2)} THB</div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    historyContainer.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #9ca3af;">
-                            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-                            <div>ยังไม่มีประวัติรายได้</div>
-                        </div>
-                    `;
+                if (!result.success) {
+                    throw new Error('Failed to load earnings data');
                 }
+
+                const users = result.data || [];
+                const user = users.find(u => u.id === currentUser.id);
+
+                if (!user) {
+                    throw new Error('User data not found');
+                }
+
+                const stats = user.stats || {};
+
+                // Extract all stats
+                const followerCount = user.follower_count || 0;
+                const childCount = user.child_count || 0;
+                const networkSize = user.network_size || 0;
+                const networkFees = user.network_fees || 0;
+                const loyaltyFee = user.loyalty_fee || 0;
+                const networkSales = user.network_sales || 0;
+
+                // Update UI - Top Cards
+                document.getElementById('loyaltyFee').textContent = loyaltyFee.toFixed(2);
+                document.getElementById('networkFees').textContent = networkFees.toFixed(2);
+                document.getElementById('networkSales').textContent = networkSales.toFixed(2);
+
+                // Update UI - เครือข่าย Section
+                document.getElementById('followerCount').textContent = followerCount;
+                document.getElementById('childCount').textContent = childCount;
+                document.getElementById('networkSize').textContent = networkSize;
             } catch (error) {
                 console.error('Error loading earnings data:', error);
             }

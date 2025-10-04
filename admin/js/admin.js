@@ -620,10 +620,10 @@ class FingrowAdmin {
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จำนวนขาย</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ยอดขาย</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Paid Fee</th>
-                                <th class="text-left py-3 px-2 text-gray-400 text-sm">รายได้รวม</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Follower</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Child</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Size</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Sales</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Fees</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Loyalty Fee</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">จัดการ</th>
@@ -666,6 +666,7 @@ class FingrowAdmin {
 
         // Use network stats from user object if available
         const networkSize = user.network_size || network.size || 0;
+        const networkSales = user.network_sales || network.sales || 0;
         const networkFees = user.network_fees || network.fees || 0;
         const loyaltyFee = user.loyalty_fee || network.loyaltyFee || 0;
         const networkBreakdown = user.network_breakdown || network.breakdown || [];
@@ -710,10 +711,10 @@ class FingrowAdmin {
                 <td class="py-3 px-2 text-emerald-400 text-sm font-medium">${sales.count}</td>
                 <td class="py-3 px-2 text-emerald-300 text-sm">${this.formatCurrency(sales.totalAmount, 'THB')}</td>
                 <td class="py-3 px-2 text-red-400 text-sm font-medium">${this.formatCurrency(user.total_fees_paid || 0, 'THB')}</td>
-                <td class="py-3 px-2 text-yellow-400 text-sm font-medium">${this.formatCurrency(earnings.total, 'THB')}</td>
                 <td class="py-3 px-2 text-purple-400 text-sm">${followerCount}</td>
                 <td class="py-3 px-2 text-purple-300 text-sm">${childCount}</td>
                 <td class="py-3 px-2 text-cyan-400 text-sm font-medium">${networkSize}</td>
+                <td class="py-3 px-2 text-blue-400 text-sm font-medium">${this.formatCurrency(networkSales, 'THB')}</td>
                 <td class="py-3 px-2 text-cyan-300 text-sm cursor-pointer hover:text-cyan-200" onclick="window.adminApp.showNetworkBreakdown('${user.id}', '${user.username}', ${networkFees}, ${JSON.stringify(networkBreakdown).replace(/"/g, '&quot;')})">${this.formatCurrency(networkFees, 'THB')}</td>
                 <td class="py-3 px-2 text-green-400 text-sm font-medium">${this.formatCurrency(loyaltyFee, 'THB')}</td>
                 <td class="py-3 px-2">

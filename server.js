@@ -392,22 +392,21 @@ app.get('/api/users', async (req, res) => {
         // Calculate network statistics for each user
         const usersWithNetwork = users.map(user => {
             try {
-                // Get all network member IDs using recursive CTE based on invitor relationship
-                // Network includes self + all people who were invited by users in the network (recursively)
+                // Get all network member IDs using recursive CTE based on parent_id (ACF structure)
+                // Network limited to 5 children per level, 7 levels deep
                 const networkMembers = db.prepare(`
                     WITH RECURSIVE network_tree AS (
                         -- Start with the user themselves
-                        SELECT id, username, 0 as depth
+                        SELECT id, 0 as depth
                         FROM users
                         WHERE id = ?
 
                         UNION ALL
 
-                        -- Add users who were invited by anyone in the tree
-                        -- Check both by ID and username (for legacy data)
-                        SELECT u.id, u.username, nt.depth + 1 as depth
+                        -- Add children (max 5 per parent, max 7 levels)
+                        SELECT u.id, nt.depth + 1 as depth
                         FROM users u
-                        INNER JOIN network_tree nt ON (u.invitor_id = nt.id OR u.invitor_id = nt.username)
+                        INNER JOIN network_tree nt ON u.parent_id = nt.id
                         WHERE nt.depth < 7
                     )
                     SELECT DISTINCT id FROM network_tree
@@ -908,6 +907,39 @@ app.put('/api/users/:userId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update user',
+            error: error.message
+        });
+    }
+});
+
+// Get earnings for a user
+app.get('/api/earnings', async (req, res) => {
+    try {
+        const { user_id } = req.query;
+
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'user_id is required'
+            });
+        }
+
+        // Fetch earnings from database
+        const earnings = db.prepare(`
+            SELECT * FROM earnings
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        `).all(user_id);
+
+        res.json({
+            success: true,
+            data: earnings
+        });
+    } catch (error) {
+        console.error('Error fetching earnings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch earnings',
             error: error.message
         });
     }
