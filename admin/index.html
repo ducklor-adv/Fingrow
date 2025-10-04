@@ -70,10 +70,6 @@
                     <i class="fas fa-star mr-3"></i>
                     <span>รีวิว</span>
                 </a>
-                <a href="#reports" class="nav-item flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
-                    <i class="fas fa-chart-bar mr-3"></i>
-                    <span>รายงาน</span>
-                </a>
                 <a href="#settings" class="nav-item flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
                     <i class="fas fa-cog mr-3"></i>
                     <span>ตั้งค่า</span>
@@ -124,10 +120,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div class="stat-card rounded-lg p-6">
                             <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-gray-400 text-sm">ผู้ใช้ทั้งหมด</p>
+                                <div class="w-full">
+                                    <p class="text-gray-400 text-sm">ผู้ใช้งานทั้งหมด</p>
                                     <p class="text-2xl font-bold text-white" id="totalUsers">Loading...</p>
-                                    <p class="text-emerald-400 text-sm">+12% จากเดือนที่แล้ว</p>
+                                    <p class="text-emerald-400 text-sm" id="usersTrend">+12% จากเดือนที่แล้ว</p>
                                 </div>
                                 <div class="w-12 h-12 bg-emerald-500 bg-opacity-20 rounded-lg flex items-center justify-center">
                                     <i class="fas fa-users text-emerald-500 text-xl"></i>
@@ -137,10 +133,10 @@
 
                         <div class="stat-card rounded-lg p-6">
                             <div class="flex items-center justify-between">
-                                <div>
+                                <div class="w-full">
                                     <p class="text-gray-400 text-sm">สินค้าทั้งหมด</p>
                                     <p class="text-2xl font-bold text-white" id="totalProducts">Loading...</p>
-                                    <p class="text-emerald-400 text-sm">+8% จากเดือนที่แล้ว</p>
+                                    <p class="text-emerald-400 text-sm" id="productsTrend">+8% จากเดือนที่แล้ว</p>
                                 </div>
                                 <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
                                     <i class="fas fa-box text-blue-500 text-xl"></i>
@@ -150,13 +146,26 @@
 
                         <div class="stat-card rounded-lg p-6">
                             <div class="flex items-center justify-between">
-                                <div>
+                                <div class="w-full">
                                     <p class="text-gray-400 text-sm">ยอดขายรวม</p>
-                                    <p class="text-2xl font-bold text-white" id="totalSales">Loading...</p>
-                                    <p class="text-emerald-400 text-sm">+15% จากเดือนที่แล้ว</p>
+                                    <p class="text-2xl font-bold text-white" id="totalRevenue">Loading...</p>
+                                    <p class="text-emerald-400 text-sm" id="revenueTrend">+15% จากเดือนที่แล้ว</p>
                                 </div>
                                 <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
                                     <i class="fas fa-chart-line text-purple-500 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card rounded-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div class="w-full">
+                                    <p class="text-gray-400 text-sm">ออเดอร์ทั้งหมด</p>
+                                    <p class="text-2xl font-bold text-white" id="totalOrders">Loading...</p>
+                                    <p class="text-emerald-400 text-sm" id="ordersTrend">+10% จากเดือนที่แล้ว</p>
+                                </div>
+                                <div class="w-12 h-12 bg-yellow-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-shopping-cart text-yellow-500 text-xl"></i>
                                 </div>
                             </div>
                         </div>

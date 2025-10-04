@@ -149,7 +149,112 @@ class FingrowAdmin {
     }
 
     async fetchDashboardStats() {
-        return await this.db.getDashboardStats();
+        try {
+            // Fetch real data from API
+            const [usersRes, productsRes, ordersRes] = await Promise.all([
+                fetch('/api/users'),
+                fetch('/api/products'),
+                fetch('/api/orders')
+            ]);
+
+            const usersData = await usersRes.json();
+            const productsData = await productsRes.json();
+            const ordersData = await ordersRes.json();
+
+            const users = usersData.data || [];
+            const products = productsData.data || [];
+            const orders = ordersData.data || [];
+
+            // Calculate statistics
+            const totalUsers = users.length;
+            const activeUsers = users.filter(u => u.status === 'active').length;
+            const totalProducts = products.length;
+            const totalOrders = orders.length;
+
+            // Calculate total revenue from Anatta999's network sales
+            const anattaUser = users.find(u => u.id === '25AAA0000');
+            const totalRevenue = anattaUser ? (anattaUser.network_sales || 0) : 0;
+
+            // Calculate trends (compare with last month)
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+            const newUsersThisMonth = users.filter(u => {
+                const createdAt = new Date(u.created_at);
+                return createdAt >= firstDayOfMonth;
+            }).length;
+
+            const newUsersLastMonth = users.filter(u => {
+                const createdAt = new Date(u.created_at);
+                return createdAt >= firstDayOfLastMonth && createdAt < firstDayOfMonth;
+            }).length;
+
+            const newProductsThisMonth = products.filter(p => {
+                const createdAt = new Date(p.created_at);
+                return createdAt >= firstDayOfMonth;
+            }).length;
+
+            const newProductsLastMonth = products.filter(p => {
+                const createdAt = new Date(p.created_at);
+                return createdAt >= firstDayOfLastMonth && createdAt < firstDayOfMonth;
+            }).length;
+
+            const ordersThisMonth = orders.filter(o => {
+                const createdAt = new Date(o.created_at);
+                return createdAt >= firstDayOfMonth;
+            }).length;
+
+            const ordersLastMonth = orders.filter(o => {
+                const createdAt = new Date(o.created_at);
+                return createdAt >= firstDayOfLastMonth && createdAt < firstDayOfMonth;
+            }).length;
+
+            // For revenue trend, we'll use new products this month vs last month as a proxy
+            // since network_sales is a cumulative value
+            const revenueThisMonth = products.filter(p => {
+                const createdAt = new Date(p.created_at);
+                return createdAt >= firstDayOfMonth;
+            }).reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+
+            const revenueLastMonth = products.filter(p => {
+                const createdAt = new Date(p.created_at);
+                return createdAt >= firstDayOfLastMonth && createdAt < firstDayOfMonth;
+            }).reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0);
+
+            // Calculate percentage changes
+            const usersTrend = newUsersLastMonth > 0 ? ((newUsersThisMonth - newUsersLastMonth) / newUsersLastMonth * 100) : (newUsersThisMonth > 0 ? 100 : 0);
+            const productsTrend = newProductsLastMonth > 0 ? ((newProductsThisMonth - newProductsLastMonth) / newProductsLastMonth * 100) : (newProductsThisMonth > 0 ? 100 : 0);
+            const ordersTrend = ordersLastMonth > 0 ? ((ordersThisMonth - ordersLastMonth) / ordersLastMonth * 100) : (ordersThisMonth > 0 ? 100 : 0);
+            const revenueTrend = revenueLastMonth > 0 ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth * 100) : (revenueThisMonth > 0 ? 100 : 0);
+
+            return {
+                totalUsers,
+                activeUsers,
+                totalProducts,
+                totalOrders,
+                totalRevenue,
+                newUsersThisMonth,
+                usersTrend,
+                productsTrend,
+                ordersTrend,
+                revenueTrend
+            };
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+            return {
+                totalUsers: 0,
+                activeUsers: 0,
+                totalProducts: 0,
+                totalOrders: 0,
+                totalRevenue: 0,
+                newUsersThisMonth: 0,
+                usersTrend: 0,
+                productsTrend: 0,
+                ordersTrend: 0,
+                revenueTrend: 0
+            };
+        }
     }
 
     async loadDashboardContent() {
@@ -162,9 +267,10 @@ class FingrowAdmin {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="stat-card rounded-lg p-6">
                         <div class="flex items-center justify-between">
-                            <div>
+                            <div class="w-full">
                                 <p class="text-gray-400 text-sm">ผู้ใช้งานทั้งหมด</p>
                                 <p class="text-2xl font-bold text-white" id="totalUsers">${stats.totalUsers || 0}</p>
+                                <p class="text-emerald-400 text-sm" id="usersTrend"></p>
                             </div>
                             <i class="fas fa-users text-emerald-500 text-3xl"></i>
                         </div>
@@ -172,9 +278,10 @@ class FingrowAdmin {
 
                     <div class="stat-card rounded-lg p-6">
                         <div class="flex items-center justify-between">
-                            <div>
+                            <div class="w-full">
                                 <p class="text-gray-400 text-sm">สินค้าทั้งหมด</p>
                                 <p class="text-2xl font-bold text-white" id="totalProducts">${stats.totalProducts || 0}</p>
+                                <p class="text-emerald-400 text-sm" id="productsTrend"></p>
                             </div>
                             <i class="fas fa-box text-emerald-500 text-3xl"></i>
                         </div>
@@ -182,21 +289,23 @@ class FingrowAdmin {
 
                     <div class="stat-card rounded-lg p-6">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-sm">ออเดอร์ทั้งหมด</p>
-                                <p class="text-2xl font-bold text-white" id="totalOrders">${stats.totalOrders || 0}</p>
+                            <div class="w-full">
+                                <p class="text-gray-400 text-sm">ยอดขายรวม</p>
+                                <p class="text-2xl font-bold text-white" id="totalRevenue">฿${(stats.totalRevenue || 0).toLocaleString()}</p>
+                                <p class="text-emerald-400 text-sm" id="revenueTrend"></p>
                             </div>
-                            <i class="fas fa-shopping-cart text-emerald-500 text-3xl"></i>
+                            <i class="fas fa-chart-line text-emerald-500 text-3xl"></i>
                         </div>
                     </div>
 
                     <div class="stat-card rounded-lg p-6">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-400 text-sm">รายได้รวม</p>
-                                <p class="text-2xl font-bold text-white" id="totalRevenue">฿${(stats.totalRevenue || 0).toLocaleString()}</p>
+                            <div class="w-full">
+                                <p class="text-gray-400 text-sm">ออเดอร์ทั้งหมด</p>
+                                <p class="text-2xl font-bold text-white" id="totalOrders">${stats.totalOrders || 0}</p>
+                                <p class="text-emerald-400 text-sm" id="ordersTrend"></p>
                             </div>
-                            <i class="fas fa-chart-line text-emerald-500 text-3xl"></i>
+                            <i class="fas fa-shopping-cart text-emerald-500 text-3xl"></i>
                         </div>
                     </div>
                 </div>
@@ -205,14 +314,19 @@ class FingrowAdmin {
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="card rounded-lg p-6">
                         <h3 class="text-lg font-semibold text-white mb-4">ยอดขายรายเดือน</h3>
-                        <canvas id="salesChart" width="400" height="200"></canvas>
+                        <div style="overflow-x: auto; overflow-y: hidden;">
+                            <div id="salesChartContainer" style="min-width: 400px;">
+                                <canvas id="salesChart" height="200"></canvas>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-white mb-4">ผู้ใช้งานใหม่</h3>
-                        <div class="text-center">
-                            <div class="text-4xl font-bold text-emerald-500 mb-2">${stats.newUsersThisMonth || 0}</div>
-                            <p class="text-gray-400">ผู้ใช้งานใหม่เดือนนี้</p>
+                        <h3 class="text-lg font-semibold text-white mb-4">การเติบโตของผู้ใช้</h3>
+                        <div style="overflow-x: auto; overflow-y: hidden;">
+                            <div id="userChartContainer" style="min-width: 600px;">
+                                <canvas id="userChart" height="200"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -297,13 +411,54 @@ class FingrowAdmin {
     updateDashboardStats() {
         console.log('Updating dashboard stats:', this.stats);
 
+        // Update main numbers
         const totalUsersEl = document.getElementById('totalUsers');
         const totalProductsEl = document.getElementById('totalProducts');
-        const totalSalesEl = document.getElementById('totalSales');
+        const totalOrdersEl = document.getElementById('totalOrders');
+        const totalRevenueEl = document.getElementById('totalRevenue');
 
         if (totalUsersEl) totalUsersEl.textContent = this.formatNumber(this.stats.totalUsers);
         if (totalProductsEl) totalProductsEl.textContent = this.formatNumber(this.stats.totalProducts);
-        if (totalSalesEl) totalSalesEl.textContent = this.formatCurrency(this.stats.totalSales);
+        if (totalOrdersEl) totalOrdersEl.textContent = this.formatNumber(this.stats.totalOrders);
+        if (totalRevenueEl) totalRevenueEl.textContent = '฿' + (this.stats.totalRevenue || 0).toLocaleString();
+
+        // Update trends with proper formatting
+        const usersTrendEl = document.getElementById('usersTrend');
+        const productsTrendEl = document.getElementById('productsTrend');
+        const ordersTrendEl = document.getElementById('ordersTrend');
+        const revenueTrendEl = document.getElementById('revenueTrend');
+
+        if (usersTrendEl) {
+            const trend = this.stats.usersTrend || 0;
+            const sign = trend >= 0 ? '+' : '';
+            const color = trend >= 0 ? 'text-emerald-400' : 'text-red-400';
+            usersTrendEl.textContent = `${sign}${trend.toFixed(1)}% จากเดือนที่แล้ว`;
+            usersTrendEl.className = `${color} text-sm`;
+        }
+
+        if (productsTrendEl) {
+            const trend = this.stats.productsTrend || 0;
+            const sign = trend >= 0 ? '+' : '';
+            const color = trend >= 0 ? 'text-emerald-400' : 'text-red-400';
+            productsTrendEl.textContent = `${sign}${trend.toFixed(1)}% จากเดือนที่แล้ว`;
+            productsTrendEl.className = `${color} text-sm`;
+        }
+
+        if (ordersTrendEl) {
+            const trend = this.stats.ordersTrend || 0;
+            const sign = trend >= 0 ? '+' : '';
+            const color = trend >= 0 ? 'text-emerald-400' : 'text-red-400';
+            ordersTrendEl.textContent = `${sign}${trend.toFixed(1)}% จากเดือนที่แล้ว`;
+            ordersTrendEl.className = `${color} text-sm`;
+        }
+
+        if (revenueTrendEl) {
+            const trend = this.stats.revenueTrend || 0;
+            const sign = trend >= 0 ? '+' : '';
+            const color = trend >= 0 ? 'text-emerald-400' : 'text-red-400';
+            revenueTrendEl.textContent = `${sign}${trend.toFixed(1)}% จากเดือนที่แล้ว`;
+            revenueTrendEl.className = `${color} text-sm`;
+        }
 
         console.log('Dashboard stats updated successfully');
     }
@@ -323,8 +478,44 @@ class FingrowAdmin {
             return;
         }
 
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        new Chart(ctx, {
+        const ctx = document.getElementById('salesChart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Calculate dynamic chart width: 80px per data point, minimum 400px
+        const dataPointWidth = 80;
+        const minWidth = 400;
+        const chartWidth = Math.max(salesData.labels.length * dataPointWidth, minWidth);
+
+        // Set container width
+        const container = document.getElementById('salesChartContainer');
+        if (container) {
+            container.style.width = chartWidth + 'px';
+        }
+
+        // Calculate dynamic max value with 20% padding
+        const maxValue = Math.max(...salesData.values, 1);
+        const maxY = Math.ceil(maxValue * 1.2);
+
+        // Determine appropriate step size based on max value
+        let stepSize, formatCallback;
+        if (maxY >= 1000000) {
+            stepSize = Math.ceil(maxY / 5000000) * 1000000;
+            formatCallback = (value) => (value / 1000000).toFixed(1) + 'M';
+        } else if (maxY >= 1000) {
+            stepSize = Math.ceil(maxY / 5000) * 1000;
+            formatCallback = (value) => (value / 1000).toFixed(0) + 'K';
+        } else {
+            stepSize = Math.ceil(maxY / 5);
+            formatCallback = (value) => value.toFixed(0);
+        }
+
+        new Chart(ctx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: salesData.labels,
@@ -339,7 +530,7 @@ class FingrowAdmin {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
                         labels: {
@@ -351,13 +542,11 @@ class FingrowAdmin {
                     y: {
                         beginAtZero: true,
                         min: 0,
-                        max: 300000000,
+                        max: maxY,
                         ticks: {
                             color: '#9ca3af',
-                            stepSize: 50000000,
-                            callback: function(value) {
-                                return (value / 1000000).toFixed(0) + 'M';
-                            }
+                            stepSize: stepSize,
+                            callback: formatCallback
                         },
                         grid: {
                             color: 'rgba(156, 163, 175, 0.1)'
@@ -386,8 +575,45 @@ class FingrowAdmin {
             return;
         }
 
-        const ctx = document.getElementById('userChart').getContext('2d');
-        new Chart(ctx, {
+        const ctx = document.getElementById('userChart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Calculate dynamic chart width: 20px per data point (30 days), minimum 600px
+        const dataPointWidth = 20;
+        const minWidth = 600;
+        const chartWidth = Math.max(userData.labels.length * dataPointWidth, minWidth);
+
+        // Set container width
+        const container = document.getElementById('userChartContainer');
+        if (container) {
+            container.style.width = chartWidth + 'px';
+        }
+
+        // Calculate dynamic max value with 20% padding
+        const maxValue = Math.max(...userData.values, 1);
+        const maxY = Math.ceil(maxValue * 1.2);
+
+        // Determine appropriate step size
+        let stepSize;
+        if (maxY <= 10) {
+            stepSize = 2;
+        } else if (maxY <= 50) {
+            stepSize = 10;
+        } else if (maxY <= 100) {
+            stepSize = 20;
+        } else if (maxY <= 500) {
+            stepSize = 50;
+        } else {
+            stepSize = Math.ceil(maxY / 5);
+        }
+
+        new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: {
                 labels: userData.labels,
@@ -400,7 +626,7 @@ class FingrowAdmin {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
                         labels: {
@@ -412,10 +638,10 @@ class FingrowAdmin {
                     y: {
                         beginAtZero: true,
                         min: 0,
-                        max: 2000,
+                        max: maxY,
                         ticks: {
                             color: '#9ca3af',
-                            stepSize: 200,
+                            stepSize: stepSize,
                             callback: function(value) {
                                 return value;
                             }
@@ -438,11 +664,81 @@ class FingrowAdmin {
     }
 
     async fetchSalesData() {
-        return await this.db.getSalesData();
+        try {
+            const response = await fetch('/api/products');
+            const data = await response.json();
+            const products = data.data || [];
+
+            // Group products by month and calculate total sales per month
+            const monthlyData = {};
+            products.forEach(product => {
+                if (product.created_at) {
+                    const date = new Date(product.created_at);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthlyData[monthKey]) {
+                        monthlyData[monthKey] = 0;
+                    }
+                    monthlyData[monthKey] += parseFloat(product.price) || 0;
+                }
+            });
+
+            // Get last 6 months
+            const months = Object.keys(monthlyData).sort().slice(-6);
+            const labels = months.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+            });
+            const values = months.map(m => monthlyData[m] || 0);
+
+            return { labels, values };
+        } catch (error) {
+            console.error('Error fetching sales data:', error);
+            return { labels: [], values: [] };
+        }
     }
 
     async fetchUserData() {
-        return await this.db.getUserData();
+        try {
+            const response = await fetch('/api/users');
+            const data = await response.json();
+            const users = data.data || [];
+
+            // Group users by day and calculate new users per day (last 30 days)
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            const dailyData = {};
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const dateKey = date.toISOString().split('T')[0];
+                dailyData[dateKey] = 0;
+            }
+
+            users.forEach(user => {
+                if (user.created_at) {
+                    const date = new Date(user.created_at);
+                    if (date >= thirtyDaysAgo) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        if (dailyData[dateKey] !== undefined) {
+                            dailyData[dateKey]++;
+                        }
+                    }
+                }
+            });
+
+            const dates = Object.keys(dailyData).sort();
+            const labels = dates.map(d => {
+                const date = new Date(d);
+                return `${date.getDate()}/${date.getMonth() + 1}`;
+            });
+            const values = dates.map(d => dailyData[d]);
+
+            return { labels, values };
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            return { labels: [], values: [] };
+        }
     }
 
     setupEventListeners() {
@@ -484,11 +780,14 @@ class FingrowAdmin {
                     const dashboardElement = document.getElementById('dashboard-content');
                     if (dashboardElement) {
                         dashboardElement.style.display = 'block';
+                        // Reload dashboard data every time
+                        await this.loadDashboardData();
                     } else {
                         console.error('dashboard-content element not found');
                         // Fallback: show dashboard in content area
                         const contentArea = document.getElementById('content-area');
                         contentArea.innerHTML = await this.loadDashboardContent();
+                        await this.loadDashboardData();
                     }
                     break;
                 case 'earnings':
@@ -560,9 +859,6 @@ class FingrowAdmin {
                 break;
             case 'reviews':
                 content = await this.loadReviewsContent();
-                break;
-            case 'reports':
-                content = await this.loadReportsContent();
                 break;
             case 'settings':
                 content = await this.loadSettingsContent();
@@ -1505,229 +1801,6 @@ class FingrowAdmin {
         return this.db.referrals || [];
     }
 
-    async loadReportsContent() {
-        const users = await this.fetchUsers();
-        const products = await this.fetchProducts();
-        const orders = await this.fetchOrders();
-        const earnings = await this.fetchEarnings();
-
-        // Calculate summary statistics
-        const totalUsers = users.length;
-        const activeUsers = users.filter(u => u.status === 'active').length;
-        const totalProducts = products.length;
-        const activeProducts = products.filter(p => p.status === 'active').length;
-        const totalOrders = orders.length;
-        const completedOrders = orders.filter(o => o.status === 'completed').length;
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-        const totalCommissions = earnings.reduce((sum, earning) => sum + earning.amount, 0);
-
-        return `
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-white mb-2">รายงาน</h2>
-                <p class="text-gray-400">ภาพรวมและสถิติของระบบ Fingrow Marketplace</p>
-            </div>
-
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="stat-card p-6 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-400 text-sm">ผู้ใช้ทั้งหมด</p>
-                            <p class="text-2xl font-bold text-white">${totalUsers}</p>
-                            <p class="text-emerald-400 text-sm">ใช้งานอยู่: ${activeUsers}</p>
-                        </div>
-                        <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-users text-white"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card p-6 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-400 text-sm">สินค้าทั้งหมด</p>
-                            <p class="text-2xl font-bold text-white">${totalProducts}</p>
-                            <p class="text-emerald-400 text-sm">เปิดขาย: ${activeProducts}</p>
-                        </div>
-                        <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-box text-white"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card p-6 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-400 text-sm">คำสั่งซื้อ</p>
-                            <p class="text-2xl font-bold text-white">${totalOrders}</p>
-                            <p class="text-emerald-400 text-sm">เสร็จสิ้น: ${completedOrders}</p>
-                        </div>
-                        <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-shopping-cart text-white"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card p-6 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-400 text-sm">รายได้รวม</p>
-                            <p class="text-2xl font-bold text-white">${this.formatCurrency(totalRevenue)}</p>
-                            <p class="text-emerald-400 text-sm">ค่าคอมมิชชั่น: ${this.formatCurrency(totalCommissions)}</p>
-                        </div>
-                        <div class="w-12 h-12 bg-emerald-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-coins text-white"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Section -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Sales Chart -->
-                <div class="card p-6 rounded-lg">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-white">ยอดขายรายเดือน</h3>
-                        <select class="bg-gray-700 text-gray-300 px-3 py-1 rounded text-sm">
-                            <option>6 เดือนล่าสุด</option>
-                            <option>1 ปีล่าสุด</option>
-                        </select>
-                    </div>
-                    <div class="h-64 flex items-center justify-center bg-gray-800 rounded-lg">
-                        <canvas id="salesChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-
-                <!-- User Growth Chart -->
-                <div class="card p-6 rounded-lg">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-semibold text-white">การเติบโตของผู้ใช้</h3>
-                        <select class="bg-gray-700 text-gray-300 px-3 py-1 rounded text-sm">
-                            <option>30 วันล่าสุด</option>
-                            <option>90 วันล่าสุด</option>
-                        </select>
-                    </div>
-                    <div class="h-64 flex items-center justify-center bg-gray-800 rounded-lg">
-                        <canvas id="userGrowthChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Top Performance Tables -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Top Products -->
-                <div class="card p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold text-white mb-4">สินค้าขายดี</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-700">
-                                    <th class="text-left py-2 text-gray-400 text-sm">สินค้า</th>
-                                    <th class="text-left py-2 text-gray-400 text-sm">ขายไป</th>
-                                    <th class="text-left py-2 text-gray-400 text-sm">รายได้</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${this.renderTopProducts(products, orders)}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Top Users -->
-                <div class="card p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold text-white mb-4">ผู้ใช้ที่ขายได้มากที่สุด</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-700">
-                                    <th class="text-left py-2 text-gray-400 text-sm">ผู้ใช้</th>
-                                    <th class="text-left py-2 text-gray-400 text-sm">ขายไป</th>
-                                    <th class="text-left py-2 text-gray-400 text-sm">รายได้</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${this.renderTopUsers(users, orders)}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    renderTopProducts(products, orders) {
-        // Calculate sales for each product
-        const productSales = {};
-        orders.forEach(order => {
-            const productId = order.product_id;
-            if (!productSales[productId]) {
-                productSales[productId] = { count: 0, revenue: 0 };
-            }
-            productSales[productId].count += 1;
-            productSales[productId].revenue += order.total || 0;
-        });
-
-        // Sort and get top 5
-        const topProducts = Object.entries(productSales)
-            .sort(([, a], [, b]) => b.revenue - a.revenue)
-            .slice(0, 5);
-
-        return topProducts.map(([productId, stats]) => {
-            const product = products.find(p => p.id == productId);
-            if (!product) return '';
-
-            return `
-                <tr class="border-b border-gray-800">
-                    <td class="py-2">
-                        <div>
-                            <p class="text-gray-300">${product.name}</p>
-                            <p class="text-gray-500 text-sm">${product.category}</p>
-                        </div>
-                    </td>
-                    <td class="py-2 text-gray-400">${stats.count} ชิ้น</td>
-                    <td class="py-2 text-emerald-400">${this.formatCurrency(stats.revenue)}</td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    renderTopUsers(users, orders) {
-        // Calculate sales for each user
-        const userSales = {};
-        orders.forEach(order => {
-            const sellerId = order.seller_id;
-            if (!userSales[sellerId]) {
-                userSales[sellerId] = { count: 0, revenue: 0 };
-            }
-            userSales[sellerId].count += 1;
-            userSales[sellerId].revenue += order.total || 0;
-        });
-
-        // Sort and get top 5
-        const topUsers = Object.entries(userSales)
-            .sort(([, a], [, b]) => b.revenue - a.revenue)
-            .slice(0, 5);
-
-        return topUsers.map(([userId, stats]) => {
-            const normalizedUsers = this.normalizeUsers(users || []);
-            const user = normalizedUsers.find(u => u.id == userId);
-            if (!user) return '';
-
-            return `
-                <tr class="border-b border-gray-800">
-                    <td class="py-2">
-                        <div>
-                            <p class="text-gray-300">${user.username}</p>
-                            <p class="text-gray-500 text-sm">${user.email}</p>
-                        </div>
-                    </td>
-                    <td class="py-2 text-gray-400">${stats.count} รายการ</td>
-                    <td class="py-2 text-emerald-400">${this.formatCurrency(stats.revenue)}</td>
-                </tr>
-            `;
-        }).join('');
-    }
 
     setupContentEventListeners(section) {
         switch(section) {
@@ -2900,27 +2973,38 @@ class FingrowAdmin {
 
     async loadRecentOrders() {
         try {
-            const recentOrders = await this.db.getRecentOrders(5);
+            const response = await fetch('/api/orders');
+            const data = await response.json();
+            const orders = data.data || [];
+
+            // Get recent 5 orders sorted by created_at
+            const recentOrders = orders
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 5);
+
             const ordersContainer = document.getElementById('recent-orders');
+            if (!ordersContainer) return;
+
+            if (recentOrders.length === 0) {
+                ordersContainer.innerHTML = '<p class="text-gray-400 text-center py-4">ยังไม่มีออเดอร์</p>';
+                return;
+            }
 
             ordersContainer.innerHTML = recentOrders.map(order => {
                 const timeAgo = this.getTimeAgo(order.created_at);
-                const iconClass = this.getProductIcon(order.product.category);
-                const iconColor = this.getProductIconColor(order.product.category);
-
                 return `
-                    <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2">
                         <div class="flex items-center">
-                            <div class="w-10 h-10 ${iconColor} rounded-lg flex items-center justify-center mr-3">
-                                <i class="${iconClass} text-white"></i>
+                            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-shopping-cart text-white"></i>
                             </div>
                             <div>
-                                <p class="text-white font-medium">${order.product.title}</p>
-                                <p class="text-gray-400 text-sm">โดย @${order.buyer?.username || 'Deleted User'}</p>
+                                <p class="text-white font-medium">Order #${order.id}</p>
+                                <p class="text-gray-400 text-sm">สถานะ: ${order.status || 'pending'}</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="text-emerald-400 font-medium">${this.formatCurrency(order.total_amount)}</p>
+                            <p class="text-emerald-400 font-medium">${this.formatCurrency(order.total_amount || 0)}</p>
                             <p class="text-gray-400 text-sm">${timeAgo}</p>
                         </div>
                     </div>
@@ -2928,43 +3012,64 @@ class FingrowAdmin {
             }).join('');
         } catch (error) {
             console.error('Error loading recent orders:', error);
+            const ordersContainer = document.getElementById('recent-orders');
+            if (ordersContainer) {
+                ordersContainer.innerHTML = '<p class="text-red-400 text-center py-4">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
         }
     }
 
     async loadTopSellers() {
         try {
-            const topSellers = await this.db.getTopSellers(5);
-            const sellersContainer = document.getElementById('top-sellers');
+            const response = await fetch('/api/users');
+            const data = await response.json();
+            const users = data.data || [];
 
-            sellersContainer.innerHTML = topSellers.map((seller, index) => {
-                const stars = this.renderStars(seller.rating || 0);
+            // Calculate sales stats for each user and sort by network_fees
+            const usersWithSales = users
+                .map(user => ({
+                    ...user,
+                    totalSales: user.network_fees || 0,
+                    networkSize: user.network_size || 0
+                }))
+                .sort((a, b) => b.totalSales - a.totalSales)
+                .slice(0, 5);
+
+            const sellersContainer = document.getElementById('top-sellers');
+            if (!sellersContainer) return;
+
+            if (usersWithSales.length === 0) {
+                sellersContainer.innerHTML = '<p class="text-gray-400 text-center py-4">ยังไม่มีข้อมูลผู้ขาย</p>';
+                return;
+            }
+
+            sellersContainer.innerHTML = usersWithSales.map((seller, index) => {
                 const rankColors = ['bg-yellow-500', 'bg-gray-500', 'bg-yellow-600', 'bg-blue-500', 'bg-green-500'];
 
                 return `
-                    <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg mb-2">
                         <div class="flex items-center">
                             <div class="w-10 h-10 ${rankColors[index] || 'bg-gray-500'} rounded-full flex items-center justify-center mr-3">
                                 <span class="text-white font-bold text-sm">${index + 1}</span>
                             </div>
                             <div>
                                 <p class="text-white font-medium">@${seller.username}</p>
-                                <div class="flex items-center">
-                                    <div class="flex text-yellow-400 mr-2">
-                                        ${stars}
-                                    </div>
-                                    <span class="text-gray-400 text-sm">${seller.rating ? seller.rating.toFixed(1) : '0.0'}</span>
-                                </div>
+                                <p class="text-gray-400 text-sm">Network: ${seller.networkSize} คน</p>
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="text-emerald-400 font-medium">${seller.orders || 0} ขาย</p>
-                            <p class="text-gray-400 text-sm">${this.formatCurrency(seller.totalSales || 0)}</p>
+                            <p class="text-emerald-400 font-medium">Network Fees</p>
+                            <p class="text-gray-400 text-sm">${this.formatCurrency(seller.totalSales)}</p>
                         </div>
                     </div>
                 `;
             }).join('');
         } catch (error) {
             console.error('Error loading top sellers:', error);
+            const sellersContainer = document.getElementById('top-sellers');
+            if (sellersContainer) {
+                sellersContainer.innerHTML = '<p class="text-red-400 text-center py-4">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
         }
     }
 
