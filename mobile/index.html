@@ -4084,6 +4084,7 @@
             // Set category first
             const categorySelect = document.getElementById('editProductCategory');
             categorySelect.value = product.category_id || '';
+            console.log('Setting category:', product.category_id, 'Selected:', categorySelect.value);
 
             // Update subcategories based on selected category
             updateEditSubCategories();
@@ -4094,6 +4095,9 @@
                 const subCategorySelect = document.getElementById('editProductSubCategory');
                 if (subCategorySelect && savedSubCategory) {
                     subCategorySelect.value = savedSubCategory;
+                    console.log('Setting subcategory:', savedSubCategory, 'Selected:', subCategorySelect.value);
+                } else {
+                    console.log('No subcategory or select not found. SubCategory:', savedSubCategory);
                 }
             }, 10);
 
@@ -4188,7 +4192,8 @@
 
         // Edit form image handling
         let editPrimaryImageIndex = 0;
-        let editProductImages = [];
+        let editProductImages = []; // Will store File objects
+        let editProductImageFiles = []; // Store actual File objects for upload
         let editExistingImages = [];
 
         function setEditPrimaryImage(imageIndex) {
@@ -4246,6 +4251,7 @@
             const previewContainer = document.getElementById('editImagePreview');
             previewContainer.innerHTML = '';
             editProductImages = [];
+            editProductImageFiles = [];
             editExistingImages = [];
             editPrimaryImageIndex = 0;
 
@@ -4298,8 +4304,36 @@
                         return;
                     }
 
-                    // Combine existing and new images
-                    const allImages = [...editExistingImages, ...editProductImages];
+                    // Upload new images first if any
+                    let uploadedImagePaths = [];
+                    if (editProductImageFiles.length > 0) {
+                        const formData = new FormData();
+                        editProductImageFiles.forEach(file => {
+                            formData.append('productImages', file);
+                        });
+
+                        try {
+                            const uploadResponse = await fetch('/api/upload-product-images', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            const uploadResult = await uploadResponse.json();
+                            if (uploadResult.success) {
+                                uploadedImagePaths = uploadResult.data.images.map(img => img.path);
+                            } else {
+                                alert('❌ เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: ' + uploadResult.message);
+                                return;
+                            }
+                        } catch (error) {
+                            console.error('Error uploading images:', error);
+                            alert('❌ เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+                            return;
+                        }
+                    }
+
+                    // Combine existing and newly uploaded images
+                    const allImages = [...editExistingImages, ...uploadedImagePaths];
 
                     // Reorder to put primary image first
                     if (editPrimaryImageIndex > 0 && editPrimaryImageIndex < allImages.length) {
@@ -4365,6 +4399,8 @@
                         })
                     };
 
+                    console.log('Update product data:', productData);
+
                     try {
                         const response = await fetch(`/api/products/${productId}`, {
                             method: 'PUT',
@@ -4412,6 +4448,9 @@
 
                     files.forEach((file, index) => {
                         if (file.type.startsWith('image/')) {
+                            // Store the actual File object for upload
+                            editProductImageFiles.push(file);
+
                             const reader = new FileReader();
                             reader.onload = function(e) {
                                 const imagePreview = document.createElement('div');
@@ -4433,7 +4472,7 @@
                                 `;
                                 previewContainer.appendChild(imagePreview);
 
-                                // Store image data
+                                // Store preview data URL for display
                                 editProductImages.push(e.target.result);
                             };
                             reader.readAsDataURL(file);

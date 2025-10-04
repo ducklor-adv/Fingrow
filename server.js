@@ -17,8 +17,8 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
+// Configure multer for profile image uploads
+const profileStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         const uploadsDir = path.join(__dirname, 'uploads', 'profiles');
         // Create directory if it doesn't exist
@@ -37,10 +37,44 @@ const storage = multer.diskStorage({
     }
 });
 
+// Configure multer for product image uploads
+const productStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadsDir = path.join(__dirname, 'uploads', 'products');
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 15);
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        const uniqueFileName = `product_${timestamp}_${randomId}${fileExtension}`;
+        cb(null, uniqueFileName);
+    }
+});
+
 const upload = multer({
-    storage: storage,
+    storage: profileStorage,
     limits: {
         fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
+const uploadProduct = multer({
+    storage: productStorage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit for product images
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -915,17 +949,28 @@ app.get('/api/products', async (req, res) => {
             title: product.title,
             description: product.description,
             price: product.price_local,
+            price_local: product.price_local,
             category: product.category_id || 'general',
+            category_id: product.category_id,
+            sub_category: product.sub_category,
             status: product.status,
             seller_id: product.seller_id,
             seller: { username: product.seller_username || 'unknown' },
             views: product.view_count || 0,
             condition: product.condition,
             brand: product.brand,
+            model: product.model,
+            quantity: product.quantity,
             location: product.location,
             currency: product.currency_code || 'THB',
+            currency_code: product.currency_code,
             images: product.images ? JSON.parse(product.images) : [],
+            fin_fee_percent: product.fin_fee_percent || 2.0,
             amount_fee: product.amount_fee || 0,
+            color: product.color,
+            size: product.size,
+            weight: product.weight,
+            shipping_options: product.shipping_options,
             created_at: product.created_at,
             updated_at: product.updated_at
         }));
@@ -1025,7 +1070,20 @@ app.put('/api/products/:productId', async (req, res) => {
             }
         }
 
-        // Full product update
+        // Full product update - get existing product first to preserve required fields
+        const existingProduct = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
+
+        if (!existingProduct) {
+            return res.json({ success: false, message: 'Product not found' });
+        }
+
+        console.log('Update product request:', {
+            productId,
+            category_id: updates.category_id,
+            sub_category: updates.sub_category,
+            fin_fee_percent: updates.fin_fee_percent
+        });
+
         const result = db.prepare(`
             UPDATE products
             SET title = ?,
@@ -1049,24 +1107,24 @@ app.put('/api/products/:productId', async (req, res) => {
                 updated_at = ?
             WHERE id = ?
         `).run(
-            updates.title,
-            updates.description,
-            updates.price_local,
-            updates.currency_code || 'THB',
-            updates.category_id || 'cat-general',
-            updates.sub_category || null,
-            updates.condition,
-            updates.brand || null,
-            updates.model || null,
-            updates.quantity || 1,
-            updates.location,
-            updates.fin_fee_percent || 2.0,
-            updates.amount_fee || 0,
-            updates.color || null,
-            updates.size || null,
-            updates.weight || null,
-            updates.images || '[]',
-            updates.shipping_options || null,
+            updates.title ?? existingProduct.title,
+            updates.description ?? existingProduct.description,
+            updates.price_local ?? existingProduct.price_local,
+            updates.currency_code || existingProduct.currency_code || 'THB',
+            updates.category_id || existingProduct.category_id || 'cat-general',
+            updates.sub_category ?? existingProduct.sub_category,
+            updates.condition ?? existingProduct.condition,
+            updates.brand ?? existingProduct.brand,
+            updates.model ?? existingProduct.model,
+            updates.quantity ?? existingProduct.quantity ?? 1,
+            updates.location ?? existingProduct.location,
+            updates.fin_fee_percent ?? existingProduct.fin_fee_percent ?? 2.0,
+            updates.amount_fee ?? existingProduct.amount_fee ?? 0,
+            updates.color ?? existingProduct.color,
+            updates.size ?? existingProduct.size,
+            updates.weight ?? existingProduct.weight,
+            updates.images ?? existingProduct.images ?? '[]',
+            updates.shipping_options ?? existingProduct.shipping_options,
             new Date().toISOString(),
             productId
         );
@@ -1648,6 +1706,43 @@ app.get('/api/users', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to search users',
+            error: error.message
+        });
+    }
+});
+
+// Product images upload endpoint (supports multiple images)
+app.post('/api/upload-product-images', uploadProduct.array('productImages', 10), async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No files uploaded'
+            });
+        }
+
+        // Generate relative paths for all uploaded files
+        const uploadedImages = req.files.map(file => ({
+            filename: file.filename,
+            path: `/uploads/products/${file.filename}`,
+            originalName: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype
+        }));
+
+        res.json({
+            success: true,
+            message: `${req.files.length} image(s) uploaded successfully`,
+            data: {
+                images: uploadedImages
+            }
+        });
+
+    } catch (error) {
+        console.error('Error uploading product images:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to upload product images',
             error: error.message
         });
     }
