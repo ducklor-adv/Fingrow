@@ -1079,8 +1079,8 @@
         }
 
         .invited-users-list {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
         }
 
@@ -1090,13 +1090,13 @@
             padding: 12px;
             border: 1px solid rgba(148, 163, 184, 0.1);
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .invited-user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: #3b82f6;
             display: flex;
@@ -1106,21 +1106,50 @@
             font-weight: bold;
             font-size: 14px;
             flex-shrink: 0;
+            margin: 0 auto;
         }
 
         .invited-user-info {
-            flex: 1;
+            text-align: center;
         }
 
         .invited-user-name {
             font-weight: 600;
+            font-size: 13px;
             color: #f1f5f9;
             margin-bottom: 4px;
         }
 
         .invited-user-date {
-            font-size: 12px;
+            font-size: 11px;
             color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .invited-user-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 9px;
+            color: #cbd5e1;
+        }
+
+        .invited-user-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 5px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 3px;
+        }
+
+        .stat-label-small {
+            color: #94a3b8;
+        }
+
+        .stat-value-small {
+            color: #10b981;
+            font-weight: 600;
         }
 
         /* Settings Grid */
@@ -6439,11 +6468,18 @@
             const listContainer = document.getElementById('invitedUsersList');
 
             if (!invitees || invitees.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px;">ยังไม่มีคนที่คุณชวนมา</div>';
+                listContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 24px; grid-column: 1 / -1;">ยังไม่มีคนที่คุณชวนมา</div>';
                 return;
             }
 
-            listContainer.innerHTML = invitees.map(user => {
+            // Sort by created_at (most recent first)
+            const sortedInvitees = [...invitees].sort((a, b) => {
+                const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                return dateB - dateA; // Most recent first
+            });
+
+            listContainer.innerHTML = sortedInvitees.map(user => {
                 const initials = (user.full_name || user.username || 'U').charAt(0).toUpperCase();
                 const joinDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH') : 'ไม่ทราบ';
                 const displayName = user.full_name || user.username || 'ไม่ระบุ';
@@ -6451,15 +6487,39 @@
                 // Check if user has profile image
                 const hasProfileImage = user.profile_image || user.avatar_url;
                 const avatarContent = hasProfileImage
-                    ? `<img src="${user.profile_image || user.avatar_url}" alt="${displayName}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
+                    ? `<img src="${user.profile_image || user.avatar_url}" alt="${displayName}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`
                     : initials;
+
+                // Get stats from user data
+                const followerCount = user.follower_count || 0;
+                const childCount = user.child_count || 0;
+                const loyaltyFee = user.loyalty_fee || 0;
+                const networkFees = user.network_fees || 0;
 
                 return `
                     <div class="invited-user-card">
                         <div class="invited-user-avatar">${avatarContent}</div>
                         <div class="invited-user-info">
                             <div class="invited-user-name">${displayName}</div>
-                            <div class="invited-user-date">เข้าร่วม: ${joinDate}</div>
+                            <div class="invited-user-date">${joinDate}</div>
+                        </div>
+                        <div class="invited-user-stats">
+                            <div class="invited-user-stat">
+                                <span class="stat-label-small">Follower</span>
+                                <span class="stat-value-small">${followerCount}</span>
+                            </div>
+                            <div class="invited-user-stat">
+                                <span class="stat-label-small">Child</span>
+                                <span class="stat-value-small">${childCount}</span>
+                            </div>
+                            <div class="invited-user-stat">
+                                <span class="stat-label-small">Loyalty Fee</span>
+                                <span class="stat-value-small">${loyaltyFee.toFixed(2)}</span>
+                            </div>
+                            <div class="invited-user-stat">
+                                <span class="stat-label-small">Network Fee</span>
+                                <span class="stat-value-small">${networkFees.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
                 `;

@@ -363,7 +363,11 @@ app.get('/api/users', async (req, res) => {
                 u.trust_score as seller_rating, u.total_sales, u.location as province,
 
                 -- Follower count (people who used this user's invite code)
-                (SELECT COUNT(*) FROM users WHERE invitor_id = u.id) as follower_count,
+                -- Check both by ID and username for legacy compatibility
+                (SELECT COUNT(*) FROM users WHERE invitor_id = u.id OR invitor_id = u.username) as follower_count,
+
+                -- Child count (people who have this user as parent_id in ACF structure)
+                (SELECT COUNT(*) FROM users WHERE parent_id = u.id) as child_count,
 
                 -- Purchase stats (as buyer)
                 (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as purchase_count,
@@ -388,21 +392,25 @@ app.get('/api/users', async (req, res) => {
         // Calculate network statistics for each user
         const usersWithNetwork = users.map(user => {
             try {
-                // Get all network member IDs using recursive CTE
+                // Get all network member IDs using recursive CTE based on invitor relationship
+                // Network includes self + all people who were invited by users in the network (recursively)
                 const networkMembers = db.prepare(`
                     WITH RECURSIVE network_tree AS (
-                        SELECT id, 0 as depth
+                        -- Start with the user themselves
+                        SELECT id, username, 0 as depth
                         FROM users
                         WHERE id = ?
 
                         UNION ALL
 
-                        SELECT u.id, nt.depth + 1 as depth
+                        -- Add users who were invited by anyone in the tree
+                        -- Check both by ID and username (for legacy data)
+                        SELECT u.id, u.username, nt.depth + 1 as depth
                         FROM users u
-                        INNER JOIN network_tree nt ON u.parent_id = nt.id
+                        INNER JOIN network_tree nt ON (u.invitor_id = nt.id OR u.invitor_id = nt.username)
                         WHERE nt.depth < 7
                     )
-                    SELECT id FROM network_tree
+                    SELECT DISTINCT id FROM network_tree
                 `).all(user.id);
 
                 const networkIds = networkMembers.map(m => m.id);
@@ -416,29 +424,38 @@ app.get('/api/users', async (req, res) => {
 
                 if (networkIds.length > 0) {
                     const placeholders = networkIds.map(() => '?').join(',');
+
+                    // Calculate network fees from amount_fee of all products in network
+                    const feesResult = db.prepare(`
+                        SELECT SUM(amount_fee) as total_fees
+                        FROM products
+                        WHERE seller_id IN (${placeholders})
+                    `).get(...networkIds);
+
+                    networkFees = feesResult.total_fees || 0;
+
+                    // Calculate sales and orders
                     const networkStats = db.prepare(`
                         SELECT
                             COUNT(o.id) as total_orders,
-                            SUM(o.total_amount) as total_sales,
-                            SUM(o.community_fee) as total_fees
+                            SUM(o.total_amount) as total_sales
                         FROM orders o
                         WHERE o.seller_id IN (${placeholders})
                         AND o.status = 'completed'
                     `).get(...networkIds);
 
-                    networkFees = networkStats.total_fees || 0;
                     networkSales = networkStats.total_sales || 0;
                     networkOrders = networkStats.total_orders || 0;
 
-                    // Get breakdown by member
+                    // Get breakdown by member (using amount_fee from products)
                     networkBreakdown = db.prepare(`
                         SELECT
                             u.id,
                             u.username,
                             u.full_name,
-                            COUNT(o.id) as order_count,
+                            COUNT(DISTINCT o.id) as order_count,
                             SUM(o.total_amount) as total_sales,
-                            SUM(o.community_fee) as total_fees
+                            COALESCE((SELECT SUM(p.amount_fee) FROM products p WHERE p.seller_id = u.id), 0) as total_fees
                         FROM users u
                         LEFT JOIN orders o ON o.seller_id = u.id AND o.status = 'completed'
                         WHERE u.id IN (${placeholders})
@@ -479,6 +496,7 @@ app.get('/api/users', async (req, res) => {
             ...user,
             is_active: Boolean(user.is_active),
             follower_count: user.follower_count || 0,
+            child_count: user.child_count || 0,
             purchase_count: user.purchase_count || 0,
             total_spent: user.total_spent || 0,
             sales_count: user.sales_count || 0,
@@ -1767,7 +1785,7 @@ app.post('/api/upload-profile-image', upload.single('profileImage'), async (req,
         }
 
         // Generate the relative path for database storage
-        const relativePath = `/uploads/profile-images/${req.file.filename}`;
+        const relativePath = `/uploads/profiles/${req.file.filename}`;
 
         // Update user's profile image path in database
         const updateStmt = db.prepare(`

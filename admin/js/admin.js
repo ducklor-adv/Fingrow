@@ -610,8 +610,8 @@ class FingrowAdmin {
                     <table class="w-full">
                         <thead>
                             <tr class="border-b border-gray-700">
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">No.</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ID</th>
-                                <th class="text-left py-3 px-2 text-gray-400 text-sm">User ID</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">ผู้ใช้งาน</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">สถานะ</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">สินค้าที่ลงขาย</th>
@@ -622,6 +622,7 @@ class FingrowAdmin {
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Paid Fee</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">รายได้รวม</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Follower</th>
+                                <th class="text-left py-3 px-2 text-gray-400 text-sm">Child</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Size</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Network Fees</th>
                                 <th class="text-left py-3 px-2 text-gray-400 text-sm">Loyalty Fee</th>
@@ -629,7 +630,7 @@ class FingrowAdmin {
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
-                            ${users.map(user => this.renderUserRow(user, products)).join('')}
+                            ${users.map((user, index) => this.renderUserRow(user, products, index, users.length)).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -647,7 +648,7 @@ class FingrowAdmin {
         `;
     }
 
-    renderUserRow(user, products = []) {
+    renderUserRow(user, products = [], index, totalUsers) {
         const statusColor = user.status === 'active' ? 'emerald' : 'red';
         const statusText = user.status === 'active' ? 'ใช้งานอยู่' : 'ไม่ใช้งาน';
         const stats = user.stats || {};
@@ -660,6 +661,9 @@ class FingrowAdmin {
         // Use follower_count directly from user object if available
         const followerCount = user.follower_count || referrals.total || 0;
 
+        // Use child_count directly from user object if available
+        const childCount = user.child_count || 0;
+
         // Use network stats from user object if available
         const networkSize = user.network_size || network.size || 0;
         const networkFees = user.network_fees || network.fees || 0;
@@ -671,10 +675,14 @@ class FingrowAdmin {
         const productCount = userProducts.length;
         const activeProducts = userProducts.filter(p => p.status === 'active').length;
 
+        // Calculate No. (reversed: newest at top = 43, oldest at bottom = 0)
+        // API returns DESC order (newest first)
+        const rowNumber = totalUsers - 1 - index;
+
         return `
             <tr class="border-b border-gray-800 hover:bg-gray-800" data-user-id="${user.id}">
+                <td class="py-3 px-2 text-gray-300 text-sm text-center">${rowNumber}</td>
                 <td class="py-3 px-2 text-gray-300 text-sm font-mono">${user.id}</td>
-                <td class="py-3 px-2 text-gray-300 text-sm font-mono">${user.auto_user_id || 'N/A'}</td>
                 <td class="py-3 px-2">
                     <div class="flex items-center">
                         <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center mr-2 overflow-hidden">
@@ -704,6 +712,7 @@ class FingrowAdmin {
                 <td class="py-3 px-2 text-red-400 text-sm font-medium">${this.formatCurrency(user.total_fees_paid || 0, 'THB')}</td>
                 <td class="py-3 px-2 text-yellow-400 text-sm font-medium">${this.formatCurrency(earnings.total, 'THB')}</td>
                 <td class="py-3 px-2 text-purple-400 text-sm">${followerCount}</td>
+                <td class="py-3 px-2 text-purple-300 text-sm">${childCount}</td>
                 <td class="py-3 px-2 text-cyan-400 text-sm font-medium">${networkSize}</td>
                 <td class="py-3 px-2 text-cyan-300 text-sm cursor-pointer hover:text-cyan-200" onclick="window.adminApp.showNetworkBreakdown('${user.id}', '${user.username}', ${networkFees}, ${JSON.stringify(networkBreakdown).replace(/"/g, '&quot;')})">${this.formatCurrency(networkFees, 'THB')}</td>
                 <td class="py-3 px-2 text-green-400 text-sm font-medium">${this.formatCurrency(loyaltyFee, 'THB')}</td>
