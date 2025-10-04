@@ -73,6 +73,11 @@
             align-items: center;
             margin-bottom: 24px;
             padding-top: 20px;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            z-index: 100;
+            padding-bottom: 12px;
         }
 
         .logo {
@@ -2514,6 +2519,13 @@
                 <!-- Sell Orders Container -->
                 <div id="sellOrdersContainer" style="display: none;"></div>
             </div>
+
+            <!-- Notifications Tab Content -->
+            <div id="notificationsTabContent" class="tab-content" style="display: none;">
+                <div id="fullNotificationsList">
+                    <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -3021,13 +3033,6 @@
             <button class="btn" onclick="showAddPaymentMethodForm()" style="width: 100%; margin-top: 16px;">
                 ➕ เพิ่มบัญชี/Wallet ใหม่
             </button>
-        </div>
-    </div>
-
-    <!-- Notifications Tab Content -->
-    <div id="notificationsTabContent" class="tab-content" style="display: none;">
-        <div id="fullNotificationsList">
-            <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
         </div>
     </div>
 
@@ -3985,6 +3990,8 @@
                 console.error('Page not found:', pageId);
                 return;
             }
+
+            // Notification bell is always visible, no need to hide
 
             // Special handling for listings page
             if (pageId === 'listings') {
