@@ -1544,11 +1544,6 @@
         <div class="container">
             <div class="header">
                 <div class="logo">🌱 Fingrow</div>
-                <!-- WLD currency display hidden for now -->
-                <div class="currency-display" style="display: none;">
-                    <div id="wldPriceMobile">1 WLD = ฿Loading...</div>
-                    <div style="font-size: 10px; color: #71717a; margin-top: 2px;" id="lastUpdated">Loading...</div>
-                </div>
             </div>
 
             <div class="search-container">
@@ -1606,7 +1601,6 @@
                     <div style="flex: 0 0 90px; min-width: 90px;">
                         <label class="form-label" style="font-size: 12px; margin-bottom: 4px; display: block; color: #9ca3af;">สกุลเงิน</label>
                         <select class="form-input" id="currencyFilter" onchange="filterProducts()" style="font-size: 14px; padding: 8px 12px;">
-                            <option value="WLD">WLD</option>
                             <option value="THB">THB (฿)</option>
                         </select>
                     </div>
@@ -1836,7 +1830,6 @@
                         <select class="form-input" id="priceCurrency" required onchange="updateCurrencyLabel()">
                             <option value="THB">บาทไทย (THB)</option>
                             <option value="USD">ดอลลาร์สหรัฐ (USD)</option>
-                            <option value="WLD">Worldcoin (WLD)</option>
                             <option value="EUR">ยูโร (EUR)</option>
                             <option value="JPY">เยน (JPY)</option>
                             <option value="GBP">ปอนด์ (GBP)</option>
@@ -1851,8 +1844,6 @@
                             <input type="number" class="form-input" id="productPrice" step="0.01" placeholder="0.00" required>
                             <span class="currency-label" id="currencyLabel">THB</span>
                         </div>
-                        <small class="form-help">ราคาจะถูกแปลงเป็น WLD อัตโนมัติตามอัตราแลกเปลี่ยนปัจจุบัน</small>
-                        <div id="wldConversion" class="form-help" style="color: #10b981; font-weight: 500; margin-top: 8px;">≈ 0.00 WLD</div>
                     </div>
 
 
@@ -1891,7 +1882,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">ค่าจัดส่ง (WLD)</label>
+                        <label class="form-label">ค่าจัดส่ง</label>
                         <select class="form-input" id="shippingType" onchange="toggleShippingPrice()">
                             <option value="free">จัดส่งฟรี</option>
                             <option value="flat">อัตราคงที่</option>
@@ -2020,7 +2011,7 @@
             <div id="ordersTabContent" class="tab-content" style="display: none;">
                 <div class="product-card" style="margin-bottom: 16px;">
                     <div class="product-title">iPhone 14 Pro สีทอง</div>
-                    <div class="product-price">570 WLD</div>
+                    <div class="product-price">฿18,150</div>
                     <div class="product-seller">สั่งซื้อจาก @alice_smith</div>
                     <div class="product-stats">
                         <span style="color: #10b981;">✅ เสร็จสิ้น</span>
@@ -2030,7 +2021,7 @@
 
                 <div class="product-card" style="margin-bottom: 16px;">
                     <div class="product-title">โต๊ะทำงาน IKEA</div>
-                    <div class="product-price">90 WLD</div>
+                    <div class="product-price">฿2,865</div>
                     <div class="product-seller">ขายให้ @charlie_w</div>
                     <div class="product-stats">
                         <span style="color: #fbbf24;">🚚 กำลังจัดส่ง</span>
@@ -2052,10 +2043,6 @@
                 <div class="stat-card">
                     <div class="stat-value">0</div>
                     <div class="stat-label">คนที่แนะนำ</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">125.50</div>
-                    <div class="stat-label">WLD ที่ได้รับ</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">2,450</div>
@@ -2611,7 +2598,7 @@
             category: '',
             condition: '',
             sort: 'newest',
-            currency: 'WLD',
+            currency: 'THB',
             minPrice: null,
             maxPrice: null
         };
@@ -2844,14 +2831,14 @@
             }).join('');
         }
 
-        // Format price display (card view) - WLD hidden
+        // Format price display (card view)
         function formatPrice(product) {
             const currencySymbol = getCurrencySymbol(product.price_currency || 'THB');
             const price = product.price || 0;
             return `${currencySymbol}${price.toLocaleString()}`;
         }
 
-        // Format price for popup (with dual currency display) - WLD hidden
+        // Format price for popup (with dual currency display)
         function formatPriceForPopup(product) {
             const currencySymbol = getCurrencySymbol(product.price_currency || 'THB');
             const price = product.price || 0;
@@ -2982,20 +2969,8 @@
             // Apply price range filter based on selected currency
             if (currentFilters.minPrice !== null || currentFilters.maxPrice !== null) {
                 filtered = filtered.filter(product => {
-                    let productPrice;
-
-                    if (currentFilters.currency === 'WLD') {
-                        // Always use WLD price for WLD filter
-                        productPrice = product.wld_price;
-                    } else if (currentFilters.currency === 'THB') {
-                        // Use original THB price if available, otherwise convert from WLD
-                        if (product.price_currency === 'THB') {
-                            productPrice = product.price;
-                        } else {
-                            // Convert WLD to THB (approximate rate: 1 WLD ≈ 318 THB)
-                            productPrice = product.wld_price * 318;
-                        }
-                    }
+                    // Use THB price for filtering
+                    let productPrice = product.price || 0;
 
                     let passesMin = currentFilters.minPrice === null || productPrice >= currentFilters.minPrice;
                     let passesMax = currentFilters.maxPrice === null || productPrice <= currentFilters.maxPrice;
@@ -3007,10 +2982,10 @@
             // Apply sorting
             switch (currentFilters.sort) {
                 case 'price-low':
-                    filtered.sort((a, b) => a.wld_price - b.wld_price);
+                    filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
                     break;
                 case 'price-high':
-                    filtered.sort((a, b) => b.wld_price - a.wld_price);
+                    filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
                     break;
                 case 'popular':
                     filtered.sort((a, b) => b.views - a.views);
@@ -3040,10 +3015,10 @@
         function clearPriceFilter() {
             document.getElementById('minPriceFilter').value = '';
             document.getElementById('maxPriceFilter').value = '';
-            document.getElementById('currencyFilter').value = 'WLD';
+            document.getElementById('currencyFilter').value = 'THB';
             currentFilters.minPrice = null;
             currentFilters.maxPrice = null;
-            currentFilters.currency = 'WLD';
+            currentFilters.currency = 'THB';
             filterProducts();
         }
 
@@ -3454,72 +3429,8 @@
             });
         });
 
-        // Real-time WLD price update
-        async function loadWLDPrice() {
-            try {
-                const priceElement = document.getElementById('wldPriceMobile');
-                const timeElement = document.getElementById('lastUpdated');
-
-                if (!priceElement) return;
-
-                // Fetch WLD price from CoinGecko API with timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=worldcoin-wld&vs_currencies=usd,thb&include_24hr_change=true', {
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const wldData = data['worldcoin-wld'];
-
-                if (wldData) {
-                    const thbPrice = wldData.thb;
-                    const change24h = wldData.usd_24h_change || 0;
-
-                    // Update price display
-                    priceElement.textContent = `1 WLD = ฿${thbPrice.toFixed(2)}`;
-
-                    // Update timestamp
-                    const now = new Date();
-                    if (timeElement) {
-                        const timeStr = now.toLocaleTimeString('th-TH', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                        const changeIcon = change24h >= 0 ? '↗' : '↘';
-                        const changeColor = change24h >= 0 ? '#10b981' : '#ef4444';
-                        timeElement.innerHTML = `<span style="color: ${changeColor}">${changeIcon}${Math.abs(change24h).toFixed(2)}%</span> • ${timeStr}`;
-                    }
-
-                    console.log('WLD Price updated (Mobile):', { thbPrice, change24h });
-                } else {
-                    throw new Error('WLD data not available');
-                }
-            } catch (error) {
-                console.error('Error loading WLD price (Mobile):', error);
-                const priceElement = document.getElementById('wldPriceMobile');
-                const timeElement = document.getElementById('lastUpdated');
-
-                if (priceElement) {
-                    priceElement.textContent = '1 WLD = ฿--';
-                }
-                if (timeElement) {
-                    timeElement.textContent = 'Price unavailable';
-                }
-            }
-        }
-
         // Initial load and periodic updates
-        loadWLDPrice();
         loadExchangeRates();
-        setInterval(loadWLDPrice, 300000); // Update every 5 minutes
         setInterval(loadExchangeRates, 300000); // Update exchange rates every 5 minutes
 
         // Initialize exchange rate section
@@ -3530,14 +3441,13 @@
 
         // Exchange Rates (will be updated from API)
         let exchangeRates = {
-            THB: { toWLD: 1/318.5, name: 'บาทไทย' },
-            USD: { toWLD: 1/1.85, name: 'ดอลลาร์สหรัฐ' },
-            WLD: { toWLD: 1, name: 'Worldcoin' },
-            EUR: { toWLD: 1/1.68, name: 'ยูโร' },
-            JPY: { toWLD: 1/275.2, name: 'เยน' },
-            GBP: { toWLD: 1/1.45, name: 'ปอนด์' },
-            CNY: { toWLD: 1/13.2, name: 'หยวน' },
-            KRW: { toWLD: 1/2485, name: 'วอน' }
+            THB: { rate: 1, name: 'บาทไทย' },
+            USD: { rate: 0.029, name: 'ดอลลาร์สหรัฐ' },
+            EUR: { rate: 0.027, name: 'ยูโร' },
+            JPY: { rate: 4.2, name: 'เยน' },
+            GBP: { rate: 0.023, name: 'ปอนด์' },
+            CNY: { rate: 0.21, name: 'หยวน' },
+            KRW: { rate: 39, name: 'วอน' }
         };
 
         // Rate lock state
@@ -3545,17 +3455,7 @@
         let lockedCurrency = null;
         let rateLockedAt = null;
 
-        // Currency conversion function
-        function convertToWLD(amount, currency) {
-            // Use locked rate if available and currency matches
-            if (lockedRate && lockedCurrency === currency) {
-                return amount * lockedRate;
-            }
-            // Otherwise use current exchange rate
-            return amount * exchangeRates[currency].toWLD;
-        }
-
-        // Update currency labels and conversion
+        // Update currency labels
         function updateCurrencyLabel() {
             const selectedCurrency = document.getElementById('priceCurrency').value;
             document.getElementById('currencyLabel').textContent = selectedCurrency;
@@ -3566,8 +3466,8 @@
             // Update exchange rate section
             updateExchangeRateSection(selectedCurrency);
 
-            // Update WLD conversion
-            updatePriceConversion();
+            // Update fin fee calculation
+            updateFinFeeCalculation();
         }
 
         // Update exchange rate section
@@ -3575,23 +3475,14 @@
             const exchangeRateSection = document.getElementById('exchangeRateSection');
             const currentCurrencyEl = document.getElementById('currentCurrency');
             const currentRateEl = document.getElementById('currentRate');
-            const wldPriceField = document.getElementById('wldPriceField');
 
-            if (currency === 'WLD') {
-                exchangeRateSection.style.display = 'none';
-                // If currency is WLD, set WLD field to same as price field
-                const price = parseFloat(document.getElementById('productPrice').value) || 0;
-                if (wldPriceField) {
-                    wldPriceField.value = price.toFixed(4);
-                }
-                return;
-            }
+            if (!exchangeRateSection) return;
 
             exchangeRateSection.style.display = 'block';
-            currentCurrencyEl.textContent = currency;
+            if (currentCurrencyEl) currentCurrencyEl.textContent = currency;
 
-            const currentRate = lockedRate && lockedCurrency === currency ? lockedRate : exchangeRates[currency]?.toWLD;
-            currentRateEl.textContent = currentRate ? currentRate.toFixed(6) : '0.000000';
+            const currentRate = lockedRate && lockedCurrency === currency ? lockedRate : exchangeRates[currency]?.rate;
+            if (currentRateEl) currentRateEl.textContent = currentRate ? currentRate.toFixed(6) : '0.000000';
 
             // Update status
             updateRateStatus();
@@ -3615,32 +3506,6 @@
             }
         }
 
-        // Update WLD price conversion display
-        function updatePriceConversion() {
-            const price = parseFloat(document.getElementById('productPrice').value) || 0;
-            const currency = document.getElementById('priceCurrency').value;
-            const wldPrice = convertToWLD(price, currency);
-
-            // Update conversion display (≈)
-            const conversionElement = document.getElementById('wldConversion');
-            if (price > 0) {
-                const lockStatus = lockedRate && lockedCurrency === currency ? ' (ล็อค)' : '';
-                conversionElement.textContent = `≈ ${wldPrice.toFixed(4)} WLD${lockStatus}`;
-                conversionElement.style.display = 'block';
-            } else {
-                conversionElement.textContent = '≈ 0.00 WLD';
-                conversionElement.style.display = 'block';
-            }
-
-            // Update WLD price field
-            const wldPriceField = document.getElementById('wldPriceField');
-            if (wldPriceField) {
-                wldPriceField.value = price > 0 ? wldPrice.toFixed(4) : '0.0000';
-            }
-
-            // Update fin fee calculation
-            updateFinFeeCalculation();
-        }
 
         // Update Fin Fee Calculation
         function updateFinFeeCalculation() {
@@ -3672,26 +3537,25 @@
         // Load exchange rates from API
         async function loadExchangeRates() {
             try {
-                // Get WLD price in various currencies
-                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=worldcoin-wld&vs_currencies=thb,usd,eur,gbp,jpy,cny,krw', {
+                // Get exchange rates relative to THB
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/THB', {
                     signal: AbortSignal.timeout(10000)
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    const wldRates = data['worldcoin-wld'];
+                    const rates = data.rates;
 
-                    if (wldRates) {
-                        // Update exchange rates (1 unit of currency = X WLD)
+                    if (rates) {
+                        // Update exchange rates
                         exchangeRates = {
-                            THB: { toWLD: 1/wldRates.thb, name: 'บาทไทย' },
-                            USD: { toWLD: 1/wldRates.usd, name: 'ดอลลาร์สหรัฐ' },
-                            WLD: { toWLD: 1, name: 'Worldcoin' },
-                            EUR: { toWLD: 1/wldRates.eur, name: 'ยูโร' },
-                            GBP: { toWLD: 1/wldRates.gbp, name: 'ปอนด์' },
-                            JPY: { toWLD: 1/wldRates.jpy, name: 'เยน' },
-                            CNY: { toWLD: 1/wldRates.cny, name: 'หยวน' },
-                            KRW: { toWLD: 1/wldRates.krw, name: 'วอน' }
+                            THB: { rate: 1, name: 'บาทไทย' },
+                            USD: { rate: rates.USD || 0.029, name: 'ดอลลาร์สหรัฐ' },
+                            EUR: { rate: rates.EUR || 0.027, name: 'ยูโร' },
+                            JPY: { rate: rates.JPY || 4.2, name: 'เยน' },
+                            GBP: { rate: rates.GBP || 0.023, name: 'ปอนด์' },
+                            CNY: { rate: rates.CNY || 0.21, name: 'หยวน' },
+                            KRW: { rate: rates.KRW || 39, name: 'วอน' }
                         };
                         console.log('Exchange rates updated:', exchangeRates);
 
@@ -3699,7 +3563,6 @@
                         const currency = document.getElementById('priceCurrency')?.value;
                         if (currency && (!lockedCurrency || lockedCurrency !== currency)) {
                             updateExchangeRateSection(currency);
-                            updatePriceConversion();
                         }
                     }
                 }
@@ -3721,26 +3584,27 @@
                 console.log('Exchange rate unlocked');
             } else {
                 // Lock current rate
-                lockedRate = exchangeRates[currency]?.toWLD;
+                lockedRate = exchangeRates[currency]?.rate;
                 lockedCurrency = currency;
                 rateLockedAt = new Date().toISOString();
-                console.log(`Exchange rate locked: 1 ${currency} = ${lockedRate.toFixed(6)} WLD`);
+                console.log(`Exchange rate locked: 1 ${currency} = ${lockedRate.toFixed(6)}`);
             }
 
             updateRateStatus();
-            updatePriceConversion();
         }
 
         // Refresh exchange rate (force update)
         async function refreshExchangeRate() {
-            document.getElementById('exchangeRateStatus').textContent = 'กำลังอัพเดท...';
-            document.getElementById('exchangeRateStatus').style.color = '#fbbf24';
+            const statusEl = document.getElementById('exchangeRateStatus');
+            if (statusEl) {
+                statusEl.textContent = 'กำลังอัพเดท...';
+                statusEl.style.color = '#fbbf24';
+            }
 
             await loadExchangeRates();
 
             const currency = document.getElementById('priceCurrency').value;
             updateExchangeRateSection(currency);
-            updatePriceConversion();
         }
 
         // Create Listing Form Functions
@@ -4458,13 +4322,11 @@
             viewProduct('preview', false, seller);
         }
 
-        // Real-time price conversion
-        document.getElementById('productPrice').addEventListener('input', updatePriceConversion);
-        document.getElementById('priceCurrency').addEventListener('change', updatePriceConversion);
-
         // Exchange rate lock buttons
-        document.getElementById('lockRateBtn').addEventListener('click', lockExchangeRate);
-        document.getElementById('refreshRateBtn').addEventListener('click', refreshExchangeRate);
+        const lockRateBtn = document.getElementById('lockRateBtn');
+        const refreshRateBtn = document.getElementById('refreshRateBtn');
+        if (lockRateBtn) lockRateBtn.addEventListener('click', lockExchangeRate);
+        if (refreshRateBtn) refreshRateBtn.addEventListener('click', refreshExchangeRate);
 
         // Form submission
         document.getElementById('createListingForm').addEventListener('submit', async function(e) {
@@ -4473,11 +4335,9 @@
             // Collect form data
             const selectedCurrency = document.getElementById('priceCurrency').value;
             const price = parseFloat(document.getElementById('productPrice').value);
-            const wldPriceFromField = parseFloat(document.getElementById('wldPriceField').value);
-            const wldPrice = convertToWLD(price, selectedCurrency);
 
             // Get conversion rate used for this transaction
-            const usedConversionRate = lockedRate && lockedCurrency === selectedCurrency ? lockedRate : exchangeRates[selectedCurrency]?.toWLD;
+            const usedConversionRate = lockedRate && lockedCurrency === selectedCurrency ? lockedRate : exchangeRates[selectedCurrency]?.rate;
 
             const formData = {
                 title: document.getElementById('productTitle').value,
@@ -4493,8 +4353,6 @@
                 listingType: document.getElementById('listingType').value,
                 price: price,
                 priceCurrency: selectedCurrency,
-                wldPrice: wldPriceFromField || wldPrice.toFixed(4),
-                wldPriceCalculated: wldPrice.toFixed(4),
                 // Transaction conversion rate data
                 conversionRate: usedConversionRate,
                 rateLockedAt: lockedRate && lockedCurrency === selectedCurrency ? rateLockedAt : new Date().toISOString(),
@@ -4520,9 +4378,7 @@
                 const buyItNowPrice = parseFloat(document.getElementById('buyItNowPrice').value) || 0;
 
                 formData.startingPrice = startingPrice;
-                formData.startingPriceWLD = convertToWLD(startingPrice, selectedCurrency).toFixed(4);
                 formData.buyItNowPrice = buyItNowPrice;
-                formData.buyItNowPriceWLD = convertToWLD(buyItNowPrice, selectedCurrency).toFixed(4);
                 formData.auctionDuration = document.getElementById('auctionDuration').value;
             }
 
@@ -4599,10 +4455,8 @@
         console.log('📱 Features: Marketplace, Create Listing, Orders, Referrals, Profile');
         console.log('🎯 Status: Demo Version - Ready for Development');
         console.log('✨ Enhanced Create Listing Form with eBay-style fields');
-        console.log('💱 Multi-Currency Support: THB, USD, WLD, EUR, JPY, GBP, CNY, KRW');
-        console.log('🔄 Real-time Exchange Rate Conversion to WLD');
+        console.log('💱 Multi-Currency Support: THB, USD, EUR, JPY, GBP, CNY, KRW');
         console.log('🔒 Exchange Rate Lock Feature with Transaction Rate Recording');
-        console.log('💰 Dedicated WLD Price Field with Auto-Conversion');
 
         // Initialize app with authentication check
         async function initializeApp() {
@@ -5934,11 +5788,6 @@
                     const balance = currentUser.wallet_balance || 0;
                     profileThbBalance.textContent = `฿${Number(balance).toLocaleString()}`;
                 }
-                const profileWldBalance = document.getElementById('profileWldBalance');
-                if (profileWldBalance) {
-                    const wldBalance = currentUser.wld_balance || 0;
-                    profileWldBalance.textContent = `${wldBalance} WLD`;
-                }
 
                 // Update sales statistics
                 const profileTotalSales = document.getElementById('profileTotalSales');
@@ -6510,13 +6359,12 @@
                 // Update real referral count
                 document.querySelector('#referrals .stat-card:first-child .stat-value').textContent = myInvitees.length;
 
-                // Mock WLD data (not calculated from referrals)
-                const mockWLD = 125.50;
-                document.querySelector('#referrals .stat-card:nth-child(2) .stat-value').textContent = mockWLD.toFixed(2);
-
                 // Mock Finpoint data
                 const mockFinpoint = 2450;
-                document.querySelector('#referrals .stat-card:nth-child(3) .stat-value').textContent = mockFinpoint.toLocaleString();
+                const statCards = document.querySelectorAll('#referrals .stat-card');
+                if (statCards.length >= 2) {
+                    statCards[1].querySelector('.stat-value').textContent = mockFinpoint.toLocaleString();
+                }
 
                 // Find and display who invited current user
                 const inviterID = currentUser.invited_by || currentUser.invitor_id;
@@ -6538,7 +6386,7 @@
                 // Display invited users
                 displayInvitedUsers(myInvitees);
 
-                console.log(`Loaded referrals data: ${myInvitees.length} real invitees, ${mockWLD} WLD (mock), ${mockFinpoint} FP (mock)`);
+                console.log(`Loaded referrals data: ${myInvitees.length} real invitees, ${mockFinpoint} FP (mock)`);
                 console.log('My inviter:', myInviter);
 
             } catch (error) {
@@ -6567,7 +6415,7 @@
             var link = document.getElementById('myReferralLink').value;
 
             var message = '🌱 มาร่วมกับ Fingrow V3 กันเถอะ!\n\n' +
-                         '💰 ตลาดซื้อขายสินค้ามือสองพร้อม Worldcoin\n' +
+                         '💰 ตลาดซื้อขายสินค้ามือสอง\n' +
                          '🎁 ใช้รหัสแนะนำ: ' + code + '\n' +
                          '🔗 ' + link + '\n\n' +
                          '✅ รับโบนัสทันทีเมื่อสมัคร!';
@@ -6591,7 +6439,6 @@
         function showReferralDetails() {
             alert('📊 รายละเอียดการแนะนำ\n\n' +
                   '👥 คนที่แนะนำ: 23 คน\n' +
-                  '🎁 โบนัสรวม: 45.67 WLD\n' +
                   '💰 รายได้รวม: ฿11,540\n\n' +
                   '🔥 ระดับปัจจุบัน: Silver\n' +
                   '🎯 เป้าหมาย Gold: อีก 7 คน');
@@ -6600,9 +6447,8 @@
         function showWalletDetails() {
             if (currentUser) {
                 const thbBalance = currentUser.wallet_balance.toLocaleString();
-                const wldBalance = currentUser.wld_balance;
 
-                const choice = confirm(`💰 กระเป๋าเงินของคุณ\n\n• THB: ฿${thbBalance}\n• WLD: ${wldBalance}\n\n📊 ประวัติการทำธุรกรรม\n• ขายได้: ${currentUser.total_sales} รายการ\n• ซื้อแล้ว: 8 รายการ\n\n💳 คลิก OK เพื่อเติมเงิน | Cancel เพื่อปิด`);
+                const choice = confirm(`💰 กระเป๋าเงินของคุณ\n\n• THB: ฿${thbBalance}\n\n📊 ประวัติการทำธุรกรรม\n• ขายได้: ${currentUser.total_sales} รายการ\n• ซื้อแล้ว: 8 รายการ\n\n💳 คลิก OK เพื่อเติมเงิน | Cancel เพื่อปิด`);
 
                 if (choice) {
                     const amount = prompt('เติมเงิน THB (ขั้นต่ำ 100 บาท):', '500');
@@ -6704,7 +6550,6 @@
                 { code: 'THB', name: 'บาทไทย', symbol: '฿' },
                 { code: 'USD', name: 'US Dollar', symbol: '$' },
                 { code: 'EUR', name: 'Euro', symbol: '€' },
-                { code: 'WLD', name: 'Worldcoin', symbol: 'WLD' },
                 { code: 'BTC', name: 'Bitcoin', symbol: '₿' }
             ];
 
@@ -6753,17 +6598,16 @@
                 const rates = {
                     'USD': 0.028,
                     'EUR': 0.026,
-                    'WLD': currentUser.wld_balance / currentUser.wallet_balance,
                     'BTC': 0.0000012
                 };
 
                 if (rates[userSettings.currency]) {
                     const convertedAmount = (currentUser.wallet_balance * rates[userSettings.currency]).toFixed(2);
-                    const symbols = { 'USD': '$', 'EUR': '€', 'WLD': '', 'BTC': '₿' };
+                    const symbols = { 'USD': '$', 'EUR': '€', 'BTC': '₿' };
                     const symbol = symbols[userSettings.currency] || '';
 
                     document.getElementById('profileThbBalance').textContent =
-                        `${symbol}${convertedAmount}${userSettings.currency === 'WLD' ? ' WLD' : ''}`;
+                        `${symbol}${convertedAmount}`;
                 }
             } else if (currentUser) {
                 document.getElementById('profileThbBalance').textContent = `฿${currentUser.wallet_balance.toLocaleString()}`;
@@ -7081,7 +6925,6 @@
                             <select class="form-input" id="editProductCurrency" required onchange="updateEditCurrencyDisplay()">
                                 <option value="THB">บาทไทย (THB)</option>
                                 <option value="USD">ดอลลาร์สหรัฐ (USD)</option>
-                                <option value="WLD">Worldcoin (WLD)</option>
                                 <option value="EUR">ยูโร (EUR)</option>
                                 <option value="JPY">เยน (JPY)</option>
                                 <option value="GBP">ปอนด์ (GBP)</option>

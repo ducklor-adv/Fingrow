@@ -300,12 +300,10 @@ class FingrowAdmin {
         const totalUsersEl = document.getElementById('totalUsers');
         const totalProductsEl = document.getElementById('totalProducts');
         const totalSalesEl = document.getElementById('totalSales');
-        const wldPoolEl = document.getElementById('wldPool');
 
         if (totalUsersEl) totalUsersEl.textContent = this.formatNumber(this.stats.totalUsers);
         if (totalProductsEl) totalProductsEl.textContent = this.formatNumber(this.stats.totalProducts);
         if (totalSalesEl) totalSalesEl.textContent = this.formatCurrency(this.stats.totalSales);
-        if (wldPoolEl) wldPoolEl.textContent = `${this.formatNumber(this.stats.totalWLD)} WLD`;
 
         console.log('Dashboard stats updated successfully');
     }
@@ -1076,7 +1074,6 @@ class FingrowAdmin {
 
         const paymentTexts = {
             'wallet': 'กระเป๋าเงิน',
-            'wld': 'WLD Token',
             'cash': 'เงินสด'
         };
 
@@ -2159,29 +2156,8 @@ class FingrowAdmin {
     }
 
     setupSettingsManagement() {
-        // Load current WLD price for settings display
-        this.loadWLDPriceForSettings();
-
         // Set up any interactive elements for settings
         console.log('Settings management initialized');
-    }
-
-    async loadWLDPriceForSettings() {
-        try {
-            const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=worldcoin-wld&vs_currencies=thb');
-            const data = await response.json();
-            const wldData = data['worldcoin-wld'];
-
-            if (wldData) {
-                const thbPrice = wldData.thb;
-                const priceElement = document.getElementById('currentWLDRate');
-                if (priceElement) {
-                    priceElement.textContent = `1 WLD = ฿${thbPrice.toFixed(2)}`;
-                }
-            }
-        } catch (error) {
-            console.error('Error loading WLD price for settings:', error);
-        }
     }
 
     async loadSettingsContent() {
@@ -2221,10 +2197,10 @@ class FingrowAdmin {
                     </div>
                 </div>
 
-                <!-- Currency & WLD Settings -->
+                <!-- Currency Settings -->
                 <div class="card p-6 rounded-lg">
                     <h3 class="text-xl font-semibold text-white mb-4">
-                        <i class="fas fa-coins mr-2"></i>การตั้งค่าสกุลเงิน & WLD
+                        <i class="fas fa-coins mr-2"></i>การตั้งค่าสกุลเงิน
                     </h3>
 
                     <div class="space-y-4">
@@ -2233,28 +2209,12 @@ class FingrowAdmin {
                             <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
                                 <option value="THB">บาท (THB)</option>
                                 <option value="USD">ดอลลาร์ (USD)</option>
-                                <option value="WLD">Worldcoin (WLD)</option>
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-gray-300 text-sm font-medium mb-2">ค่าคอมมิชชั่น (%)</label>
                             <input type="number" value="5" min="0" max="50" step="0.1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-300 text-sm font-medium mb-2">ยอดถอนขั้นต่ำ (WLD)</label>
-                            <input type="number" value="10" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-300 text-sm font-medium mb-2">อัตราแลกเปลี่ยน WLD</label>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-emerald-400 font-bold" id="currentWLDRate">1 WLD = ฿Loading...</span>
-                                <button onclick="updateWLDRate()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-                                    <i class="fas fa-sync mr-1"></i>อัปเดต
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -2518,7 +2478,6 @@ class FingrowAdmin {
         document.getElementById('editStatus').value = user.is_active ? 'active' : 'inactive';
         document.getElementById('editReferralCode').value = user.invite_code || '';
         document.getElementById('editWalletBalance').value = user.wallet_balance || 0;
-        document.getElementById('editWldBalance').value = user.wld_balance || 0;
 
         // Set profile image field and preview
         const profileImageInput = document.getElementById('editProfileImage');
@@ -3463,13 +3422,7 @@ window.deleteReview = (reviewId) => {
     }
 };
 
-// Settings management functions
-window.updateWLDRate = () => {
-    console.log('Updating WLD rate...');
-    if (window.admin) {
-        window.admin.loadWLDPriceForSettings();
-    }
-};
+// Settings management functions (WLD rate removed)
 
 window.saveSettings = () => {
     console.log('Saving settings...');

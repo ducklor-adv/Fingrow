@@ -128,7 +128,7 @@ class MockDatabase {
         this.users = [
             {
                 id: 1, auto_user_id: '24ABC000001', username: 'alice_smith', email: 'alice@example.com', password: '123456',
-                full_name: 'Alice Smith', phone: '081-234-5671', wallet_balance: 15420.50, wld_balance: 45.2,
+                full_name: 'Alice Smith', phone: '081-234-5671', wallet_balance: 15420.50,
                 referral_code: 'ALI001', referred_by: null, created_at: '2024-01-15', last_login: '2024-09-18',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1494790108755-2616b612b647?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.8, total_sales: 23, province: 'กรุงเทพมหานคร',
@@ -144,7 +144,7 @@ class MockDatabase {
             },
             {
                 id: 2, auto_user_id: '24DEF000002', username: 'bob_jones', email: 'bob@example.com', password: '123456',
-                full_name: 'Bob Jones', phone: '081-234-5672', wallet_balance: 8750.00, wld_balance: 23.8,
+                full_name: 'Bob Jones', phone: '081-234-5672', wallet_balance: 8750.00,
                 referral_code: 'BOB002', referred_by: null, created_at: '2024-01-20', last_login: '2024-09-17',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.3, total_sales: 15, province: 'เชียงใหม่',
@@ -158,7 +158,7 @@ class MockDatabase {
             },
             {
                 id: 3, auto_user_id: '24GHI000003', username: 'charlie_wilson', email: 'charlie@example.com', password: '123456',
-                full_name: 'Charlie Wilson', phone: '081-234-5673', wallet_balance: 32150.75, wld_balance: 89.5,
+                full_name: 'Charlie Wilson', phone: '081-234-5673', wallet_balance: 32150.75,
                 referral_code: 'CHA003', referred_by: 1, created_at: '2024-02-01', last_login: '2024-09-19',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.9, total_sales: 34, province: 'ภูเก็ต',
@@ -172,7 +172,7 @@ class MockDatabase {
             },
             {
                 id: 4, auto_user_id: '24JKL000004', username: 'diana_taylor', email: 'diana@example.com', password: '123456',
-                full_name: 'Diana Taylor', phone: '081-234-5674', wallet_balance: 19500.25, wld_balance: 67.3,
+                full_name: 'Diana Taylor', phone: '081-234-5674', wallet_balance: 19500.25,
                 referral_code: 'DIA004', referred_by: 1, created_at: '2024-02-10', last_login: '2024-09-16',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.7, total_sales: 19, province: 'ขอนแก่น',
@@ -188,7 +188,7 @@ class MockDatabase {
             },
             {
                 id: 5, auto_user_id: '24MNO000005', username: 'edward_brown', email: 'edward@example.com', password: '123456',
-                full_name: 'Edward Brown', phone: '081-234-5675', wallet_balance: 5420.00, wld_balance: 12.7,
+                full_name: 'Edward Brown', phone: '081-234-5675', wallet_balance: 5420.00,
                 referral_code: 'EDW005', referred_by: 3, created_at: '2024-02-20', last_login: '2024-09-15',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.1, total_sales: 8, province: 'นครราชสีมา',
@@ -204,7 +204,7 @@ class MockDatabase {
             },
             {
                 id: 6, auto_user_id: '24PQR000006', username: 'fiona_green', email: 'fiona@example.com', password: '123456',
-                full_name: 'Fiona Green', phone: '081-234-5676', wallet_balance: 12340.80, wld_balance: 34.6,
+                full_name: 'Fiona Green', phone: '081-234-5676', wallet_balance: 12340.80,
                 referral_code: 'FIO006', referred_by: 2, created_at: '2024-03-01', last_login: '2024-09-18',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.6, total_sales: 12, province: 'สงขลา',
@@ -220,7 +220,7 @@ class MockDatabase {
             },
             {
                 id: 7, auto_user_id: '24STU000007', username: 'george_white', email: 'george@example.com', password: '123456',
-                full_name: 'George White', phone: '081-234-5677', wallet_balance: 7890.50, wld_balance: 18.9,
+                full_name: 'George White', phone: '081-234-5677', wallet_balance: 7890.50,
                 referral_code: 'GEO007', referred_by: 3, created_at: '2024-03-15', last_login: '2024-09-14',
                 status: 'inactive', profile_image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 3.9, total_sales: 5, province: 'ระยอง',
@@ -236,7 +236,7 @@ class MockDatabase {
             },
             {
                 id: 8, auto_user_id: '24VWX000008', username: 'helen_black', email: 'helen@example.com', password: '123456',
-                full_name: 'Helen Black', phone: '081-234-5678', wallet_balance: 25670.90, wld_balance: 72.1,
+                full_name: 'Helen Black', phone: '081-234-5678', wallet_balance: 25670.90,
                 referral_code: 'HEL008', referred_by: 4, created_at: '2024-04-01', last_login: '2024-09-19',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.8, total_sales: 27, province: 'สุราษฎร์ธานี',
@@ -252,7 +252,7 @@ class MockDatabase {
             },
             {
                 id: 9, auto_user_id: '24YZA000009', username: 'ivan_red', email: 'ivan@example.com', password: '123456',
-                full_name: 'Ivan Red', phone: '081-234-5679', wallet_balance: 3450.25, wld_balance: 8.4,
+                full_name: 'Ivan Red', phone: '081-234-5679', wallet_balance: 3450.25,
                 referral_code: 'IVA009', referred_by: 5, created_at: '2024-04-20', last_login: '2024-09-13',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.2, total_sales: 11, province: 'อุดรธานี',
@@ -268,7 +268,7 @@ class MockDatabase {
             },
             {
                 id: 10, auto_user_id: '24BCD000010', username: 'jane_blue', email: 'jane@example.com', password: '123456',
-                full_name: 'Jane Blue', phone: '081-234-5680', wallet_balance: 18950.60, wld_balance: 51.8,
+                full_name: 'Jane Blue', phone: '081-234-5680', wallet_balance: 18950.60,
                 referral_code: 'JAN010', referred_by: 6, created_at: '2024-05-01', last_login: '2024-09-18',
                 status: 'active', profile_image: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop&crop=face',
                 seller_rating: 4.5, total_sales: 16, province: 'เชียงราย',
@@ -291,16 +291,16 @@ class MockDatabase {
     createDefaultProducts() {
         // Products Table - 10 products with realistic product images
         this.products = [
-            { id: 1, seller_id: 3, title: 'iPhone 14 Pro 128GB', description: 'สีดำ ใช้งานปกติ แบตเตอรี่ 89%', price: 28500, price_currency: 'THB', wld_price: 89.5, conversion_rate: 0.003140, rate_locked_at: '2024-08-15 10:30:00', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1695048071774-83f82d76d1a9?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=400&h=400&fit=crop'], created_at: '2024-08-15', views: 245 },
-            { id: 2, seller_id: 2, title: 'PlayStation 5 Digital', description: 'กล่องครบ รับประกัน 6 เดือน', price: 18500, price_currency: 'THB', wld_price: 58.1, conversion_rate: 0.003140, rate_locked_at: '2024-08-20 14:15:00', category: 'gaming', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1622297845775-5ff3fef71d13?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1615680022647-99c397cbcaea?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=400&h=400&fit=crop'], created_at: '2024-08-20', views: 189 },
-            { id: 3, seller_id: 4, title: 'MacBook Air M1 256GB', description: 'สีเงิน ใช้งานเบา cycle count 150', price: 32900, price_currency: 'THB', wld_price: 103.2, conversion_rate: 0.003140, rate_locked_at: '2024-09-01 09:45:00', category: 'electronics', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop'], created_at: '2024-09-01', views: 156 },
-            { id: 4, seller_id: 1, title: 'Canon EOS R5 Body', description: 'กล่องครบ shutter count 5000', price: 89000, price_currency: 'THB', wld_price: 279.3, conversion_rate: 0.003140, rate_locked_at: '2024-09-05 16:20:00', category: 'camera', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop'], created_at: '2024-09-05', views: 98 },
-            { id: 5, seller_id: 8, title: 'Nike Air Jordan 1 US9', description: 'ของแท้ 100% สภาพใหม่', price: 5800, price_currency: 'THB', wld_price: 18.2, conversion_rate: 0.003140, rate_locked_at: '2024-09-10 11:30:00', category: 'fashion', condition: 'new', status: 'active', images: ['https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=400&fit=crop'], created_at: '2024-09-10', views: 234 },
-            { id: 6, seller_id: 6, title: 'iPad Pro 11" 256GB', description: 'Wi-Fi + Cellular พร้อม Apple Pencil', price: 24900, price_currency: 'THB', wld_price: 78.1, conversion_rate: 0.003140, rate_locked_at: '2024-09-12 13:45:00', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1587033411391-5d9e51cce126?w=400&h=400&fit=crop'], created_at: '2024-09-12', views: 167 },
-            { id: 7, seller_id: 10, title: 'Louis Vuitton Wallet', description: 'ของแท้ มี authentication card', price: 450.5, price_currency: 'WLD', wld_price: 450.5, conversion_rate: 1.0, rate_locked_at: '2024-08-25 15:20:00', category: 'fashion', condition: 'good', status: 'sold', images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&h=400&fit=crop'], created_at: '2024-08-25', views: 445 },
-            { id: 8, seller_id: 5, title: 'Samsung Galaxy S23 Ultra', description: '256GB สีดำ ใส่เคสตลอด', price: 26800, price_currency: 'THB', wld_price: 84.1, conversion_rate: 0.003140, rate_locked_at: '2024-09-08 12:10:00', category: 'electronics', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1588256695933-4ba7b5aba4e7?w=400&h=400&fit=crop'], created_at: '2024-09-08', views: 123 },
-            { id: 9, seller_id: 9, title: 'Yamaha Guitar FG830', description: 'กีตาร์โปร่ง เสียงดี มือสอง', price: 8900, price_currency: 'THB', wld_price: 27.9, conversion_rate: 0.003140, rate_locked_at: '2024-09-14 10:00:00', category: 'music', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1564186763535-ebb21ef5277f?w=400&h=400&fit=crop'], created_at: '2024-09-14', views: 89 },
-            { id: 10, seller_id: 7, title: 'Apple Watch Series 8 45mm', description: 'GPS + Cellular สีดำ', price: 11500, price_currency: 'THB', wld_price: 36.1, conversion_rate: 0.003140, rate_locked_at: '2024-09-16 14:30:00', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1579586337278-3f436f25d4d6?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop'], created_at: '2024-09-16', views: 178 }
+            { id: 1, seller_id: 3, title: 'iPhone 14 Pro 128GB', description: 'สีดำ ใช้งานปกติ แบตเตอรี่ 89%', price: 28500, price_currency: 'THB', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1695048071774-83f82d76d1a9?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=400&h=400&fit=crop'], created_at: '2024-08-15', views: 245 },
+            { id: 2, seller_id: 2, title: 'PlayStation 5 Digital', description: 'กล่องครบ รับประกัน 6 เดือน', price: 18500, price_currency: 'THB', category: 'gaming', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1622297845775-5ff3fef71d13?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1615680022647-99c397cbcaea?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=400&h=400&fit=crop'], created_at: '2024-08-20', views: 189 },
+            { id: 3, seller_id: 4, title: 'MacBook Air M1 256GB', description: 'สีเงิน ใช้งานเบา cycle count 150', price: 32900, price_currency: 'THB', category: 'electronics', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop'], created_at: '2024-09-01', views: 156 },
+            { id: 4, seller_id: 1, title: 'Canon EOS R5 Body', description: 'กล่องครบ shutter count 5000', price: 89000, price_currency: 'THB', category: 'camera', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop'], created_at: '2024-09-05', views: 98 },
+            { id: 5, seller_id: 8, title: 'Nike Air Jordan 1 US9', description: 'ของแท้ 100% สภาพใหม่', price: 5800, price_currency: 'THB', category: 'fashion', condition: 'new', status: 'active', images: ['https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1584735175315-9d5df23860e6?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=400&fit=crop'], created_at: '2024-09-10', views: 234 },
+            { id: 6, seller_id: 6, title: 'iPad Pro 11" 256GB', description: 'Wi-Fi + Cellular พร้อม Apple Pencil', price: 24900, price_currency: 'THB', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1587033411391-5d9e51cce126?w=400&h=400&fit=crop'], created_at: '2024-09-12', views: 167 },
+            { id: 7, seller_id: 10, title: 'Louis Vuitton Wallet', description: 'ของแท้ มี authentication card', price: 12500, price_currency: 'THB', category: 'fashion', condition: 'good', status: 'sold', images: ['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&h=400&fit=crop'], created_at: '2024-08-25', views: 445 },
+            { id: 8, seller_id: 5, title: 'Samsung Galaxy S23 Ultra', description: '256GB สีดำ ใส่เคสตลอด', price: 26800, price_currency: 'THB', category: 'electronics', condition: 'excellent', status: 'active', images: ['https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1588256695933-4ba7b5aba4e7?w=400&h=400&fit=crop'], created_at: '2024-09-08', views: 123 },
+            { id: 9, seller_id: 9, title: 'Yamaha Guitar FG830', description: 'กีตาร์โปร่ง เสียงดี มือสอง', price: 8900, price_currency: 'THB', category: 'music', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1564186763535-ebb21ef5277f?w=400&h=400&fit=crop'], created_at: '2024-09-14', views: 89 },
+            { id: 10, seller_id: 7, title: 'Apple Watch Series 8 45mm', description: 'GPS + Cellular สีดำ', price: 11500, price_currency: 'THB', category: 'electronics', condition: 'good', status: 'active', images: ['https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1579586337278-3f436f25d4d6?w=400&h=400&fit=crop', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop'], created_at: '2024-09-16', views: 178 }
         ];
 
         // Save to localStorage
@@ -312,14 +312,14 @@ class MockDatabase {
         this.orders = [
             { id: 1, buyer_id: 1, seller_id: 3, product_id: 1, quantity: 1, total_amount: 28500, commission_rate: 0.05, commission_amount: 1425, status: 'completed', payment_method: 'wallet', created_at: '2024-09-18 14:30:00', completed_at: '2024-09-18 15:45:00' },
             { id: 2, buyer_id: 2, seller_id: 2, product_id: 2, quantity: 1, total_amount: 18500, commission_rate: 0.05, commission_amount: 925, status: 'completed', payment_method: 'wallet', created_at: '2024-09-18 10:15:00', completed_at: '2024-09-18 11:30:00' },
-            { id: 3, buyer_id: 5, seller_id: 4, product_id: 3, quantity: 1, total_amount: 32900, commission_rate: 0.05, commission_amount: 1645, status: 'pending', payment_method: 'wld', created_at: '2024-09-19 09:20:00', completed_at: null },
+            { id: 3, buyer_id: 5, seller_id: 4, product_id: 3, quantity: 1, total_amount: 32900, commission_rate: 0.05, commission_amount: 1645, status: 'pending', payment_method: 'wallet', created_at: '2024-09-19 09:20:00', completed_at: null },
             { id: 4, buyer_id: 6, seller_id: 1, product_id: 4, quantity: 1, total_amount: 89000, commission_rate: 0.05, commission_amount: 4450, status: 'shipped', payment_method: 'wallet', created_at: '2024-09-17 16:45:00', completed_at: null },
             { id: 5, buyer_id: 4, seller_id: 8, product_id: 5, quantity: 1, total_amount: 5800, commission_rate: 0.05, commission_amount: 290, status: 'completed', payment_method: 'wallet', created_at: '2024-09-16 13:20:00', completed_at: '2024-09-17 08:30:00' },
-            { id: 6, buyer_id: 9, seller_id: 6, product_id: 6, quantity: 1, total_amount: 24900, commission_rate: 0.05, commission_amount: 1245, status: 'processing', payment_method: 'wld', created_at: '2024-09-19 11:10:00', completed_at: null },
+            { id: 6, buyer_id: 9, seller_id: 6, product_id: 6, quantity: 1, total_amount: 24900, commission_rate: 0.05, commission_amount: 1245, status: 'processing', payment_method: 'wallet', created_at: '2024-09-19 11:10:00', completed_at: null },
             { id: 7, buyer_id: 3, seller_id: 10, product_id: 7, quantity: 1, total_amount: 12500, commission_rate: 0.05, commission_amount: 625, status: 'completed', payment_method: 'wallet', created_at: '2024-09-15 14:20:00', completed_at: '2024-09-15 16:45:00' },
             { id: 8, buyer_id: 8, seller_id: 5, product_id: 8, quantity: 1, total_amount: 26800, commission_rate: 0.05, commission_amount: 1340, status: 'cancelled', payment_method: 'wallet', created_at: '2024-09-14 10:30:00', completed_at: null },
             { id: 9, buyer_id: 10, seller_id: 9, product_id: 9, quantity: 1, total_amount: 8900, commission_rate: 0.05, commission_amount: 445, status: 'completed', payment_method: 'wallet', created_at: '2024-09-18 08:45:00', completed_at: '2024-09-18 12:20:00' },
-            { id: 10, buyer_id: 7, seller_id: 7, product_id: 10, quantity: 1, total_amount: 11500, commission_rate: 0.05, commission_amount: 575, status: 'refunded', payment_method: 'wld', created_at: '2024-09-17 15:30:00', completed_at: null }
+            { id: 10, buyer_id: 7, seller_id: 7, product_id: 10, quantity: 1, total_amount: 11500, commission_rate: 0.05, commission_amount: 575, status: 'refunded', payment_method: 'wallet', created_at: '2024-09-17 15:30:00', completed_at: null }
         ];
 
         // Save to localStorage
@@ -387,7 +387,6 @@ class MockDatabase {
             { id: 5, user_id: 8, type: 'product_viewed', title: 'มีคนดูสินค้า', message: 'Nike Air Jordan 1 ของคุณมีคนดู 234 ครั้งแล้ว', data: { product_id: 5 }, read_at: null, created_at: '2024-09-19 08:00:00' },
             { id: 6, user_id: 6, type: 'order_shipped', title: 'สินค้าจัดส่งแล้ว', message: 'Canon EOS R5 ถูกจัดส่งแล้ว', data: { order_id: 4 }, read_at: '2024-09-17 17:00:00', created_at: '2024-09-17 16:45:00' },
             { id: 7, user_id: 9, type: 'new_review', title: 'รีวิวใหม่', message: 'คุณได้รับรีวิว 4 ดาว', data: { review_id: 8 }, read_at: '2024-09-18 14:00:00', created_at: '2024-09-18 13:15:00' },
-            { id: 8, user_id: 5, type: 'wld_received', title: 'ได้รับ WLD', message: 'คุณได้รับ 12.7 WLD จากการขาย', data: { amount: 12.7 }, read_at: null, created_at: '2024-09-18 12:20:00' },
             { id: 9, user_id: 10, type: 'product_sold', title: 'สินค้าขายหมดแล้ว', message: 'Louis Vuitton Wallet ขายหมดแล้ว', data: { product_id: 7 }, read_at: '2024-09-15 17:30:00', created_at: '2024-09-15 16:45:00' },
             { id: 10, user_id: 7, type: 'order_cancelled', title: 'คำสั่งซื้อถูกยกเลิก', message: 'Samsung Galaxy S23 Ultra ถูกยกเลิก', data: { order_id: 8 }, read_at: null, created_at: '2024-09-14 10:30:00' }
         ];
@@ -608,7 +607,6 @@ class MockDatabase {
             full_name: userData.full_name,
             phone: userData.phone || '',
             wallet_balance: 0.00,
-            wld_balance: 0.0,
             referral_code: referralCode,
             referred_by: referredBy,
             created_at: new Date().toISOString().split('T')[0],
@@ -751,8 +749,6 @@ class MockDatabase {
             .reduce((sum, o) => sum + o.total_amount, 0);
         const totalCommissions = this.orders
             .reduce((sum, o) => sum + o.commission_amount, 0);
-        const totalWLD = this.users
-            .reduce((sum, u) => sum + u.wld_balance, 0);
 
         return {
             totalUsers: totalUsers,
@@ -762,8 +758,7 @@ class MockDatabase {
             totalOrders: totalOrders,
             completedOrders: completedOrders,
             totalSales: totalSales,
-            totalCommissions: totalCommissions,
-            totalWLD: totalWLD
+            totalCommissions: totalCommissions
         };
     }
 
