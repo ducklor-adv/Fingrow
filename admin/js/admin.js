@@ -833,6 +833,9 @@ class FingrowAdmin {
                     contentArea.innerHTML = '<div class="flex justify-center items-center h-64"><i class="fas fa-spinner fa-spin text-emerald-500 text-2xl"></i></div>';
                     let content = await this.loadDynamicContent(section);
                     contentArea.innerHTML = content;
+
+                    // Call setup function after content is loaded
+                    this.setupContentEventListeners(section);
                     break;
                 default:
                     const defaultArea = document.getElementById('content-area');
@@ -2231,6 +2234,289 @@ class FingrowAdmin {
     setupSettingsManagement() {
         // Set up any interactive elements for settings
         console.log('Settings management initialized');
+
+        // Load current NIC target with delay to ensure DOM is ready
+        setTimeout(() => {
+            console.log('Loading NIC target...');
+            this.loadCurrentNICTarget();
+        }, 500);
+    }
+
+    async loadCurrentNICTarget() {
+        try {
+            console.log('[NIC] Loading current NIC target...');
+            const response = await fetch('/api/settings/nic-target');
+            const result = await response.json();
+            console.log('[NIC] API response:', result);
+
+            const currentDiv = document.getElementById('nicTargetCurrent');
+            if (!currentDiv) {
+                console.error('[NIC] Element #nicTargetCurrent not found!');
+                return;
+            }
+
+            if (result.success && result.data) {
+                const user = result.data;
+                this.currentNICTarget = user;
+
+                // Format created date
+                const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'ไม่ทราบ';
+
+                // Profile image
+                const profileImg = user.profile_image_filename
+                    ? `<img src="/uploads/profiles/${user.profile_image_filename}" class="w-20 h-20 rounded-full object-cover border-2 border-emerald-500">`
+                    : `<div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-emerald-600">
+                         <i class="fas fa-user text-white text-3xl"></i>
+                       </div>`;
+
+                currentDiv.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-emerald-400 font-semibold text-lg">
+                                <i class="fas fa-check-circle mr-2"></i>NIC Target ปัจจุบัน
+                            </h4>
+                            <button onclick="admin.loadCurrentNICTarget()" class="text-blue-400 hover:text-blue-300 text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i>Update
+                            </button>
+                        </div>
+
+                        <div class="flex gap-4">
+                            ${profileImg}
+                            <div class="flex-1 space-y-1">
+                                <p class="text-white font-bold text-xl">${user.username}</p>
+                                <p class="text-gray-300">${user.full_name || 'ไม่ระบุชื่อ'}</p>
+                                <p class="text-gray-500 text-sm">ID: ${user.id}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700">
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">วันที่สมัคร</p>
+                                <p class="text-white font-semibold">${createdDate}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Follower Count</p>
+                                <p class="text-emerald-400 font-bold text-xl">${user.follower_count || 0}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Child Count</p>
+                                <p class="text-blue-400 font-bold text-xl">${user.child_count || 0}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Network Size</p>
+                                <p class="text-purple-400 font-bold text-xl">${user.network_size || 0}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                currentDiv.innerHTML = `
+                    <p class="text-gray-400 text-center py-4">
+                        <i class="fas fa-exclamation-circle mr-2"></i>ยังไม่ได้ตั้งค่า NIC Target
+                    </p>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading NIC target:', error);
+            const currentDiv = document.getElementById('nicTargetCurrent');
+            if (currentDiv) {
+                currentDiv.innerHTML = `
+                    <p class="text-red-400 text-center py-4">
+                        <i class="fas fa-times-circle mr-2"></i>เกิดข้อผิดพลาดในการโหลดข้อมูล
+                    </p>
+                `;
+            }
+        }
+    }
+
+    async verifyNICTarget() {
+        const searchInput = document.getElementById('nicTargetSearch');
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+
+        if (!searchTerm) {
+            alert('กรุณากรอก Username หรือ User ID');
+            return;
+        }
+
+        const resultDiv = document.getElementById('nicTargetResult');
+        if (!resultDiv) return;
+
+        // Show result div and loading
+        resultDiv.classList.remove('hidden');
+        resultDiv.innerHTML = `
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                <div class="flex justify-center items-center py-4">
+                    <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                    <span class="ml-3 text-gray-300">กำลังตรวจสอบ...</span>
+                </div>
+            </div>
+        `;
+
+        try {
+            // Verify user
+            const response = await fetch('/api/settings/verify-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ search: searchTerm })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                const user = result.data;
+                this.verifiedNICTarget = user;
+
+                // Format created date
+                const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'ไม่ทราบ';
+
+                // Profile image
+                const profileImg = user.profile_image_filename
+                    ? `<img src="/uploads/profiles/${user.profile_image_filename}" class="w-20 h-20 rounded-full object-cover border-2 border-blue-500">`
+                    : `<div class="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center border-2 border-blue-600">
+                         <i class="fas fa-user text-white text-3xl"></i>
+                       </div>`;
+
+                resultDiv.innerHTML = `
+                    <div class="bg-gray-800 border-2 border-blue-500 rounded-lg p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-blue-400 font-semibold text-lg">
+                                <i class="fas fa-user-check mr-2"></i>ผู้ใช้ที่ตรวจสอบแล้ว
+                            </h4>
+                            <span class="text-emerald-400 text-sm">
+                                <i class="fas fa-check-circle mr-1"></i>พบข้อมูล
+                            </span>
+                        </div>
+
+                        <div class="flex gap-4">
+                            ${profileImg}
+                            <div class="flex-1 space-y-1">
+                                <p class="text-white font-bold text-xl">${user.username}</p>
+                                <p class="text-gray-300">${user.full_name || 'ไม่ระบุชื่อ'}</p>
+                                <p class="text-gray-500 text-sm">ID: ${user.id}</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-700">
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">วันที่สมัคร</p>
+                                <p class="text-white font-semibold text-sm">${createdDate}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Follower Count</p>
+                                <p class="text-emerald-400 font-bold text-xl">${user.follower_count || 0}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Child Count</p>
+                                <p class="text-blue-400 font-bold text-xl">${user.child_count || 0}</p>
+                            </div>
+                            <div class="bg-gray-900 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Network Size</p>
+                                <p class="text-purple-400 font-bold text-xl">${user.network_size || 0}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 pt-3 border-t border-gray-700">
+                            <button onclick="admin.confirmNICTarget()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold">
+                                <i class="fas fa-check mr-2"></i>ยืนยันและเริ่มใช้งาน
+                            </button>
+                            <button onclick="admin.cancelVerification()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg">
+                                <i class="fas fa-times mr-2"></i>ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="bg-gray-800 border-2 border-red-500 rounded-lg p-6">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-3"></i>
+                            <p class="text-red-400 font-semibold mb-2">ไม่พบผู้ใช้</p>
+                            <p class="text-gray-400 text-sm">${result.message || 'กรุณาตรวจสอบ Username หรือ User ID อีกครั้ง'}</p>
+                            <button onclick="admin.cancelVerification()" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg">
+                                ปิด
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error verifying user:', error);
+            resultDiv.innerHTML = `
+                <div class="bg-gray-800 border-2 border-red-500 rounded-lg p-6">
+                    <div class="text-center">
+                        <i class="fas fa-times-circle text-red-400 text-4xl mb-3"></i>
+                        <p class="text-red-400 font-semibold mb-2">เกิดข้อผิดพลาด</p>
+                        <p class="text-gray-400 text-sm">ไม่สามารถตรวจสอบข้อมูลได้</p>
+                        <button onclick="admin.cancelVerification()" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg">
+                            ปิด
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    cancelVerification() {
+        const resultDiv = document.getElementById('nicTargetResult');
+        if (resultDiv) {
+            resultDiv.classList.add('hidden');
+            resultDiv.innerHTML = '';
+        }
+        this.verifiedNICTarget = null;
+
+        // Clear input
+        const searchInput = document.getElementById('nicTargetSearch');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+    }
+
+    async confirmNICTarget() {
+        if (!this.verifiedNICTarget) {
+            alert('ไม่พบข้อมูลผู้ใช้ที่ยืนยัน');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    key: 'nic_registration_target',
+                    value: this.verifiedNICTarget.id,
+                    description: 'Target user for NIC (No Invite Code) registration'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ บันทึก NIC Target สำเร็จ!\n\nตอนนี้ผู้ใช้ใหม่ที่สมัครโดยไม่ใส่ Invite Code จะถูกกำหนดให้ ' + this.verifiedNICTarget.username + ' เป็น invitor อัตโนมัติ');
+
+                // Hide verification result
+                this.cancelVerification();
+
+                // Reload current target
+                await this.loadCurrentNICTarget();
+            } else {
+                alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error saving NIC target:', error);
+            alert('❌ เกิดข้อผิดพลาดในการบันทึก');
+        }
     }
 
     async loadSettingsContent() {
@@ -2445,13 +2731,44 @@ class FingrowAdmin {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Save Settings Button -->
-            <div class="mt-8 text-center">
-                <button onclick="saveSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg text-lg font-semibold">
-                    <i class="fas fa-save mr-2"></i>บันทึกการตั้งค่า
-                </button>
+                <!-- NIC Registration Target -->
+                <div class="card p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold text-white mb-4">
+                        <i class="fas fa-user-plus mr-2"></i>NIC Registration Target
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-300 text-sm font-medium mb-2">
+                                ผู้ใช้เป้าหมายสำหรับการสมัครแบบไม่มี Invite Code (NIC)
+                            </label>
+                            <p class="text-gray-400 text-xs mb-3">
+                                เมื่อผู้ใช้สมัครโดยไม่ใส่ Invite Code ระบบจะกำหนดให้ผู้ใช้ที่เลือกเป็น invitor อัตโนมัติ
+                            </p>
+
+                            <div class="flex gap-2">
+                                <input type="text" id="nicTargetSearch" placeholder="กรอก Username หรือ User ID..."
+                                       class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                                       onkeypress="if(event.key === 'Enter') admin.verifyNICTarget()">
+                                <button onclick="admin.verifyNICTarget()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
+                                    <i class="fas fa-search mr-2"></i>ตรวจสอบ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Current NIC Target Display -->
+                        <div id="nicTargetCurrent" class="bg-gray-800 border border-emerald-700 rounded-lg p-4">
+                            <div class="flex justify-center items-center py-4">
+                                <i class="fas fa-spinner fa-spin text-emerald-500 text-2xl"></i>
+                            </div>
+                        </div>
+
+                        <!-- Verification Result Display -->
+                        <div id="nicTargetResult" class="hidden">
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
     }

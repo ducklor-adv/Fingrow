@@ -430,12 +430,9 @@ app.get('/api/users', async (req, res) => {
                 u.created_at, u.last_login, u.is_active, u.avatar_url as profile_image,
                 u.trust_score as seller_rating, u.total_sales, u.location as province,
 
-                -- Follower count (people who used this user's invite code)
-                -- Check both by ID and username for legacy compatibility
-                (SELECT COUNT(*) FROM users WHERE invitor_id = u.id OR invitor_id = u.username) as follower_count,
-
-                -- Child count (people who have this user as parent_id in ACF structure)
-                (SELECT COUNT(*) FROM users WHERE parent_id = u.id) as child_count,
+                -- Get follower_count and child_count from fingrow_dna table
+                COALESCE(dna.follower_count, 0) as follower_count,
+                COALESCE(dna.child_count, 0) as child_count,
 
                 -- Purchase stats (as buyer)
                 (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as purchase_count,
@@ -452,6 +449,7 @@ app.get('/api/users', async (req, res) => {
                 -- Products listed
                 (SELECT COUNT(*) FROM products WHERE seller_id = u.id) as products_count
             FROM users u
+            LEFT JOIN fingrow_dna dna ON u.id = dna.user_id
             ORDER BY u.created_at DESC
         `;
 
@@ -677,16 +675,27 @@ app.post('/api/register', async (req, res) => {
             }
         }
 
-        // If no invitor (NIC), use root user
+        // If no invitor (NIC), use configured target user or root user
         if (!invitorId) {
-            console.log('🔍 NIC Registration - Finding root user...');
-            const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
-            if (rootUser) {
-                invitorId = rootUser.id;
-                console.log('✅ Root user found:', invitorId);
+            console.log('🔍 NIC Registration - Finding target user...');
+
+            // Check if NIC target is configured in settings
+            const nicTargetSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('nic_registration_target');
+
+            if (nicTargetSetting && nicTargetSetting.value) {
+                // Use configured NIC target
+                invitorId = nicTargetSetting.value;
+                console.log('✅ NIC target user found (from settings):', invitorId);
             } else {
-                console.log('❌ Root user not found');
-                return res.json({ success: false, message: 'System root user not found' });
+                // Fallback to root user
+                const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+                if (rootUser) {
+                    invitorId = rootUser.id;
+                    console.log('✅ Root user found (default):', invitorId);
+                } else {
+                    console.log('❌ No target user found');
+                    return res.json({ success: false, message: 'System target user not found' });
+                }
             }
         }
 
@@ -771,6 +780,48 @@ app.post('/api/register', async (req, res) => {
                 );
                 console.log('✅ Notification created for invitor');
             }
+        }
+
+        // Insert into fingrow_dna table for ACF tracking
+        console.log('🧬 Inserting into fingrow_dna table...');
+        try {
+            // Calculate level (parent's level + 1)
+            let level = 1;
+            if (parentId) {
+                const parentDna = db.prepare('SELECT level FROM fingrow_dna WHERE user_id = ?').get(parentId);
+                if (parentDna) {
+                    level = parentDna.level + 1;
+                }
+            }
+
+            // Get next run_number
+            const lastRun = db.prepare('SELECT MAX(run_number) as max_run FROM fingrow_dna').get();
+            const runNumber = (lastRun && lastRun.max_run) ? lastRun.max_run + 1 : 1;
+
+            db.prepare(`
+                INSERT INTO fingrow_dna (
+                    user_id, parent_id, level, run_number,
+                    regist_time, regist_type, user_type,
+                    own_finpoint, total_finpoint,
+                    child_count, follower_count, follower_full_status,
+                    max_follower, max_level_royalty
+                ) VALUES (?, ?, ?, ?, ?, ?, 'Atta', 0, 0, 0, 0, 'Open', 5, 19530)
+            `).run(userId, parentId, level, runNumber, new Date().toISOString(), registrationType);
+
+            console.log('✅ fingrow_dna record created - Level:', level, 'Run:', runNumber);
+
+            // Update parent's child_count
+            if (parentId) {
+                db.prepare(`
+                    UPDATE fingrow_dna
+                    SET child_count = child_count + 1
+                    WHERE user_id = ?
+                `).run(parentId);
+                console.log('✅ Parent child_count updated');
+            }
+        } catch (dnaError) {
+            console.error('⚠️ Error inserting into fingrow_dna:', dnaError);
+            // Don't fail registration if DNA insert fails
         }
 
         // Get the created user
@@ -3085,22 +3136,7 @@ app.post('/api/orders/:orderId/complete', (req, res) => {
             orderId
         );
 
-        // Create notification #11: Commission received notification
-        // Calculate 5% commission from community_fee
-        const commissionAmount = order.community_fee;
-
-        // Notify seller about their potential commission earnings
-        const seller = db.prepare('SELECT * FROM users WHERE id = ?').get(order.seller_id);
-        if (seller && seller.parent_id) {
-            createNotification(
-                seller.parent_id,
-                'commission_earned',
-                '💰 ได้รับค่าคอมมิชชั่น',
-                `คุณได้รับค่าคอมมิชชั่น ${commissionAmount.toFixed(2)} THB จากการซื้อขายของเครือข่าย (${order.order_number})`,
-                '💰',
-                orderId
-            );
-        }
+        // No commission notification (community fee removed)
 
         res.json({ success: true, data: order });
     } catch (error) {
@@ -3324,6 +3360,190 @@ app.post('/api/admin/broadcast-notification', (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
+
+// ========================================
+// SETTINGS ENDPOINTS
+// ========================================
+
+// Get system settings
+app.get('/api/settings', (req, res) => {
+    try {
+        // Create settings table if not exists
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                description TEXT,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `);
+
+        const settings = db.prepare('SELECT * FROM settings').all();
+
+        // Convert to key-value object
+        const settingsObj = {};
+        settings.forEach(setting => {
+            settingsObj[setting.key] = setting.value;
+        });
+
+        res.json({ success: true, data: settingsObj });
+    } catch (error) {
+        console.error('Error getting settings:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Update system settings
+app.post('/api/settings', (req, res) => {
+    try {
+        const { key, value, description } = req.body;
+
+        if (!key) {
+            return res.status(400).json({ success: false, message: 'Key is required' });
+        }
+
+        // Create settings table if not exists
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                description TEXT,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `);
+
+        // Upsert the setting
+        db.prepare(`
+            INSERT INTO settings (key, value, description, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                description = excluded.description,
+                updated_at = datetime('now')
+        `).run(key, value, description || null);
+
+        res.json({ success: true, message: 'Setting updated' });
+    } catch (error) {
+        console.error('Error updating settings:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get NIC registration target user with full details
+app.get('/api/settings/nic-target', (req, res) => {
+    try {
+        const setting = db.prepare('SELECT value FROM settings WHERE key = ?').get('nic_registration_target');
+
+        let targetUserId = null;
+        if (setting && setting.value) {
+            targetUserId = setting.value;
+        } else {
+            // Default: find root user
+            const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+            if (rootUser) {
+                targetUserId = rootUser.id;
+            }
+        }
+
+        // Get user details with network stats
+        if (targetUserId) {
+            const user = db.prepare(`
+                SELECT id, username, full_name, invite_code, profile_image_filename, created_at
+                FROM users WHERE id = ?
+            `).get(targetUserId);
+
+            if (user) {
+                // Get DNA info for follower_count and child_count
+                const dnaInfo = db.prepare(`
+                    SELECT follower_count, child_count, level
+                    FROM fingrow_dna WHERE user_id = ?
+                `).get(targetUserId);
+
+                // Calculate network size (total descendants)
+                const networkSize = calculateNetworkSize(targetUserId);
+
+                // Add network stats to user
+                user.follower_count = dnaInfo ? dnaInfo.follower_count : 0;
+                user.child_count = dnaInfo ? dnaInfo.child_count : 0;
+                user.level = dnaInfo ? dnaInfo.level : 0;
+                user.network_size = networkSize;
+
+                res.json({ success: true, data: user });
+            } else {
+                res.json({ success: false, message: 'User not found' });
+            }
+        } else {
+            res.json({ success: false, message: 'No target user found' });
+        }
+    } catch (error) {
+        console.error('Error getting NIC target:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Verify user by ID or username and get full network details
+app.post('/api/settings/verify-user', (req, res) => {
+    try {
+        const { search } = req.body;
+
+        if (!search) {
+            return res.status(400).json({ success: false, message: 'Search term required' });
+        }
+
+        // Search by ID or username
+        const user = db.prepare(`
+            SELECT id, username, full_name, invite_code, profile_image_filename, created_at
+            FROM users
+            WHERE id = ? OR username = ?
+            LIMIT 1
+        `).get(search.trim(), search.trim());
+
+        if (!user) {
+            return res.json({ success: false, message: 'ไม่พบผู้ใช้ดังกล่าว' });
+        }
+
+        // Get DNA info
+        const dnaInfo = db.prepare(`
+            SELECT follower_count, child_count, level
+            FROM fingrow_dna WHERE user_id = ?
+        `).get(user.id);
+
+        // Calculate network size
+        const networkSize = calculateNetworkSize(user.id);
+
+        // Add network stats
+        user.follower_count = dnaInfo ? dnaInfo.follower_count : 0;
+        user.child_count = dnaInfo ? dnaInfo.child_count : 0;
+        user.level = dnaInfo ? dnaInfo.level : 0;
+        user.network_size = networkSize;
+
+        res.json({ success: true, data: user });
+    } catch (error) {
+        console.error('Error verifying user:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Helper function to calculate network size (total descendants)
+function calculateNetworkSize(userId) {
+    try {
+        // Count all users in the downline
+        const result = db.prepare(`
+            WITH RECURSIVE downline AS (
+                SELECT id FROM users WHERE parent_id = ?
+                UNION ALL
+                SELECT u.id FROM users u
+                INNER JOIN downline d ON u.parent_id = d.id
+            )
+            SELECT COUNT(*) as count FROM downline
+        `).get(userId);
+
+        return result ? result.count : 0;
+    } catch (error) {
+        console.error('Error calculating network size:', error);
+        return 0;
+    }
+}
 
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

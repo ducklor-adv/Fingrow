@@ -146,99 +146,6 @@
             border: 2px solid #0f172a;
         }
 
-        .notification-panel {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            width: 360px;
-            max-width: calc(100vw - 40px);
-            max-height: 500px;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            overflow: hidden;
-            z-index: 9999;
-            display: none;
-            pointer-events: none;
-        }
-
-        .notification-panel.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-            pointer-events: auto;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .notification-header {
-            padding: 16px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .notification-header h3 {
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .mark-all-read {
-            color: #10b981;
-            font-size: 12px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .notification-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .notification-item {
-            padding: 16px;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.05);
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .notification-item:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .notification-item.unread {
-            background: rgba(16, 185, 129, 0.05);
-        }
-
-        .notification-item .title {
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .notification-item .message {
-            color: #9ca3af;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-
-        .notification-item .time {
-            color: #6b7280;
-            font-size: 11px;
-        }
-
         /* Search Bar */
         .search-container {
             position: relative;
@@ -1689,20 +1596,9 @@
 </head>
 <body>
     <!-- Notification Bell -->
-    <div class="notification-bell" onclick="toggleNotifications()">
+    <div class="notification-bell" onclick="goToNotifications()">
         <div class="icon">🔔</div>
         <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
-    </div>
-
-    <!-- Notification Panel -->
-    <div class="notification-panel" id="notificationPanel">
-        <div class="notification-header">
-            <h3>📬 การแจ้งเตือน</h3>
-            <a href="#" class="mark-all-read" onclick="markAllAsRead(); return false;">ทำเครื่องหมายอ่านแล้ว</a>
-        </div>
-        <div class="notification-list" id="notificationList">
-            <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ไม่มีการแจ้งเตือน</p>
-        </div>
     </div>
 
     <!-- Marketplace Page -->
@@ -2536,14 +2432,25 @@
                 <div class="logo">🤝 เครือข่าย</div>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">0</div>
-                    <div class="stat-label">คนที่แนะนำ</div>
+            <!-- Network Stats -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                <!-- Follower -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.4); text-align: center;">
+                    <div style="color: #e9d5ff; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Follower</div>
+                    <div style="color: #c084fc; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkFollowerCount">0</span></div>
+                    <div style="color: #e9d5ff; font-size: 11px; opacity: 0.8;">คน</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">2,450</div>
-                    <div class="stat-label">Finpoint (FP)</div>
+                <!-- Child -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.4); text-align: center;">
+                    <div style="color: #e9d5ff; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Child</div>
+                    <div style="color: #c084fc; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkChildCount">0</span></div>
+                    <div style="color: #e9d5ff; font-size: 11px; opacity: 0.8;">คน</div>
+                </div>
+                <!-- Network -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.4); text-align: center;">
+                    <div style="color: #67e8f9; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Network</div>
+                    <div style="color: #06b6d4; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkNetworkSize">0</span></div>
+                    <div style="color: #67e8f9; font-size: 11px; opacity: 0.8;">คน</div>
                 </div>
             </div>
 
@@ -3923,8 +3830,12 @@
                         cancelled: 'ยกเลิก'
                     };
 
+                    // Border color: Red for buyer, Green for seller
+                    const borderColor = isBuyer ? '#ef4444' : '#10b981';
+                    const borderShadow = isBuyer ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.5)';
+
                     return `
-                        <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid #e5e7eb;">
+                        <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 3px solid ${borderColor}; box-shadow: 0 0 15px ${borderShadow};">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                                 <div style="font-weight: 600; color: #374151;">${order.product_title || 'สินค้า'}</div>
                                 <div style="background: ${statusColors[order.status] || '#6b7280'}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
@@ -5928,8 +5839,18 @@
         }
 
         function showOrderConfirmation(paymentMethod) {
-            const communityFee = currentProduct.price * 0.05; // 5% community fee
-            const total = currentProduct.price + communityFee;
+            // Get shipping fee from product or default to 0
+            const shippingFee = currentProduct.shipping_fee || 0;
+            const total = currentProduct.price + shippingFee;
+
+            // Get seller name from global users cache
+            let sellerName = 'ไม่ระบุ';
+            if (currentProduct.seller_id && globalUsersCache) {
+                const seller = globalUsersCache.find(u => u.id === currentProduct.seller_id);
+                if (seller) {
+                    sellerName = seller.full_name || seller.username || 'ไม่ระบุ';
+                }
+            }
 
             const icon = paymentMethod.type === 'bank' ? '🏦' :
                         paymentMethod.type === 'crypto' ? '₿' :
@@ -5961,7 +5882,7 @@
 
                         <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
                             <h3 style="color: white; font-size: 16px; margin-bottom: 8px;">${currentProduct.title}</h3>
-                            <p style="color: #9ca3af; font-size: 14px;">ผู้ขาย: ${currentProduct.seller_name}</p>
+                            <p style="color: #9ca3af; font-size: 14px;">ผู้ขาย: ${sellerName}</p>
                         </div>
 
                         <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
@@ -5970,8 +5891,8 @@
                                 <span style="color: white;">฿${currentProduct.price.toLocaleString()}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="color: #9ca3af;">ค่าธรรมเนียมชุมชน (5%)</span>
-                                <span style="color: white;">฿${communityFee.toLocaleString()}</span>
+                                <span style="color: #9ca3af;">ค่าจัดส่ง</span>
+                                <span style="color: white;">${shippingFee > 0 ? '฿' + shippingFee.toLocaleString() : 'ฟรี'}</span>
                             </div>
                             <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0; padding-top: 12px;">
                                 <div style="display: flex; justify-content: space-between;">
@@ -6076,15 +5997,15 @@
             }
 
             const buyerNotes = document.getElementById('buyerNotes').value.trim();
-            const communityFee = currentProduct.price * 0.05;
-            const total = currentProduct.price + communityFee;
+            const shippingFee = currentProduct.shipping_fee || 0;
+            const total = currentProduct.price + shippingFee;
 
             const orderData = {
                 buyer_id: currentUser.id,
                 seller_id: currentProduct.seller_id,
                 product_id: currentProduct.id,
                 subtotal: currentProduct.price,
-                community_fee: communityFee,
+                community_fee: shippingFee, // Using community_fee field for shipping fee
                 total_amount: total,
                 shipping_address: shippingAddress,
                 buyer_notes: buyerNotes
@@ -6164,7 +6085,7 @@
                         const statusInfo = getOrderStatusInfo(order.status);
 
                         return `
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div style="background: rgba(15, 23, 42, 0.8); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 3px solid #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                     <div>
                                         <div style="color: white; font-weight: 600; font-size: 14px;">เลขที่: ${order.order_number}</div>
@@ -6211,7 +6132,7 @@
                         const statusInfo = getOrderStatusInfo(order.status);
 
                         return `
-                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div style="background: rgba(15, 23, 42, 0.8); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 3px solid #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                     <div>
                                         <div style="color: white; font-weight: 600; font-size: 14px;">เลขที่: ${order.order_number}</div>
@@ -6347,16 +6268,8 @@
                                     <span style="color: #9ca3af; font-size: 14px;">${isBuyer ? 'ผู้ขาย' : 'ผู้ซื้อ'}:</span>
                                     <span style="color: white; font-size: 14px; font-weight: 600;">${isBuyer ? (order.seller_name || 'ไม่ระบุ') : (order.buyer_name || 'ไม่ระบุ')}</span>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span style="color: #9ca3af; font-size: 14px;">ราคาสินค้า:</span>
-                                    <span style="color: white; font-size: 14px; font-weight: 600;">฿${order.subtotal.toLocaleString()}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                    <span style="color: #9ca3af; font-size: 14px;">ค่าธรรมเนียมชุมชน:</span>
-                                    <span style="color: white; font-size: 14px; font-weight: 600;">฿${order.community_fee.toLocaleString()}</span>
-                                </div>
                                 <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                                    <span style="color: #10b981; font-size: 16px; font-weight: bold;">รวมทั้งหมด:</span>
+                                    <span style="color: #10b981; font-size: 16px; font-weight: bold;">ราคาสินค้า:</span>
                                     <span style="color: #10b981; font-size: 16px; font-weight: bold;">฿${order.total_amount.toLocaleString()}</span>
                                 </div>
                                 ${order.shipping_address ? `
@@ -6838,28 +6751,14 @@
         // ==================== Notifications System ====================
         let notifications = [];
 
-        function toggleNotifications() {
-            const panel = document.getElementById('notificationPanel');
-
-            if (panel.classList.contains('show')) {
-                panel.classList.remove('show');
-            } else {
-                panel.classList.add('show');
-                loadNotifications();
-            }
+        // Navigate to notifications page when bell is clicked
+        function goToNotifications() {
+            showPage('listings');
+            showListingsTab('notifications');
         }
 
-        // Close notification panel when clicking outside
-        document.addEventListener('click', function(e) {
-            const panel = document.getElementById('notificationPanel');
-            const bell = document.querySelector('.notification-bell');
-
-            if (panel.classList.contains('show') && !panel.contains(e.target) && !bell.contains(e.target)) {
-                panel.classList.remove('show');
-            }
-        });
-
-        async function loadNotifications() {
+        // Update notification badge count
+        async function updateNotificationBadge() {
             if (!currentUser) return;
 
             try {
@@ -6868,63 +6767,31 @@
 
                 if (result.success) {
                     notifications = result.data;
-                    renderNotifications();
-                    updateNotificationBadge();
+
+                    // Count unread notifications
+                    const unreadCount = notifications.filter(n => !n.is_read).length;
+
+                    // Update badge
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        if (unreadCount > 0) {
+                            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
                 }
             } catch (error) {
-                console.error('Error loading notifications:', error);
+                console.error('Error updating notification badge:', error);
             }
         }
 
-        function renderNotifications() {
-            const container = document.getElementById('notificationList');
-
-            if (notifications.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ไม่มีการแจ้งเตือน</p>';
-                return;
-            }
-
-            // Show only latest 5 notifications
-            const recentNotifs = notifications.slice(0, 5);
-
-            container.innerHTML = recentNotifs.map(notif => {
-                const timeAgo = getTimeAgo(notif.created_at);
-                // Parse data JSON to get icon and referenceId
-                let icon = '📬';
-                let referenceId = '';
-                try {
-                    if (notif.data) {
-                        const data = JSON.parse(notif.data);
-                        icon = data.icon || icon;
-                        referenceId = data.referenceId || '';
-                    }
-                } catch (e) {}
-
-                return `
-                    <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="handleNotificationClick('${notif.id}', '${notif.type}', '${referenceId}')">
-                        <div class="title">${icon} ${notif.title}</div>
-                        <div class="message">${notif.body || notif.message || ''}</div>
-                        <div class="time">${timeAgo}</div>
-                    </div>
-                `;
-            }).join('') + `
-                <div style="padding: 12px; text-align: center; border-top: 1px solid rgba(148, 163, 184, 0.1);">
-                    <a href="#" onclick="showPage('listings'); showListingsTab('notifications'); document.getElementById('notificationPanel').classList.remove('show'); return false;" style="color: #10b981; text-decoration: none; font-weight: 600; font-size: 14px;">
-                        ดูทั้งหมด (${notifications.length})
-                    </a>
-                </div>
-            `;
-        }
-
-        function updateNotificationBadge() {
-            const unreadCount = notifications.filter(n => !n.is_read).length;
-            const badge = document.getElementById('notificationBadge');
-
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
+        // Start periodic badge updates when user logs in
+        function startNotificationUpdates() {
+            if (currentUser) {
+                updateNotificationBadge(); // Update immediately
+                setInterval(updateNotificationBadge, 30000); // Update every 30 seconds
             }
         }
 
@@ -7162,6 +7029,9 @@
                         const bell = document.querySelector('.notification-bell');
                         if (bell) bell.classList.add('show');
                         console.log('✅ User already logged in:', currentUser.username);
+
+                        // Start notification updates
+                        startNotificationUpdates();
                     }
                 } catch (e) {
                     console.error('Error loading saved user:', e);
@@ -7354,6 +7224,9 @@
 
                     // Show notification bell
                     document.querySelector('.notification-bell').classList.add('show');
+
+                    // Start notification updates
+                    startNotificationUpdates();
 
                     // Redirect to marketplace
                     showPage('marketplace');
@@ -8497,15 +8370,21 @@
                 console.log('Current user ID:', currentUser.id);
                 console.log('Found invitees:', myInvitees.map(u => ({id: u.id, username: u.username})));
 
-                // Update real referral count
-                document.querySelector('#referrals .stat-card:first-child .stat-value').textContent = myInvitees.length;
+                // Get network stats from currentUser (loaded from API)
+                const followerCount = currentUser.follower_count || 0;
+                const childCount = currentUser.child_count || 0;
+                const networkSize = currentUser.network_size || 0;
 
-                // Mock Finpoint data
-                const mockFinpoint = 2450;
-                const statCards = document.querySelectorAll('#referrals .stat-card');
-                if (statCards.length >= 2) {
-                    statCards[1].querySelector('.stat-value').textContent = mockFinpoint.toLocaleString();
-                }
+                // Update network stats
+                const followerEl = document.getElementById('networkFollowerCount');
+                const childEl = document.getElementById('networkChildCount');
+                const networkEl = document.getElementById('networkNetworkSize');
+
+                if (followerEl) followerEl.textContent = followerCount;
+                if (childEl) childEl.textContent = childCount;
+                if (networkEl) networkEl.textContent = networkSize;
+
+                console.log('Network stats updated:', { followerCount, childCount, networkSize });
 
                 // Find and display who invited current user
                 const inviterID = currentUser.invited_by || currentUser.invitor_id;
