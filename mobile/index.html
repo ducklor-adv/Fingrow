@@ -90,6 +90,143 @@
             color: #a1a1aa;
         }
 
+        /* Notification Bell */
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .notification-bell:hover {
+            background: rgba(30, 41, 59, 1);
+            transform: scale(1.05);
+        }
+
+        .notification-bell .icon {
+            font-size: 24px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            border: 2px solid #0f172a;
+        }
+
+        .notification-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 360px;
+            max-width: calc(100vw - 40px);
+            max-height: 500px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            overflow: hidden;
+            z-index: 999;
+            display: none;
+        }
+
+        .notification-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .mark-all-read {
+            color: #10b981;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .notification-item.unread {
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .notification-item .title {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .notification-item .message {
+            color: #9ca3af;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .notification-item .time {
+            color: #6b7280;
+            font-size: 11px;
+        }
+
         /* Search Bar */
         .search-container {
             position: relative;
@@ -1539,6 +1676,23 @@
     </style>
 </head>
 <body>
+    <!-- Notification Bell -->
+    <div class="notification-bell" onclick="toggleNotifications()">
+        <div class="icon">🔔</div>
+        <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
+    </div>
+
+    <!-- Notification Panel -->
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h3>📬 การแจ้งเตือน</h3>
+            <a href="#" class="mark-all-read" onclick="markAllAsRead(); return false;">ทำเครื่องหมายอ่านแล้ว</a>
+        </div>
+        <div class="notification-list" id="notificationList">
+            <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ไม่มีการแจ้งเตือน</p>
+        </div>
+    </div>
+
     <!-- Marketplace Page -->
     <div id="marketplace" class="page active">
         <div class="container">
@@ -1661,15 +1815,18 @@
             </div>
 
             <!-- Tab Navigation -->
-            <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #374151;">
-                <button id="sellTab" class="tab-button active" onclick="showListingsTab('sell')" style="flex: 1; padding: 12px; border: none; background: none; color: #10b981; font-weight: bold; border-bottom: 2px solid #10b981;">
+            <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #374151; overflow-x: auto;">
+                <button id="sellTab" class="tab-button active" onclick="showListingsTab('sell')" style="flex: 1; padding: 12px; border: none; background: none; color: #10b981; font-weight: bold; border-bottom: 2px solid #10b981; white-space: nowrap;">
                     ➕ ลงขาย
                 </button>
-                <button id="myProductsTab" class="tab-button" onclick="showListingsTab('myProducts')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold;">
+                <button id="myProductsTab" class="tab-button" onclick="showListingsTab('myProducts')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold; white-space: nowrap;">
                     🛍️ สินค้าของฉัน
                 </button>
-                <button id="ordersTab" class="tab-button" onclick="showListingsTab('orders')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold;">
+                <button id="ordersTab" class="tab-button" onclick="showListingsTab('orders')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold; white-space: nowrap;">
                     📦 คำสั่งซื้อ
+                </button>
+                <button id="notificationsTab" class="tab-button" onclick="showListingsTab('notifications')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold; white-space: nowrap;">
+                    🔔 แจ้งเตือน
                 </button>
             </div>
 
@@ -2519,6 +2676,132 @@
         </div>
     </div>
 
+    <!-- Wallet Management Page -->
+    <div id="walletManagement" class="page">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showPage('profile')">←</button>
+                <div class="logo">💰 จัดการกระเป๋าเงิน</div>
+            </div>
+
+            <!-- Payment Methods List -->
+            <div id="paymentMethodsList" class="mb-4">
+                <p class="text-gray-400 text-center py-8">กำลังโหลด...</p>
+            </div>
+
+            <!-- Add Payment Method Button -->
+            <button class="btn" onclick="showAddPaymentMethodForm()" style="width: 100%; margin-top: 16px;">
+                ➕ เพิ่มบัญชี/Wallet ใหม่
+            </button>
+        </div>
+    </div>
+
+    <!-- Notifications Tab Content -->
+    <div id="notificationsTabContent" class="tab-content" style="display: none;">
+        <div id="fullNotificationsList">
+            <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
+        </div>
+    </div>
+
+    <!-- Add Payment Method Form -->
+    <div id="addPaymentMethodForm" class="page">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showPage('walletManagement')">←</button>
+                <div class="logo" id="formTitle">➕ เพิ่มบัญชี/Wallet</div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="form-section-title">ประเภท</h3>
+                <select id="paymentType" class="form-input" onchange="updatePaymentFormFields()">
+                    <option value="bank">🏦 บัญชีธนาคาร</option>
+                    <option value="promptpay">📱 พร้อมเพย์</option>
+                    <option value="crypto">₿ Crypto Wallet</option>
+                    <option value="other">📋 อื่นๆ</option>
+                </select>
+            </div>
+
+            <!-- Bank Fields -->
+            <div id="bankFields" class="form-section">
+                <h3 class="form-section-title">ข้อมูลบัญชี</h3>
+
+                <label class="form-label">ชื่อบัญชี</label>
+                <input type="text" id="accountName" class="form-input" placeholder="ชื่อ-นามสกุล" required>
+
+                <label class="form-label" style="margin-top: 12px;">ธนาคาร</label>
+                <select id="bankName" class="form-input">
+                    <option value="">เลือกธนาคาร</option>
+                    <option value="ธนาคารกสิกรไทย">ธนาคารกสิกรไทย</option>
+                    <option value="ธนาคารกรุงเทพ">ธนาคารกรุงเทพ</option>
+                    <option value="ธนาคารไทยพาณิชย์">ธนาคารไทยพาณิชย์</option>
+                    <option value="ธนาคารกรุงไทย">ธนาคารกรุงไทย</option>
+                    <option value="ธนาคารทหารไทยธนชาต">ธนาคารทหารไทยธนชาต</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา">ธนาคารกรุงศรีอยุธยา</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร">ธนาคารเกียรตินาคินภัทร</option>
+                </select>
+
+                <label class="form-label" style="margin-top: 12px;">เลขที่บัญชี</label>
+                <input type="text" id="accountNumber" class="form-input" placeholder="xxx-x-xxxxx-x">
+            </div>
+
+            <!-- Crypto Fields -->
+            <div id="cryptoFields" class="form-section" style="display: none;">
+                <h3 class="form-section-title">ข้อมูล Wallet</h3>
+
+                <label class="form-label">ชื่อ Wallet</label>
+                <input type="text" id="cryptoName" class="form-input" placeholder="เช่น My USDT Wallet">
+
+                <label class="form-label" style="margin-top: 12px;">Network</label>
+                <select id="cryptoNetwork" class="form-input">
+                    <option value="">เลือก Network</option>
+                    <option value="ETH">Ethereum (ERC20)</option>
+                    <option value="BSC">Binance Smart Chain (BEP20)</option>
+                    <option value="TRC20">TRON (TRC20)</option>
+                    <option value="Polygon">Polygon</option>
+                    <option value="Solana">Solana</option>
+                </select>
+
+                <label class="form-label" style="margin-top: 12px;">Wallet Address</label>
+                <input type="text" id="walletAddress" class="form-input" placeholder="0x...">
+            </div>
+
+            <!-- QR Code Upload -->
+            <div class="form-section">
+                <h3 class="form-section-title">QR Code รับเงิน (ถ้ามี)</h3>
+                <input type="file" id="qrCodeFile" accept="image/*" class="form-input" style="padding: 8px;" onchange="previewQRCode(event)">
+                <p class="text-gray-400 text-sm" style="margin-top: 8px;">อัพโหลด QR Code สำหรับให้ลูกค้าสแกนจ่ายเงิน</p>
+                <div id="qrPreview" style="margin-top: 12px; display: none;">
+                    <img id="qrPreviewImage" src="" style="max-width: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                </div>
+            </div>
+
+            <!-- Set as Default -->
+            <div class="form-section">
+                <label style="display: flex; align-items: center; color: white;">
+                    <input type="checkbox" id="setAsDefault" style="margin-right: 8px;">
+                    ตั้งเป็นบัญชีหลัก
+                </label>
+            </div>
+
+            <button class="btn" id="saveButton" onclick="savePaymentMethod()" style="width: 100%; margin-top: 16px;">
+                💾 บันทึก
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="orders" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">📦 คำสั่งซื้อของฉัน</div>
+            </div>
+
+            <div id="ordersContainer" style="margin-top: 20px;">
+                <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Chats List Page -->
     <div id="chatsList" class="page">
         <div class="container">
@@ -3089,6 +3372,7 @@
             document.getElementById('sellTabContent').style.display = 'none';
             document.getElementById('myProductsTabContent').style.display = 'none';
             document.getElementById('ordersTabContent').style.display = 'none';
+            document.getElementById('notificationsTabContent').style.display = 'none';
 
             // Remove active class from all tab buttons
             document.querySelectorAll('.tab-button').forEach(btn => {
@@ -3105,14 +3389,17 @@
                 document.getElementById('myProductsTabContent').style.display = 'block';
                 document.getElementById('myProductsTab').style.color = '#10b981';
                 document.getElementById('myProductsTab').style.borderBottom = '2px solid #10b981';
-                // Load user's products
                 loadMyProducts();
             } else if (tabName === 'orders') {
                 document.getElementById('ordersTabContent').style.display = 'block';
                 document.getElementById('ordersTab').style.color = '#10b981';
                 document.getElementById('ordersTab').style.borderBottom = '2px solid #10b981';
-                // Load user's orders
                 loadMyOrders();
+            } else if (tabName === 'notifications') {
+                document.getElementById('notificationsTabContent').style.display = 'block';
+                document.getElementById('notificationsTab').style.color = '#10b981';
+                document.getElementById('notificationsTab').style.borderBottom = '2px solid #10b981';
+                loadFullNotifications();
             }
         }
 
@@ -3351,7 +3638,13 @@
             });
 
             // Show selected page
-            document.getElementById(pageId).classList.add('active');
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            } else {
+                console.error('Page not found:', pageId);
+                return;
+            }
 
             // Special handling for listings page
             if (pageId === 'listings') {
@@ -4959,10 +5252,533 @@
             }
         });
 
-        function buyProduct() {
+        async function buyProduct() {
             if (!currentProduct) return;
-            alert(`สั่งซื้อสินค้า: ${currentProduct.title} (ฟีเจอร์นี้ยังไม่พร้อม)`);
-            console.log('Buy product:', currentProduct.id);
+            if (!currentUser) {
+                alert('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');
+                return;
+            }
+
+            // Get seller's payment methods
+            try {
+                const response = await fetch(`/api/payment-methods/${currentProduct.seller_id}`);
+                const result = await response.json();
+
+                if (!result.success || result.data.length === 0) {
+                    alert('ผู้ขายยังไม่ได้ตั้งค่าบัญชีรับเงิน กรุณาติดต่อผู้ขายโดยตรง');
+                    return;
+                }
+
+                // Find default payment method
+                const defaultPayment = result.data.find(m => m.is_default === 1) || result.data[0];
+
+                // Show order confirmation
+                showOrderConfirmation(defaultPayment);
+            } catch (error) {
+                console.error('Error loading payment methods:', error);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูลการชำระเงิน');
+            }
+        }
+
+        function showOrderConfirmation(paymentMethod) {
+            const communityFee = currentProduct.price * 0.05; // 5% community fee
+            const total = currentProduct.price + communityFee;
+
+            const icon = paymentMethod.type === 'bank' ? '🏦' :
+                        paymentMethod.type === 'crypto' ? '₿' :
+                        paymentMethod.type === 'promptpay' ? '📱' : '📋';
+
+            const displayName = paymentMethod.type === 'bank' ?
+                `${paymentMethod.bank_name} - ${paymentMethod.account_number}` :
+                paymentMethod.type === 'crypto' ?
+                `${paymentMethod.network} - ${paymentMethod.wallet_address}` :
+                paymentMethod.account_name;
+
+            let qrSection = '';
+            if (paymentMethod.qr_code_path) {
+                qrSection = `
+                    <div style="text-align: center; margin-top: 16px;">
+                        <img src="${paymentMethod.qr_code_path}" style="max-width: 250px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                        <p style="color: #9ca3af; font-size: 12px; margin-top: 8px;">สแกนเพื่อชำระเงิน</p>
+                    </div>
+                `;
+            }
+
+            // Get user's shipping address
+            const defaultAddress = currentUser.shipping_address || '';
+
+            const confirmHtml = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" id="orderConfirmPopup">
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 24px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                        <h2 style="color: white; margin-bottom: 20px; font-size: 24px;">📋 ยืนยันการสั่งซื้อ</h2>
+
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <h3 style="color: white; font-size: 16px; margin-bottom: 8px;">${currentProduct.title}</h3>
+                            <p style="color: #9ca3af; font-size: 14px;">ผู้ขาย: ${currentProduct.seller_name}</p>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: #9ca3af;">ราคาสินค้า</span>
+                                <span style="color: white;">฿${currentProduct.price.toLocaleString()}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="color: #9ca3af;">ค่าธรรมเนียมชุมชน (5%)</span>
+                                <span style="color: white;">฿${communityFee.toLocaleString()}</span>
+                            </div>
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 12px 0; padding-top: 12px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: white; font-weight: 600; font-size: 18px;">รวมทั้งสิ้น</span>
+                                    <span style="color: #10b981; font-weight: 600; font-size: 18px;">฿${total.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <h3 style="color: white; font-size: 16px; margin-bottom: 12px;">💳 ช่องทางชำระเงิน</h3>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 24px; margin-right: 8px;">${icon}</span>
+                                <div>
+                                    <div style="color: white; font-weight: 600;">${paymentMethod.account_name}</div>
+                                    <div style="color: #9ca3af; font-size: 14px;">${displayName}</div>
+                                </div>
+                            </div>
+                            ${qrSection}
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <label style="color: white; font-size: 14px; margin-bottom: 8px; display: block;">ที่อยู่จัดส่ง</label>
+                            <textarea id="shippingAddress" style="width: 100%; min-height: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: white; font-size: 14px;" placeholder="กรุณากรอกที่อยู่จัดส่ง" onkeyup="checkAddressConfirmed()">${defaultAddress}</textarea>
+                            ${!defaultAddress ? '<p style="color: #f59e0b; font-size: 12px; margin-top: 8px;">💡 คุณสามารถตั้งค่าที่อยู่เริ่มต้นได้ในหน้าโปรไฟล์</p>' : ''}
+                            <button id="confirmAddressBtn" onclick="confirmAddress()" style="width: 100%; margin-top: 12px; padding: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;">📍 ยืนยันที่อยู่จัดส่ง</button>
+                            <div id="addressConfirmed" style="display: none; margin-top: 12px; padding: 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 8px; color: #10b981; font-size: 14px;">
+                                ✅ ที่อยู่ได้รับการยืนยันแล้ว
+                            </div>
+                        </div>
+
+                        <div id="buyerNotesSection" style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none;">
+                            <label style="color: white; font-size: 14px; margin-bottom: 8px; display: block;">หมายเหตุ (ถ้ามี)</label>
+                            <textarea id="buyerNotes" style="width: 100%; min-height: 60px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: white; font-size: 14px;" placeholder="ข้อความถึงผู้ขาย"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 12px;">
+                            <button onclick="closeOrderConfirm()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">ยกเลิก</button>
+                            <button id="confirmOrderBtn" onclick="confirmOrder()" disabled style="flex: 1; padding: 12px; background: rgba(128,128,128,0.5); color: rgba(255,255,255,0.5); border: none; border-radius: 8px; font-size: 16px; cursor: not-allowed; font-weight: 600;">✅ ยืนยันการสั่งซื้อ</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', confirmHtml);
+        }
+
+        function confirmAddress() {
+            const address = document.getElementById('shippingAddress').value.trim();
+            if (!address) {
+                alert('กรุณากรอกที่อยู่จัดส่ง');
+                return;
+            }
+
+            // Hide confirm button, show confirmed status
+            document.getElementById('confirmAddressBtn').style.display = 'none';
+            document.getElementById('addressConfirmed').style.display = 'block';
+
+            // Make address readonly
+            document.getElementById('shippingAddress').readOnly = true;
+            document.getElementById('shippingAddress').style.background = 'rgba(0,0,0,0.2)';
+
+            // Show buyer notes section
+            document.getElementById('buyerNotesSection').style.display = 'block';
+
+            // Enable confirm order button
+            const confirmBtn = document.getElementById('confirmOrderBtn');
+            confirmBtn.disabled = false;
+            confirmBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            confirmBtn.style.color = 'white';
+            confirmBtn.style.cursor = 'pointer';
+        }
+
+        function checkAddressConfirmed() {
+            // If user edits address after confirming, reset confirmation
+            const addressConfirmed = document.getElementById('addressConfirmed');
+            if (addressConfirmed && addressConfirmed.style.display === 'block') {
+                addressConfirmed.style.display = 'none';
+                document.getElementById('confirmAddressBtn').style.display = 'block';
+                document.getElementById('shippingAddress').readOnly = false;
+                document.getElementById('shippingAddress').style.background = 'rgba(0,0,0,0.3)';
+                document.getElementById('buyerNotesSection').style.display = 'none';
+
+                const confirmBtn = document.getElementById('confirmOrderBtn');
+                confirmBtn.disabled = true;
+                confirmBtn.style.background = 'rgba(128,128,128,0.5)';
+                confirmBtn.style.color = 'rgba(255,255,255,0.5)';
+                confirmBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        function closeOrderConfirm() {
+            const popup = document.getElementById('orderConfirmPopup');
+            if (popup) popup.remove();
+        }
+
+        async function confirmOrder() {
+            const shippingAddress = document.getElementById('shippingAddress').value.trim();
+            if (!shippingAddress) {
+                alert('กรุณากรอกที่อยู่จัดส่ง');
+                return;
+            }
+
+            const buyerNotes = document.getElementById('buyerNotes').value.trim();
+            const communityFee = currentProduct.price * 0.05;
+            const total = currentProduct.price + communityFee;
+
+            const orderData = {
+                buyer_id: currentUser.id,
+                seller_id: currentProduct.seller_id,
+                product_id: currentProduct.id,
+                subtotal: currentProduct.price,
+                community_fee: communityFee,
+                total_amount: total,
+                shipping_address: shippingAddress,
+                buyer_notes: buyerNotes
+            };
+
+            try {
+                // Update user's shipping address if different from saved one
+                if (shippingAddress !== currentUser.shipping_address) {
+                    await fetch(`/api/users/${currentUser.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ shipping_address: shippingAddress })
+                    });
+                    currentUser.shipping_address = shippingAddress;
+                }
+
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeOrderConfirm();
+                    closeProductPopup();
+                    alert('✅ สั่งซื้อสำเร็จ!\n\nเลขที่คำสั่งซื้อ: ' + result.data.order_number + '\n\nกรุณาชำระเงินตามช่องทางที่แสดง\nและรอผู้ขายยืนยันคำสั่งซื้อ');
+                    showPage('orders');
+                    loadOrders();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error creating order:', error);
+                alert('❌ เกิดข้อผิดพลาดในการสั่งซื้อ');
+            }
+        }
+
+        // ==================== Orders Management ====================
+        async function loadOrders() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/orders/buyer/${currentUser.id}`);
+                const result = await response.json();
+
+                const container = document.getElementById('ordersContainer');
+
+                if (result.success && result.data.length > 0) {
+                    container.innerHTML = result.data.map(order => {
+                        const item = order.items[0]; // First item
+                        const statusInfo = getOrderStatusInfo(order.status);
+
+                        return `
+                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="color: white; font-weight: 600; font-size: 14px;">เลขที่: ${order.order_number}</div>
+                                        <div style="color: #9ca3af; font-size: 12px; margin-top: 4px;">${new Date(order.created_at).toLocaleDateString('th-TH')}</div>
+                                    </div>
+                                    <div style="background: ${statusInfo.color}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                                        ${statusInfo.icon} ${statusInfo.text}
+                                    </div>
+                                </div>
+
+                                ${item ? `
+                                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                                        <img src="${item.product_image || '/placeholder.jpg'}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                                        <div style="flex: 1;">
+                                            <div style="color: white; font-weight: 600; margin-bottom: 4px;">${item.product_title}</div>
+                                            <div style="color: #9ca3af; font-size: 14px;">จำนวน: ${item.quantity}</div>
+                                            <div style="color: #10b981; font-weight: 600; margin-top: 4px;">฿${order.total_amount.toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                    <button onclick="viewOrderDetail('${order.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;">
+                                        📋 ดูรายละเอียด
+                                    </button>
+                                    ${getOrderActionButton(order)}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ยังไม่มีคำสั่งซื้อ</p>';
+                }
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersContainer').innerHTML = '<p style="text-align: center; color: #ef4444; padding: 40px 20px;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        function getOrderStatusInfo(status) {
+            const statusMap = {
+                'pending': { text: 'รอผู้ขายตอบรับ', color: '#f59e0b', icon: '⏳' },
+                'confirmed': { text: 'รอโอนเงิน', color: '#3b82f6', icon: '💳' },
+                'paid': { text: 'รอตรวจสอบการชำระเงิน', color: '#8b5cf6', icon: '🔍' },
+                'payment_verified': { text: 'รอจัดส่ง', color: '#06b6d4', icon: '📦' },
+                'shipped': { text: 'กำลังจัดส่ง', color: '#14b8a6', icon: '🚚' },
+                'delivered': { text: 'รอยืนยันรับสินค้า', color: '#10b981', icon: '✅' },
+                'completed': { text: 'เสร็จสิ้น', color: '#22c55e', icon: '✔️' },
+                'cancelled': { text: 'ยกเลิก', color: '#ef4444', icon: '❌' },
+                'refunded': { text: 'คืนเงินแล้ว', color: '#6b7280', icon: '↩️' }
+            };
+            return statusMap[status] || { text: status, color: '#6b7280', icon: '📄' };
+        }
+
+        function getOrderActionButton(order) {
+            if (order.status === 'confirmed') {
+                return `<button onclick="uploadPaymentSlip('${order.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;">💳 แนบสลิปโอนเงิน</button>`;
+            } else if (order.status === 'delivered') {
+                return `<button onclick="confirmDelivery('${order.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;">✅ ยืนยันรับสินค้า</button>`;
+            } else if (order.status === 'completed' && !order.reviewed) {
+                return `<button onclick="reviewOrder('${order.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600;">⭐ รีวิวสินค้า</button>`;
+            }
+            return '';
+        }
+
+        async function viewOrderDetail(orderId) {
+            // TODO: Show order detail popup
+            alert('ดูรายละเอียดคำสั่งซื้อ: ' + orderId);
+        }
+
+        async function uploadPaymentSlip(orderId) {
+            // TODO: Implement payment slip upload
+            alert('อัพโหลดสลิปโอนเงิน (ฟีเจอร์กำลังพัฒนา)');
+        }
+
+        async function confirmDelivery(orderId) {
+            if (!confirm('ยืนยันว่าคุณได้รับสินค้าแล้วใช่หรือไม่?')) return;
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ ยืนยันรับสินค้าสำเร็จ!');
+                    loadOrders();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error confirming delivery:', error);
+                alert('❌ เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function reviewOrder(orderId) {
+            // TODO: Show review form
+            alert('รีวิวสินค้า (ฟีเจอร์กำลังพัฒนา)');
+        }
+
+        // ==================== Notifications System ====================
+        let notifications = [];
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('show');
+
+            if (panel.classList.contains('show')) {
+                loadNotifications();
+            }
+        }
+
+        // Close notification panel when clicking outside
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('notificationPanel');
+            const bell = document.querySelector('.notification-bell');
+
+            if (panel.classList.contains('show') && !panel.contains(e.target) && !bell.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
+
+        async function loadNotifications() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/notifications/${currentUser.id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    notifications = result.data;
+                    renderNotifications();
+                    updateNotificationBadge();
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+            }
+        }
+
+        function renderNotifications() {
+            const container = document.getElementById('notificationList');
+
+            if (notifications.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ไม่มีการแจ้งเตือน</p>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(notif => {
+                const timeAgo = getTimeAgo(notif.created_at);
+                return `
+                    <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="handleNotificationClick('${notif.id}', '${notif.type}', '${notif.reference_id || ''}')">
+                        <div class="title">${notif.icon || '📬'} ${notif.title}</div>
+                        <div class="message">${notif.message}</div>
+                        <div class="time">${timeAgo}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateNotificationBadge() {
+            const unreadCount = notifications.filter(n => !n.is_read).length;
+            const badge = document.getElementById('notificationBadge');
+
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function getTimeAgo(dateString) {
+            const now = new Date();
+            const date = new Date(dateString);
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return 'เมื่อสักครู่';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} นาทีที่แล้ว`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} ชั่วโมงที่แล้ว`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)} วันที่แล้ว`;
+
+            return date.toLocaleDateString('th-TH');
+        }
+
+        async function handleNotificationClick(notifId, type, referenceId) {
+            // Mark as read
+            await markNotificationAsRead(notifId);
+
+            // Navigate based on notification type
+            if (type === 'order_confirmed' || type === 'order_paid' || type === 'order_shipped' || type === 'order_delivered') {
+                showPage('orders');
+                loadOrders();
+            } else if (type === 'new_order') {
+                showPage('listings');
+                showListingsTab('sell');
+            }
+
+            // Close panel
+            document.getElementById('notificationPanel').classList.remove('show');
+        }
+
+        async function markNotificationAsRead(notifId) {
+            try {
+                await fetch(`/api/notifications/${notifId}/read`, {
+                    method: 'POST'
+                });
+
+                // Update local state
+                const notif = notifications.find(n => n.id === notifId);
+                if (notif) {
+                    notif.is_read = true;
+                    renderNotifications();
+                    updateNotificationBadge();
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        async function markAllAsRead() {
+            if (!currentUser) return;
+
+            try {
+                await fetch(`/api/notifications/${currentUser.id}/read-all`, {
+                    method: 'POST'
+                });
+
+                notifications.forEach(n => n.is_read = true);
+                renderNotifications();
+                updateNotificationBadge();
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        // Load notifications on page load
+        if (currentUser) {
+            loadNotifications();
+            // Refresh every 30 seconds
+            setInterval(loadNotifications, 30000);
+        }
+
+        async function loadFullNotifications() {
+            if (!currentUser) return;
+
+            const container = document.getElementById('fullNotificationsList');
+            container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>';
+
+            try {
+                const response = await fetch(`/api/notifications/${currentUser.id}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    container.innerHTML = result.data.map(notif => {
+                        const timeAgo = getTimeAgo(notif.created_at);
+                        return `
+                            <div style="background: ${notif.is_read ? 'rgba(15, 23, 42, 0.5)' : 'rgba(16, 185, 129, 0.1)'}; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid ${notif.is_read ? 'rgba(255, 255, 255, 0.1)' : 'rgba(16, 185, 129, 0.3)'}; cursor: pointer;" onclick="handleFullNotificationClick('${notif.id}', '${notif.type}', '${notif.reference_id || ''}')">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div style="color: white; font-weight: 600; font-size: 16px;">${notif.icon || '📬'} ${notif.title}</div>
+                                    ${!notif.is_read ? '<div style="width: 10px; height: 10px; background: #ef4444; border-radius: 50%;"></div>' : ''}
+                                </div>
+                                <div style="color: #9ca3af; font-size: 14px; margin-bottom: 8px;">${notif.message}</div>
+                                <div style="color: #6b7280; font-size: 12px;">${timeAgo}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 40px 20px;">ไม่มีการแจ้งเตือน</p>';
+                }
+            } catch (error) {
+                console.error('Error loading full notifications:', error);
+                container.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 40px 20px;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        async function handleFullNotificationClick(notifId, type, referenceId) {
+            await markNotificationAsRead(notifId);
+
+            if (type === 'order_confirmed' || type === 'order_paid' || type === 'order_shipped' || type === 'order_delivered') {
+                showListingsTab('orders');
+            } else if (type === 'new_order') {
+                showListingsTab('myProducts');
+            }
         }
 
         function getCategoryText(category) {
@@ -6444,20 +7260,273 @@
                   '🎯 เป้าหมาย Gold: อีก 7 คน');
         }
 
-        function showWalletDetails() {
-            if (currentUser) {
-                const thbBalance = currentUser.wallet_balance.toLocaleString();
+        async function showWalletDetails() {
+            showPage('walletManagement');
+            await loadPaymentMethods();
+        }
 
-                const choice = confirm(`💰 กระเป๋าเงินของคุณ\n\n• THB: ฿${thbBalance}\n\n📊 ประวัติการทำธุรกรรม\n• ขายได้: ${currentUser.total_sales} รายการ\n• ซื้อแล้ว: 8 รายการ\n\n💳 คลิก OK เพื่อเติมเงิน | Cancel เพื่อปิด`);
+        async function loadPaymentMethods() {
+            if (!currentUser) return;
 
-                if (choice) {
-                    const amount = prompt('เติมเงิน THB (ขั้นต่ำ 100 บาท):', '500');
-                    if (amount && !isNaN(amount) && parseFloat(amount) >= 100) {
-                        alert(`✅ เติมเงินสำเร็จ!\n\n💰 จำนวน: ฿${parseFloat(amount).toLocaleString()}\n📱 ชำระผ่าน: PromptPay\n⏰ เงินจะเข้าใน 1-2 นาที`);
-                    } else if (amount) {
-                        alert('❌ จำนวนเงินไม่ถูกต้อง (ขั้นต่ำ 100 บาท)');
+            try {
+                const response = await fetch(`/api/payment-methods/${currentUser.id}`);
+                const result = await response.json();
+
+                const container = document.getElementById('paymentMethodsList');
+
+                if (result.success && result.data.length > 0) {
+                    container.innerHTML = result.data.map(method => {
+                        const icon = method.type === 'bank' ? '🏦' :
+                                   method.type === 'crypto' ? '₿' :
+                                   method.type === 'promptpay' ? '📱' : '📋';
+
+                        const displayName = method.type === 'bank' ?
+                            `${method.bank_name} - ${method.account_number}` :
+                            method.type === 'crypto' ?
+                            `${method.network} - ${method.wallet_address.substring(0, 10)}...` :
+                            method.account_name;
+
+                        return `
+                            <div style="background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: ${method.is_default ? '2px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)'};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                            <span style="font-size: 24px; margin-right: 8px;">${icon}</span>
+                                            <div>
+                                                <div style="color: white; font-weight: 600;">${method.account_name}</div>
+                                                <div style="color: #9ca3af; font-size: 14px;">${displayName}</div>
+                                            </div>
+                                        </div>
+                                        ${method.is_default ? '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">บัญชีหลัก</span>' : ''}
+                                    </div>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <button onclick="editPaymentMethod('${method.id}')" class="btn-secondary" style="padding: 8px 12px; font-size: 12px;">✏️ แก้ไข</button>
+                                        ${!method.is_default ? `<button onclick="setDefaultPaymentMethod('${method.id}')" class="btn-secondary" style="padding: 8px 12px; font-size: 12px;">ตั้งเป็นหลัก</button>` : ''}
+                                        <button onclick="deletePaymentMethod('${method.id}')" class="btn-danger" style="padding: 8px 12px; font-size: 12px;">ลบ</button>
+                                    </div>
+                                </div>
+                                ${method.qr_code_path ? `
+                                    <div style="margin-top: 12px; text-align: center;">
+                                        <img src="${method.qr_code_path}" style="max-width: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                                        <p style="color: #9ca3af; font-size: 12px; margin-top: 4px;">QR Code รับเงิน</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-8">ยังไม่มีบัญชี/Wallet<br>กดปุ่มด้านล่างเพื่อเพิ่ม</p>';
+                }
+            } catch (error) {
+                console.error('Error loading payment methods:', error);
+                document.getElementById('paymentMethodsList').innerHTML = '<p class="text-red-400 text-center py-8">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
+            }
+        }
+
+        function showAddPaymentMethodForm() {
+            window.editingPaymentMethodId = null;
+            showPage('addPaymentMethodForm');
+            document.getElementById('formTitle').textContent = '➕ เพิ่มบัญชี/Wallet ใหม่';
+            document.getElementById('saveButton').textContent = '💾 บันทึก';
+            // Reset form
+            document.getElementById('paymentType').value = 'bank';
+            document.getElementById('accountName').value = '';
+            document.getElementById('accountNumber').value = '';
+            document.getElementById('bankName').value = '';
+            document.getElementById('cryptoName').value = '';
+            document.getElementById('walletAddress').value = '';
+            document.getElementById('cryptoNetwork').value = '';
+            document.getElementById('setAsDefault').checked = false;
+            // Reset QR code
+            document.getElementById('qrCodeFile').value = '';
+            document.getElementById('qrPreview').style.display = 'none';
+            document.getElementById('qrPreviewImage').src = '';
+            updatePaymentFormFields();
+        }
+
+        async function editPaymentMethod(id) {
+            try {
+                const response = await fetch(`/api/payment-methods/${currentUser.id}`);
+                const result = await response.json();
+                const method = result.data.find(m => m.id === id);
+
+                if (!method) {
+                    alert('ไม่พบข้อมูล');
+                    return;
+                }
+
+                window.editingPaymentMethodId = id;
+                showPage('addPaymentMethodForm');
+                document.getElementById('formTitle').textContent = '✏️ แก้ไขบัญชี/Wallet';
+                document.getElementById('saveButton').textContent = '💾 บันทึกการแก้ไข';
+
+                document.getElementById('paymentType').value = method.type;
+
+                if (method.type === 'crypto') {
+                    document.getElementById('cryptoName').value = method.account_name;
+                    document.getElementById('walletAddress').value = method.wallet_address;
+                    document.getElementById('cryptoNetwork').value = method.network;
+                } else {
+                    document.getElementById('accountName').value = method.account_name;
+                    document.getElementById('accountNumber').value = method.account_number || '';
+                    document.getElementById('bankName').value = method.bank_name || '';
+                }
+
+                document.getElementById('setAsDefault').checked = method.is_default === 1;
+
+                // Show QR code preview if exists
+                if (method.qr_code_path) {
+                    document.getElementById('qrPreview').style.display = 'block';
+                    document.getElementById('qrPreviewImage').src = method.qr_code_path;
+                } else {
+                    document.getElementById('qrPreview').style.display = 'none';
+                }
+
+                updatePaymentFormFields();
+            } catch (error) {
+                console.error('Error loading payment method:', error);
+                alert('❌ เกิดข้อผิดพลาดในการโหลดข้อมูล');
+            }
+        }
+
+        function updatePaymentFormFields() {
+            const type = document.getElementById('paymentType').value;
+            const bankFields = document.getElementById('bankFields');
+            const cryptoFields = document.getElementById('cryptoFields');
+
+            if (type === 'crypto') {
+                bankFields.style.display = 'none';
+                cryptoFields.style.display = 'block';
+            } else {
+                bankFields.style.display = 'block';
+                cryptoFields.style.display = 'none';
+            }
+        }
+
+        async function savePaymentMethod() {
+            if (!currentUser) return;
+
+            const type = document.getElementById('paymentType').value;
+            const setAsDefault = document.getElementById('setAsDefault').checked;
+
+            let data = {
+                user_id: currentUser.id,
+                type: type,
+                is_default: setAsDefault
+            };
+
+            if (type === 'crypto') {
+                data.account_name = document.getElementById('cryptoName').value;
+                data.wallet_address = document.getElementById('walletAddress').value;
+                data.network = document.getElementById('cryptoNetwork').value;
+
+                if (!data.account_name || !data.wallet_address || !data.network) {
+                    alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                    return;
+                }
+            } else {
+                data.account_name = document.getElementById('accountName').value;
+                data.bank_name = document.getElementById('bankName').value;
+                data.account_number = document.getElementById('accountNumber').value;
+
+                if (!data.account_name || (type === 'bank' && (!data.bank_name || !data.account_number))) {
+                    alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                    return;
+                }
+            }
+
+            try {
+                // Upload QR code if selected
+                const qrFile = document.getElementById('qrCodeFile').files[0];
+                if (qrFile) {
+                    const formData = new FormData();
+                    formData.append('qrCode', qrFile);
+
+                    const uploadResponse = await fetch('/api/upload-qr', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const uploadResult = await uploadResponse.json();
+                    if (uploadResult.success) {
+                        data.qr_code_path = uploadResult.path;
                     }
                 }
+
+                const isEditing = window.editingPaymentMethodId;
+                const url = isEditing ? `/api/payment-methods/${window.editingPaymentMethodId}` : '/api/payment-methods';
+                const method = isEditing ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ บันทึกสำเร็จ!');
+                    showPage('walletManagement');
+                    await loadPaymentMethods();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving payment method:', error);
+                alert('❌ เกิดข้อผิดพลาดในการบันทึก');
+            }
+        }
+
+        function previewQRCode(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('qrPreview').style.display = 'block';
+                    document.getElementById('qrPreviewImage').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function setDefaultPaymentMethod(id) {
+            try {
+                const response = await fetch(`/api/payment-methods/${id}/set-default`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadPaymentMethods();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error setting default:', error);
+                alert('❌ เกิดข้อผิดพลาด');
+            }
+        }
+
+        async function deletePaymentMethod(id) {
+            if (!confirm('ต้องการลบบัญชี/Wallet นี้หรือไม่?')) return;
+
+            try {
+                const response = await fetch(`/api/payment-methods/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    await loadPaymentMethods();
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting payment method:', error);
+                alert('❌ เกิดข้อผิดพลาด');
             }
         }
 

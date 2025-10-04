@@ -71,10 +71,42 @@ const upload = multer({
     }
 });
 
+// Configure multer for QR code uploads
+const qrStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadsDir = path.join(__dirname, 'uploads', 'qrcodes');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 15);
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        const uniqueFileName = `qr_${timestamp}_${randomId}${fileExtension}`;
+        cb(null, uniqueFileName);
+    }
+});
+
 const uploadProduct = multer({
     storage: productStorage,
     limits: {
         fileSize: 10 * 1024 * 1024 // 10MB limit for product images
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
+    }
+});
+
+const uploadQR = multer({
+    storage: qrStorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit for QR codes
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -2445,6 +2477,309 @@ app.use('/admin', (req, res, next) => {
     }
     next();
 }, express.static(path.join(__dirname, 'admin')));
+
+// ==================== Payment Methods API ====================
+
+// Get user's payment methods
+app.get('/api/payment-methods/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const methods = db.prepare(`
+            SELECT * FROM payment_methods
+            WHERE user_id = ? AND is_active = 1
+            ORDER BY is_default DESC, created_at DESC
+        `).all(userId);
+
+        res.json({ success: true, data: methods });
+    } catch (error) {
+        console.error('Error fetching payment methods:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Upload QR code endpoint
+app.post('/api/upload-qr', uploadQR.single('qrCode'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        const qrPath = `/uploads/qrcodes/${req.file.filename}`;
+        res.json({ success: true, path: qrPath });
+    } catch (error) {
+        console.error('Error uploading QR code:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Add new payment method
+app.post('/api/payment-methods', (req, res) => {
+    try {
+        const { user_id, type, account_name, account_number, bank_name, wallet_address, network, qr_code_path, is_default } = req.body;
+
+        // Generate unique ID
+        const id = 'PM-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        // If setting as default, unset other defaults
+        if (is_default) {
+            db.prepare('UPDATE payment_methods SET is_default = 0 WHERE user_id = ?').run(user_id);
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO payment_methods (id, user_id, type, account_name, account_number, bank_name, wallet_address, network, qr_code_path, is_default, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `);
+
+        stmt.run(id, user_id, type, account_name, account_number || null, bank_name || null, wallet_address || null, network || null, qr_code_path || null, is_default ? 1 : 0);
+
+        const method = db.prepare('SELECT * FROM payment_methods WHERE id = ?').get(id);
+        res.json({ success: true, data: method });
+    } catch (error) {
+        console.error('Error adding payment method:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Update payment method
+app.put('/api/payment-methods/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { account_name, account_number, bank_name, wallet_address, network, qr_code_path, is_default } = req.body;
+
+        // Get method to check user_id
+        const method = db.prepare('SELECT user_id FROM payment_methods WHERE id = ?').get(id);
+        if (!method) {
+            return res.status(404).json({ success: false, message: 'Payment method not found' });
+        }
+
+        // If setting as default, unset other defaults
+        if (is_default) {
+            db.prepare('UPDATE payment_methods SET is_default = 0 WHERE user_id = ?').run(method.user_id);
+        }
+
+        const stmt = db.prepare(`
+            UPDATE payment_methods
+            SET account_name = ?, account_number = ?, bank_name = ?, wallet_address = ?, network = ?, qr_code_path = ?, is_default = ?, updated_at = datetime('now')
+            WHERE id = ?
+        `);
+
+        stmt.run(account_name, account_number || null, bank_name || null, wallet_address || null, network || null, qr_code_path || null, is_default ? 1 : 0, id);
+
+        const updated = db.prepare('SELECT * FROM payment_methods WHERE id = ?').get(id);
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Error updating payment method:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Delete payment method
+app.delete('/api/payment-methods/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Soft delete
+        db.prepare('UPDATE payment_methods SET is_active = 0 WHERE id = ?').run(id);
+
+        res.json({ success: true, message: 'Payment method deleted' });
+    } catch (error) {
+        console.error('Error deleting payment method:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Set default payment method
+app.post('/api/payment-methods/:id/set-default', (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get method to check user_id
+        const method = db.prepare('SELECT user_id FROM payment_methods WHERE id = ?').get(id);
+        if (!method) {
+            return res.status(404).json({ success: false, message: 'Payment method not found' });
+        }
+
+        // Unset all defaults for this user
+        db.prepare('UPDATE payment_methods SET is_default = 0 WHERE user_id = ?').run(method.user_id);
+
+        // Set this one as default
+        db.prepare('UPDATE payment_methods SET is_default = 1 WHERE id = ?').run(id);
+
+        res.json({ success: true, message: 'Default payment method updated' });
+    } catch (error) {
+        console.error('Error setting default payment method:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ==================== Orders API ====================
+
+// Create new order
+app.post('/api/orders', (req, res) => {
+    try {
+        const { buyer_id, seller_id, product_id, subtotal, community_fee, total_amount, shipping_address, buyer_notes } = req.body;
+
+        // Generate unique order ID and number
+        const orderId = 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const orderNumber = 'FG' + Date.now().toString().slice(-8);
+
+        const stmt = db.prepare(`
+            INSERT INTO orders (
+                id, order_number, buyer_id, seller_id,
+                subtotal, community_fee, total_amount,
+                currency_code, wld_rate, total_wld,
+                shipping_address, buyer_notes,
+                status, payment_status, order_date, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'THB', 1, ?, ?, ?, 'pending', 'pending', datetime('now'), datetime('now'))
+        `);
+
+        stmt.run(orderId, orderNumber, buyer_id, seller_id, subtotal, community_fee, total_amount, total_amount, shipping_address, buyer_notes || null);
+
+        // Create order item
+        const itemId = 'OI-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const product = db.prepare('SELECT * FROM products WHERE id = ?').get(product_id);
+
+        const itemStmt = db.prepare(`
+            INSERT INTO order_items (
+                id, order_id, product_id, product_title, product_condition, product_image,
+                unit_price, quantity, total_price, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, datetime('now'))
+        `);
+
+        itemStmt.run(itemId, orderId, product_id, product.title, product.condition, product.image_url, subtotal, subtotal);
+
+        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+        res.json({ success: true, data: order });
+    } catch (error) {
+        console.error('Error creating order:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get user's orders (as buyer)
+app.get('/api/orders/buyer/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const orders = db.prepare(`
+            SELECT o.*, u.name as seller_name, u.phone as seller_phone
+            FROM orders o
+            LEFT JOIN users u ON o.seller_id = u.id
+            WHERE o.buyer_id = ?
+            ORDER BY o.created_at DESC
+        `).all(userId);
+
+        // Get items for each order
+        orders.forEach(order => {
+            order.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        });
+
+        res.json({ success: true, data: orders });
+    } catch (error) {
+        console.error('Error fetching buyer orders:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Get user's orders (as seller)
+app.get('/api/orders/seller/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const orders = db.prepare(`
+            SELECT o.*, u.name as buyer_name, u.phone as buyer_phone
+            FROM orders o
+            LEFT JOIN users u ON o.buyer_id = u.id
+            WHERE o.seller_id = ?
+            ORDER BY o.created_at DESC
+        `).all(userId);
+
+        // Get items for each order
+        orders.forEach(order => {
+            order.items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        });
+
+        res.json({ success: true, data: orders });
+    } catch (error) {
+        console.error('Error fetching seller orders:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ==================== Notifications API ====================
+
+// Get user's notifications
+app.get('/api/notifications/:userId', (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const notifications = db.prepare(`
+            SELECT * FROM notifications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+        `).all(userId);
+
+        res.json({ success: true, data: notifications });
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Mark notification as read
+app.post('/api/notifications/:id/read', (req, res) => {
+    try {
+        const { id } = req.params;
+
+        db.prepare(`
+            UPDATE notifications
+            SET is_read = 1, updated_at = datetime('now')
+            WHERE id = ?
+        `).run(id);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Mark all notifications as read
+app.post('/api/notifications/:userId/read-all', (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        db.prepare(`
+            UPDATE notifications
+            SET is_read = 1, updated_at = datetime('now')
+            WHERE user_id = ? AND is_read = 0
+        `).run(userId);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Create notification (helper function for internal use)
+function createNotification(userId, type, title, message, icon, referenceId = null) {
+    try {
+        const id = 'NOTIF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+        db.prepare(`
+            INSERT INTO notifications (id, user_id, type, title, message, icon, reference_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).run(id, userId, type, title, message, icon, referenceId);
+
+        return id;
+    } catch (error) {
+        console.error('Error creating notification:', error);
+        return null;
+    }
+}
 
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
