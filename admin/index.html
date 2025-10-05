@@ -29,9 +29,68 @@
         .table-dark {
             background: rgba(30, 41, 59, 0.6);
         }
+        #loginScreen {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .login-card {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="login-card rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-seedling text-white text-4xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Fingrow Admin</h1>
+                <p class="text-gray-400">ระบบจัดการสำหรับผู้ดูแลระบบ</p>
+            </div>
+
+            <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">
+                            <i class="fas fa-user mr-2"></i>ชื่อผู้ใช้
+                        </label>
+                        <input type="text" id="adminUsername" required
+                               class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                               placeholder="กรอกชื่อผู้ใช้">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-300 text-sm font-medium mb-2">
+                            <i class="fas fa-lock mr-2"></i>รหัสผ่าน
+                        </label>
+                        <input type="password" id="adminPassword" required
+                               class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-emerald-500 focus:outline-none transition-colors"
+                               placeholder="กรอกรหัสผ่าน">
+                    </div>
+
+                    <div id="loginError" class="hidden bg-red-900 bg-opacity-50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        <span id="loginErrorMessage"></span>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-lg">
+                        <i class="fas fa-sign-in-alt mr-2"></i>เข้าสู่ระบบ
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-6 text-center text-gray-400 text-sm">
+                <i class="fas fa-shield-alt mr-1"></i>
+                ระบบปกป้องด้วยการยืนยันตัวตน
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard (Hidden by default) -->
+    <div id="dashboardScreen" style="display: none;">
     <div class="flex">
         <!-- Sidebar -->
         <div class="sidebar w-64 p-6">
@@ -77,14 +136,19 @@
             </nav>
 
             <div class="mt-8 pt-8 border-t border-gray-700">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center mr-3">
-                        <i class="fas fa-user text-white text-sm"></i>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-white text-sm font-medium">Admin</p>
+                            <p class="text-gray-400 text-xs">admin@fingrow.app</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-white text-sm font-medium">Admin</p>
-                        <p class="text-gray-400 text-xs">admin@fingrow.app</p>
-                    </div>
+                    <button onclick="handleAdminLogout()" class="text-red-400 hover:text-red-300 transition-colors" title="ออกจากระบบ">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -343,6 +407,7 @@
             </div>
         </div>
     </div>
+    </div>
 
     <!-- User Edit Modal -->
     <div id="userEditModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
@@ -466,6 +531,79 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Admin Authentication System
+        const ADMIN_CREDENTIALS = {
+            username: 'admin999',
+            password: 'Anatta999*fin'
+        };
+
+        // Check authentication on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuth();
+        });
+
+        function checkAdminAuth() {
+            const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
+
+            if (isAuthenticated === 'true') {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('dashboardScreen').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboardScreen').style.display = 'block';
+        }
+
+        function handleAdminLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            const errorMsg = document.getElementById('loginErrorMessage');
+
+            // Validate credentials
+            if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+                // Success
+                sessionStorage.setItem('adminAuthenticated', 'true');
+                errorDiv.classList.add('hidden');
+                showDashboard();
+
+                // Load dashboard data after showing
+                setTimeout(() => {
+                    if (window.admin && window.admin.init) {
+                        window.admin.init();
+                    }
+                }, 100);
+            } else {
+                // Failed
+                errorMsg.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function handleAdminLogout() {
+            if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+                sessionStorage.removeItem('adminAuthenticated');
+                showLogin();
+                // Clear form
+                document.getElementById('adminUsername').value = '';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('loginError').classList.add('hidden');
+            }
+        }
+    </script>
+
     <script>
         // Dynamic cache busting
         const timestamp = Date.now();

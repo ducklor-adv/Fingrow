@@ -2524,18 +2524,6 @@
                     <div class="auth-footer">
                         <p>ยังไม่มีบัญชี? <span class="auth-link" onclick="showPage('register')">สมัครสมาชิก</span></p>
                     </div>
-
-                    <div class="demo-accounts">
-                        <h4>🔧 บัญชีทดสอบ</h4>
-                        <div class="demo-account" onclick="quickLogin('charlie_wilson', '123456')">
-                            <span>👤 charlie_wilson</span>
-                            <span>🔑 123456</span>
-                        </div>
-                        <div class="demo-account" onclick="quickLogin('alice_smith', '123456')">
-                            <span>👤 alice_smith</span>
-                            <span>🔑 123456</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -3883,6 +3871,16 @@
         }
 
         function showPage(pageId) {
+            // Authentication guard - redirect to login if not authenticated
+            const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+            const authPages = ['login', 'register'];
+
+            if (!currentUser && !authPages.includes(pageId)) {
+                // User not logged in and trying to access protected page
+                showPage('login');
+                return;
+            }
+
             // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
@@ -3900,6 +3898,16 @@
             } else {
                 console.error('Page not found:', pageId);
                 return;
+            }
+
+            // Show/hide bottom navigation based on page
+            const bottomNav = document.querySelector('.bottom-nav');
+            if (authPages.includes(pageId)) {
+                // Hide bottom nav on login/register pages
+                bottomNav.style.display = 'none';
+            } else {
+                // Show bottom nav on other pages
+                bottomNav.style.display = 'flex';
             }
 
             // Notification bell is always visible, no need to hide
