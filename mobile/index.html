@@ -775,6 +775,16 @@
             backdrop-filter: blur(10px);
         }
 
+        .auth-form-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #f1f5f9;
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -2503,12 +2513,10 @@
     <!-- Login Page -->
     <div id="login" class="page">
         <div class="container">
-            <div class="header">
-                <div class="logo">🔐 เข้าสู่ระบบ</div>
-            </div>
-
             <div class="auth-container">
                 <div class="auth-form">
+                    <div class="auth-form-title">🔐 เข้าสู่ระบบ</div>
+
                     <div class="form-group">
                         <label class="form-label">Username หรือ Email</label>
                         <input type="text" id="loginUsername" class="auth-input" placeholder="กรอก username หรือ email">

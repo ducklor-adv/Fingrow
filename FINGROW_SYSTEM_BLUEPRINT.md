@@ -8,11 +8,13 @@
 **Fingrow** เป็นระบบ Marketplace แบบ Multi-level Referral Network ที่รองรับการซื้อขายสินค้า, ระบบแนะนำ และการสร้างเครือข่าย
 
 ### 🎯 Core Features
-- **User Management**: ระบบสมาชิก พร้อมการยืนยันตัวตน
+- **User Management**: ระบบสมาชิก พร้อมการยืนยันตัวตน และ Authentication System
 - **Product Marketplace**: ระบบซื้อขายสินค้า
-- **Referral Network**: ระบบแนะนำแบบหลายระดับ (MLM)
+- **ACF System**: ระบบจัดสรร Parent อัตโนมัติ (Auto-Connect Follower)
+- **Referral Network**: ระบบแนะนำแบบหลายระดับ (MLM) พร้อม 5×7 Structure
+- **Notification System**: ระบบแจ้งเตือนสำหรับเหตุการณ์ต่างๆ
 - **Profile System**: ระบบโปรไฟล์ พร้อมอัปโหลดรูปภาพ
-- **Admin Panel**: ระบบจัดการแอดมิน
+- **Admin Panel**: ระบบจัดการแอดมิน พร้อม Authentication
 
 ### 🖥️ **System Architecture**
 
@@ -81,7 +83,8 @@ User -> Mobile/Admin -> Express.js API -> SQLite3 Database
 | `language` | TEXT | ภาษา | UI/UX |
 | **REFERRAL SYSTEM** | | | |
 | `invite_code` | TEXT UNIQUE | รหัสเชิญเข้าร่วม | สร้างเครือข่าย, track referral |
-| `invitor_id` | TEXT | ID ผู้แนะนำ | สร้างเครือข่าย, คำนวณคอมมิชชั่น |
+| `invitor_id` | TEXT | ID ผู้แนะนำ (BIC) | สร้างเครือข่าย, คำนวณคอมมิชชั่น |
+| `parent_id` | TEXT | ID Parent (ACF System) | Parent ในระบบ ACF 5×7 |
 | `total_invites` | INTEGER | จำนวนคนที่แนะนำทั้งหมด | สถิติ, ranking |
 | `active_invites` | INTEGER | จำนวนคนที่แนะนำที่ยัง active | คำนวณคอมมิชชั่น |
 | **TRUST & VERIFICATION** | | | |
@@ -184,11 +187,66 @@ User -> Mobile/Admin -> Express.js API -> SQLite3 Database
 | `postal_code` | TEXT | รหัสไปรษณีย์ | ZIP code |
 | `is_default` | INTEGER | ที่อยู่เริ่มต้น | ใช้อัตโนมัติ |
 
+### 📧 **NOTIFICATIONS TABLE** - ตารางการแจ้งเตือน
+
+| Field Name | Type | Description | หน้าที่/การใช้งาน |
+|------------|------|-------------|-----------------|
+| `id` | TEXT PRIMARY KEY | Notification ID | ระบุการแจ้งเตือนเฉพาะ |
+| `user_id` | TEXT | ID ผู้รับ (FK: users.id) | เจ้าของการแจ้งเตือน |
+| `type` | TEXT | ประเภท (new_referral/new_acf_child/order/etc) | ประเภทการแจ้งเตือน |
+| `title` | TEXT | หัวข้อ | หัวข้อการแจ้งเตือน |
+| `body` | TEXT | เนื้อหา | รายละเอียด |
+| `data` | TEXT (JSON) | ข้อมูลเพิ่มเติม | icon, referenceId |
+| `is_read` | INTEGER (0/1) | สถานะอ่านแล้ว | ติดตามการอ่าน |
+| `created_at` | TEXT | วันที่สร้าง | เรียงลำดับ |
+
+### 🧬 **FINGROW_DNA TABLE** - ตารางโครงสร้างเครือข่าย ACF
+
+| Field Name | Type | Description | หน้าที่/การใช้งาน |
+|------------|------|-------------|-----------------|
+| `user_id` | TEXT PRIMARY KEY | ID ผู้ใช้ (FK: users.id) | เจ้าของข้อมูล |
+| `parent_id` | TEXT | ID Parent | Parent ในระบบ ACF |
+| `level` | INTEGER | ระดับความลึก | ระดับในเครือข่าย (0-7) |
+| `run_number` | INTEGER | หมายเลขลำดับ | ลำดับการเข้าร่วม |
+| `regist_time` | TEXT | เวลาสมัคร | วันที่เวลาสมัคร |
+| `regist_type` | TEXT | ประเภท (BIC/NIC) | BIC=มี invite code, NIC=ไม่มี |
+| `user_type` | TEXT | ประเภทผู้ใช้ | Atta/Anatta |
+| `child_count` | INTEGER | จำนวน child | จำนวน child ทั้งหมด |
+| `follower_count` | INTEGER | จำนวน follower | จำนวน follower |
+| `follower_full_status` | TEXT | สถานะ follower | Open/Full |
+| `max_follower` | INTEGER | จำนวน follower สูงสุด | ขีดจำกัด (1 สำหรับ Anatta999, 5 สำหรับอื่นๆ) |
+| `own_finpoint` | REAL | Finpoint ตัวเอง | คะแนนส่วนตัว |
+| `total_finpoint` | REAL | Finpoint รวม | คะแนนรวม |
+| `max_level_royalty` | INTEGER | ระดับสิทธิ์สูงสุด | ระดับสิทธิ์ royalty |
+
 ---
 
 ## 🔄 REFERRAL NETWORK SYSTEM
 
 ### 🌟 **การทำงานของระบบเครือข่าย**
+
+#### **🔹 BIC vs NIC Registration Types**
+- **BIC (By Invite Code)**: สมัครด้วยรหัสเชิญ - มี `invitor_id`
+- **NIC (No Invite Code)**: สมัครโดยไม่มีรหัสเชิญ - ไปที่ NIC Target User
+
+#### **🔹 ACF (Auto-Connect Follower) System**
+ระบบจัดสรร Parent อัตโนมัติตามกฎ **5×7 Structure**:
+- **5**: จำนวน child สูงสุดต่อ user (ยกเว้น Anatta999 = 1 child)
+- **7**: ระดับความลึกสูงสุดของเครือข่าย
+
+**ACF Allocation Algorithm:**
+1. ตรวจสอบว่า invitor มี slot ว่างหรือไม่ (child < max)
+2. ถ้ามี → จัดสรรเป็น child ของ invitor โดยตรง
+3. ถ้าไม่มี → ค้นหา node ที่มี slot ว่างใน subtree แบบ BFS (Breadth-First Search)
+4. เลือก candidate ที่:
+   - อยู่ชั้นที่ใกล้ที่สุด (layer-first)
+   - สมัครก่อน (earliest-first)
+   - มี child น้อยที่สุด (lowest childCount)
+5. ถ้าเครือข่ายเต็ม (5×7) → แจ้ง error
+
+**Special Rules:**
+- **Anatta999**: มี child ได้เพียง 1 คน เท่านั้น
+- **Users อื่นๆ**: มี child ได้ 5 คน ต่อคน
 
 #### 1. **User ID Generation Algorithm**
 ```
@@ -216,15 +274,37 @@ Process:
 ```
 Registration Flow:
 1. User กรอกข้อมูล + invite_code (optional)
-2. ตรวจสอบ invite_code ในฐานข้อมูล
-3. หา invitor_id จาก invite_code
+2. ตรวจสอบ invite_code ในฐานข้อมูล → หา invitor_id
+3. รัน ACF Allocation → หา parent_id ที่เหมาะสม
 4. สร้าง User ID ใหม่
 5. สร้าง invite_code ใหม่สำหรับ user นี้
-6. บันทึก invitor_id เป็น parent ในเครือข่าย
-7. อัปเดต total_invites ของ invitor
+6. Insert ลง users table พร้อม invitor_id และ parent_id
+7. Insert ลง fingrow_dna table พร้อมข้อมูล level, run_number
+8. อัปเดต total_invites ของ invitor
+9. อัปเดต child_count ของ parent
+10. สร้าง notification สำหรับ invitor (BIC only)
+11. สร้าง notification สำหรับ parent (ACF child notification)
 ```
 
-#### 4. **Network Hierarchy Tracking**
+#### 4. **Notification System**
+```
+การแจ้งเตือนอัตโนมัติ:
+
+1. New Referral Notification (invitor):
+   - เมื่อ: มีคนสมัครผ่าน invite code (BIC)
+   - ผู้รับ: invitor
+   - ข้อความ: "👥 มีสมาชิกใหม่: [ชื่อผู้สมัคร] ได้สมัครสมาชิกผ่านรหัสแนะนำของคุณ"
+
+2. New ACF Child Notification (parent):
+   - เมื่อ: มีคนเข้ามาเป็น child ในระบบ ACF
+   - ผู้รับ: parent
+   - ข้อความ: "🌳 คุณได้รับ Child ระบบ ACF เพิ่ม 1 คน
+               คือ [ชื่อผู้สมัคร]
+               จาก [ชื่อ invitor]
+               เมื่อวันที่ [วันที่เวลา]"
+```
+
+#### 5. **Network Hierarchy Tracking**
 ```sql
 -- หา downline ทั้งหมด
 SELECT * FROM users WHERE invitor_id = 'USER_ID';
@@ -280,6 +360,11 @@ SELECT COUNT(*) FROM users WHERE invitor_id = 'USER_ID';
 - **Responsive Design** สำหรับมือถือ
 - **Local Storage** สำหรับ User Session
 - **AJAX API Calls** สำหรับ Real-time Data
+- **Authentication System**:
+  - ซ่อน bottom navigation bar บนหน้า login/register
+  - Authentication guard ป้องกันการเข้าถึงโดยไม่ login
+  - Auto-redirect ไปหน้า login สำหรับ unauthenticated users
+  - ลบบัญชีทดสอบออกจากหน้า login
 
 #### 🔧 Key Functions - User Management:
 - `handleRegister()` - สมัครสมาชิกใหม่ พร้อมระบบ referral
@@ -321,11 +406,19 @@ let lockedCurrency = null;        // สกุลเงินที่ล็อ�
 let rateLockedAt = null;          // เวลาที่ล็อคอัตรา
 ```
 
-### 🔧 **Admin Panel** (`admin/js/admin.js`)
+### 🔧 **Admin Panel** (`admin/index.html`)
+- **Authentication System**:
+  - หน้า login สำหรับ admin
+  - Username: `admin999`
+  - Password: `Anatta999*fin`
+  - Session-based authentication (sessionStorage)
+  - Authentication guard ป้องกันการเข้าถึงโดยไม่ login
+  - ปุ่ม logout ที่ sidebar
 - **User Management** - จัดการผู้ใช้
 - **Product Moderation** - จัดการสินค้า
-- **Network Analytics** - วิเคราะห์เครือข่าย
+- **Network Analytics** - วิเคราะห์เครือข่าย (DNA Database & Tree View)
 - **System Statistics** - สถิติระบบ
+- **Settings Management** - จัดการการตั้งค่าระบบ (NIC Target, etc.)
 
 ---
 
@@ -2095,14 +2188,21 @@ CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(status);
 
 ### ✅ **Currently Implemented:**
 - ✅ User registration with referral tracking
+- ✅ **ACF (Auto-Connect Follower) System** - จัดสรร parent อัตโนมัติ (5×7 Structure)
+- ✅ **Notification System** - แจ้งเตือน invitor และ parent
+- ✅ **Special User Rules** - Anatta999 มี child ได้ 1 คน, อื่นๆ 5 คน
 - ✅ Invite code generation and validation
+- ✅ BIC (By Invite Code) & NIC (No Invite Code) Registration Types
+- ✅ fingrow_dna table tracking (level, run_number, child_count)
 - ✅ Basic referral display (list of invited users)
 - ✅ Profile image upload system
 - ✅ Product listing with Fin Fee system (1-7%)
 - ✅ Earnings page UI (with mock data)
 - ✅ Multi-currency support
 - ✅ Responsive mobile interface
-- ✅ Admin dashboard
+- ✅ **Mobile App Authentication** - Login guard, hide bottom nav on auth pages
+- ✅ **Admin Panel Authentication** - Username/password login system
+- ✅ Admin dashboard with Network DNA Database & Tree View
 
 ### 🔨 **To Be Implemented:**
 - ⬜ Network tree visualization
@@ -2165,10 +2265,30 @@ const MIN_WITHDRAWAL_AMOUNT = 100; // THB
 
 ---
 
-*📝 Document Version: 2.0*
-*🔄 Last Updated: 2025-10-02*
+*📝 Document Version: 3.0*
+*🔄 Last Updated: 2025-10-05*
 *🤖 Generated with Claude Code*
 *📧 For questions about implementation, refer to this blueprint*
+
+---
+
+## 📝 **VERSION HISTORY**
+
+### Version 3.0 (2025-10-05)
+**Major Updates:**
+- ✅ **ACF System Implementation** - Auto-Connect Follower พร้อม 5×7 Structure
+- ✅ **Notification System** - แจ้งเตือน invitor และ parent อัตโนมัติ
+- ✅ **Special User Rules** - Anatta999 = 1 child, Others = 5 children
+- ✅ **Mobile Authentication** - Login guard, bottom nav control
+- ✅ **Admin Authentication** - Login system for admin panel
+- ✅ **Database Schema Updates** - เพิ่ม parent_id, notifications table, fingrow_dna table
+- ✅ **Registration Flow Update** - รองรับ BIC/NIC และ ACF allocation
+
+### Version 2.0 (2025-10-02)
+- Initial complete system documentation
+- Basic referral system
+- Product marketplace
+- Admin dashboard
 
 ---
 
