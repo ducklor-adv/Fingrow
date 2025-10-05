@@ -134,6 +134,170 @@ app.use((error, req, res, next) => {
     next();
 });
 
+// Database schema initialization function
+function initializeDatabase() {
+    console.log('🔄 Initializing database schema...');
+    
+    try {
+        // Create users table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                world_id TEXT UNIQUE,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE,
+                phone TEXT,
+                full_name TEXT,
+                avatar_url TEXT,
+                profile_image_filename TEXT,
+                bio TEXT,
+                location TEXT,
+                preferred_currency TEXT DEFAULT 'THB',
+                language TEXT DEFAULT 'th',
+                is_verified INTEGER DEFAULT 0,
+                verification_level INTEGER DEFAULT 0,
+                trust_score REAL DEFAULT 0.00,
+                total_sales INTEGER DEFAULT 0,
+                total_purchases INTEGER DEFAULT 0,
+                invite_code TEXT UNIQUE NOT NULL,
+                invitor_id TEXT,
+                total_invites INTEGER DEFAULT 0,
+                active_invites INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                is_suspended INTEGER DEFAULT 0,
+                last_login TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                password_hash TEXT,
+                address_number TEXT,
+                address_street TEXT,
+                address_district TEXT,
+                address_province TEXT,
+                address_postal_code TEXT,
+                parent_id TEXT
+            )
+        `);
+
+        // Create products table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS products (
+                id TEXT PRIMARY KEY,
+                seller_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                condition TEXT,
+                price_wld REAL NOT NULL,
+                price_local REAL NOT NULL,
+                currency_code TEXT DEFAULT 'THB',
+                category TEXT,
+                images TEXT,
+                location TEXT,
+                is_available INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'active',
+                view_count INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (seller_id) REFERENCES users(id)
+            )
+        `);
+
+        // Create orders table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id TEXT PRIMARY KEY,
+                buyer_id TEXT NOT NULL,
+                seller_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                quantity INTEGER DEFAULT 1,
+                total_price_wld REAL NOT NULL,
+                total_price_local REAL NOT NULL,
+                currency_code TEXT DEFAULT 'THB',
+                status TEXT DEFAULT 'pending',
+                payment_status TEXT DEFAULT 'pending',
+                shipping_address TEXT,
+                tracking_number TEXT,
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (buyer_id) REFERENCES users(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id),
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        `);
+
+        // Create categories table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS categories (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                name_th TEXT,
+                description TEXT,
+                icon TEXT,
+                is_active INTEGER DEFAULT 1,
+                sort_order INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create chat_rooms table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS chat_rooms (
+                id TEXT PRIMARY KEY,
+                buyer_id TEXT NOT NULL,
+                seller_id TEXT NOT NULL,
+                product_id TEXT,
+                last_message TEXT,
+                last_message_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (buyer_id) REFERENCES users(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id),
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        `);
+
+        // Create messages table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                chat_room_id TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                message_type TEXT DEFAULT 'text',
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (chat_room_id) REFERENCES chat_rooms(id),
+                FOREIGN KEY (sender_id) REFERENCES users(id)
+            )
+        `);
+
+        // Create earnings table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS earnings (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                source_user_id TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                amount_wld REAL NOT NULL,
+                amount_local REAL NOT NULL,
+                currency_code TEXT DEFAULT 'THB',
+                level INTEGER,
+                percentage REAL,
+                order_id TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (source_user_id) REFERENCES users(id),
+                FOREIGN KEY (order_id) REFERENCES orders(id)
+            )
+        `);
+
+        console.log('✅ Database schema initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Database schema initialization failed:', error);
+        throw error;
+    }
+}
+
 // Initialize database
 const dbPath = path.join(__dirname, 'data', 'fingrow.db');
 let db = null;
@@ -145,6 +309,9 @@ try {
     db.exec('PRAGMA foreign_keys = OFF');
 
     console.log('✅ Database connected:', dbPath);
+
+    // Initialize database schema
+    initializeDatabase();
 
     // Run migrations
     try {
