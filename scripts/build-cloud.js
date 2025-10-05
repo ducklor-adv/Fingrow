@@ -72,6 +72,14 @@ try {
     });
     console.log('✅ Created upload directories');
     
+    // Create .gitkeep files to ensure directories are committed
+    [dataDir, profilesDir, productsDir, qrcodesDir].forEach(dir => {
+        const gitkeepPath = path.join(dir, '.gitkeep');
+        if (!fs.existsSync(gitkeepPath)) {
+            fs.writeFileSync(gitkeepPath, '# Keep this directory in git\n');
+        }
+    });
+    
     console.log('🎉 Cloud deployment preparation complete!');
     console.log('');
     console.log('Next steps for Render.com:');

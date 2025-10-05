@@ -58,9 +58,8 @@ COPY --from=builder /app/index.html ./index.html
 # Create necessary directories
 RUN mkdir -p data uploads/profiles uploads/products uploads/qrcodes
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Create a non-root user (Debian syntax)
+RUN groupadd -r nodejs && useradd -r -g nodejs nodejs
 
 # Change ownership of necessary directories
 RUN chown -R nodejs:nodejs /app
