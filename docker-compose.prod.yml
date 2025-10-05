@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # API Server (Production)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fingrow-api-prod
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_PATH=/app/data/fingrow.db
+    volumes:
+      # Only mount data and uploads in production (no source code)
+      - fingrow-data:/app/data
+      - fingrow-uploads:/app/uploads
+    networks:
+      - fingrow-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: fingrow-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - api
+    networks:
+      - fingrow-network
+
+  # Backup service (optional)
+  backup:
+    image: alpine:latest
+    container_name: fingrow-backup
+    volumes:
+      - fingrow-data:/data:ro
+      - ./backups:/backups
+    command: |
+      sh -c "
+        apk add --no-cache sqlite
+        while true; do
+          echo 'Creating backup...'
+          sqlite3 /data/fingrow.db '.backup /backups/fingrow_backup_'$$(date +%Y%m%d_%H%M%S)'.db'
+          echo 'Backup completed'
+          # Keep only last 7 days of backups
+          find /backups -name 'fingrow_backup_*.db' -mtime +7 -delete
+          sleep 86400
+        done
+      "
+    networks:
+      - fingrow-network
+
+networks:
+  fingrow-network:
+    driver: bridge
+
+volumes:
+  fingrow-data:
+    driver: local
+  fingrow-uploads:
+    driver: local
