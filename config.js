@@ -4,8 +4,8 @@
 const config = {
     // Development configuration
     development: {
-        API_BASE_URL: 'http://localhost:5000/api',
-        APP_URL: 'http://localhost:5000',
+        API_BASE_URL: 'http://localhost:5050/api',
+        APP_URL: 'http://localhost:5050',
         ENVIRONMENT: 'development'
     },
     

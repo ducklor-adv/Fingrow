@@ -300,7 +300,8 @@ class BrowserDatabaseProxy {
     async fetchFromNode(method, params = {}) {
         try {
             // Use API endpoints instead of mock data
-            const apiBase = 'https://fingrow-g0db.onrender.com/api';
+            // Use auto-detected API URL
+            const apiBase = window.getApiUrl ? window.getApiUrl() : 'https://fingrow-g0db.onrender.com/api';
 
             switch (method) {
                 case 'getAllUsers':

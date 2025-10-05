@@ -13,7 +13,7 @@ class SmartApiClient {
         
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
             // Development environment
-            return 'http://localhost:5000/api';
+            return 'http://localhost:5050/api';
         } else {
             // Production environment (Render.com or any other domain)
             return 'https://fingrow-g0db.onrender.com/api';

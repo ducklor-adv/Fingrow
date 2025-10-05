@@ -8,11 +8,10 @@
     "android": "expo start --android --port 19000",
     "ios": "expo start --ios --port 19000",
     "web": "expo start --web --port 19000",
-    "server": "node server.js",
-    "server:api": "node api/server.js",
-    "dev": "concurrently \"npm run server:api\" \"npm run web\"",
+    "server": "PORT=5050 node server.js",
+    "dev": "concurrently \"npm run server\" \"npm run web\"",
     "build:cloud": "node scripts/build-cloud.js",
-    "start:cloud": "node api/server.js"
+    "start:cloud": "node server.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",

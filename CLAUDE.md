@@ -18,11 +18,10 @@ npm run android  # Android emulator/device
 npm run ios      # iOS simulator/device  
 npm run web      # Web browser
 
-# Start backend API server
-npm run server      # Runs original Node.js server on port 5000
-npm run server:api  # Runs new unified API server on port 5000
+# Start backend server
+npm run server      # Runs Node.js server on port 5050
 
-# Run both unified API and web app concurrently
+# Run both server and web app concurrently
 npm run dev
 ```
 
@@ -43,10 +42,9 @@ The project has THREE separate interfaces sharing a common backend:
 - **Admin Dashboard** (`/admin`): Web-based admin panel for marketplace management
 - **Mobile Web** (`/mobile`): Progressive Web App for mobile browsers
 
-### 2. **Backend API Server** 
-- **Original Server** (`server.js`): Monolithic Express.js server with all endpoints
-- **Unified API** (`/api`): New modular API structure
-  - Express.js server running on port 5000
+### 2. **Backend Server** 
+- **Server** (`server.js`): Express.js server with all API endpoints
+  - Express.js server running on port 5050
   - SQLite database (`/data/fingrow.db`) using better-sqlite3
   - Organized into controllers, routes, and middleware
   - RESTful API endpoints for users, products, orders
@@ -98,9 +96,7 @@ The project has THREE separate interfaces sharing a common backend:
 ## Critical Files to Understand
 
 - `server.js`: Original monolithic API server
-- `/api/server.js`: New unified API server entry point
-- `/api/routes/index.js`: API route definitions
-- `/api/controllers/`: Business logic for each resource
+- `server.js`: Main server with all API endpoints and business logic
 - `App.js`: Mobile app entry point with navigation structure
 - `/database/schema.sql`: Complete database schema
 - `/admin/js/database-connector.js`: How admin panel connects to API
@@ -108,15 +104,15 @@ The project has THREE separate interfaces sharing a common backend:
 
 ## Development Workflow
 
-1. Always run `npm run server:api` first to start the unified API backend
+1. Always run `npm run server` first to start the backend server
 2. For mobile development, use `npm start` and scan QR with Expo Go
 3. Database changes require running migration scripts in `/scripts`
-4. Test API endpoints directly at `http://localhost:5000/api/*`
+4. Test API endpoints directly at `http://localhost:5050/api/*`
 5. Check server logs for debugging API issues
 
-## New Unified API Structure
+## API Structure
 
-The `/api` folder contains a well-organized, modular API:
+The server.js contains all API endpoints:
 
 - **Routes**: Organized by resource (users, products, orders, admin)
 - **Controllers**: Business logic separated from route definitions

@@ -608,6 +608,7 @@
     <script>
         // Dynamic cache busting
         const timestamp = Date.now();
+        document.write('<script src="js/config.js?v=' + timestamp + '"><\/script>');
         document.write('<script src="js/database-connector.js?v=' + timestamp + '"><\/script>');
         document.write('<script src="js/admin.js?v=' + timestamp + '"><\/script>');
     </script>
