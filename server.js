@@ -179,7 +179,7 @@ try {
         const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
         if (!rootUser) {
             console.log('🔄 Creating root user (Anatta999)...');
-            const rootId = '25AAA0000';
+            const rootId = '25AAA0001';
             const rootInviteCode = 'ANATTA999ROOT';
             db.prepare(`
                 INSERT INTO users (id, username, email, full_name, invite_code, created_at, last_login)

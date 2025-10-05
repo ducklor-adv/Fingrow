@@ -172,7 +172,7 @@ class FingrowAdmin {
             const totalOrders = orders.length;
 
             // Calculate total revenue from Anatta999's network sales
-            const anattaUser = users.find(u => u.id === '25AAA0000');
+            const anattaUser = users.find(u => u.id === '25AAA0001');
             const totalRevenue = anattaUser ? (anattaUser.network_sales || 0) : 0;
 
             // Calculate trends (compare with last month)
