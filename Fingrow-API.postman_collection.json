@@ -27,7 +27,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000/api",
+      "value": "https://fingrow-g0db.onrender.com/api",
       "type": "string"
     },
     {
