@@ -295,14 +295,17 @@ function generateUserId() {
  * - If invitor's direct slot is full, search in invitor's child subtree only
  */
 function allocateParent(invitorId) {
-    const MAX_CHILDREN = 5;
     const MAX_DEPTH = 7;
 
-    // Get invitor
-    const invitor = db.prepare('SELECT id, parent_id FROM users WHERE id = ?').get(invitorId);
+    // Get invitor with username to check for special cases
+    const invitor = db.prepare('SELECT id, parent_id, username FROM users WHERE id = ?').get(invitorId);
     if (!invitor) {
         throw new Error('Invitor not found');
     }
+
+    // Determine max children based on user
+    // Anatta999 can have only 1 child, others can have 5
+    const MAX_CHILDREN = (invitor.username === 'Anatta999') ? 1 : 5;
 
     // Calculate invitor's current depth
     let invitorDepth = 0;
@@ -338,7 +341,7 @@ function allocateParent(invitorId) {
         for (const node of queue) {
             // Get children of this node
             const children = db.prepare(`
-                SELECT id, created_at
+                SELECT id, created_at, username
                 FROM users
                 WHERE parent_id = ?
                 ORDER BY created_at ASC
@@ -356,7 +359,10 @@ function allocateParent(invitorId) {
                         'SELECT COUNT(*) as count FROM users WHERE parent_id = ?'
                     ).get(child.id);
 
-                    if (childCount.count < MAX_CHILDREN) {
+                    // Determine max children for this specific child
+                    const childMaxChildren = (child.username === 'Anatta999') ? 1 : 5;
+
+                    if (childCount.count < childMaxChildren) {
                         candidates.push({
                             id: child.id,
                             level: childLevel,
@@ -818,6 +824,37 @@ app.post('/api/register', async (req, res) => {
                     WHERE user_id = ?
                 `).run(parentId);
                 console.log('✅ Parent child_count updated');
+
+                // Create notification for parent about new ACF child
+                console.log('🔔 Creating ACF notification for parent:', parentId);
+
+                // Get invitor name for notification message
+                let invitorName = 'ไม่ทราบ';
+                if (invitorId) {
+                    const invitorData = db.prepare('SELECT full_name, username FROM users WHERE id = ?').get(invitorId);
+                    if (invitorData) {
+                        invitorName = invitorData.full_name || invitorData.username;
+                    }
+                }
+
+                // Format registration date
+                const registDate = new Date().toLocaleString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                createNotification(
+                    parentId,
+                    'new_acf_child',
+                    '🌳 คุณได้รับ Child ระบบ ACF เพิ่ม 1 คน',
+                    `คือ ${userData.full_name}\nจาก ${invitorName}\nเมื่อวันที่ ${registDate}`,
+                    '🌳',
+                    userId
+                );
+                console.log('✅ ACF notification created for parent');
             }
         } catch (dnaError) {
             console.error('⚠️ Error inserting into fingrow_dna:', dnaError);
