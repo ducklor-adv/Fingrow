@@ -10,7 +10,9 @@
     "web": "expo start --web --port 19000",
     "server": "node server.js",
     "server:api": "node api/server.js",
-    "dev": "concurrently \"npm run server:api\" \"npm run web\""
+    "dev": "concurrently \"npm run server:api\" \"npm run web\"",
+    "build:cloud": "node scripts/build-cloud.js",
+    "start:cloud": "node api/server.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",

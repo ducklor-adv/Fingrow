@@ -1,10 +1,15 @@
-# Multi-stage Dockerfile for Fingrow API
+# Multi-stage Dockerfile for Fingrow API (Debian-based for better compatibility)
 
 # Stage 1: Build stage
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 
 # Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++ 
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -18,10 +23,15 @@ RUN npm ci
 COPY . .
 
 # Stage 2: Production stage
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install runtime dependencies for native modules
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -29,8 +39,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && \
-    npm rebuild better-sqlite3
+RUN npm ci --only=production
 
 # Copy application code
 COPY --from=builder /app/api ./api
