@@ -318,6 +318,49 @@ function initializeDatabase() {
             )
         `);
 
+        // Create fingrow_dna table (for MLM network tracking)
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS fingrow_dna (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_number INTEGER UNIQUE,
+                user_id TEXT UNIQUE NOT NULL,
+                user_type TEXT NOT NULL DEFAULT 'Atta',
+                regist_time TEXT NOT NULL,
+                regist_type TEXT NOT NULL,
+                invitor TEXT,
+                max_follower INTEGER NOT NULL DEFAULT 5,
+                follower_count INTEGER NOT NULL DEFAULT 0,
+                follower_full_status TEXT NOT NULL DEFAULT 'Open',
+                max_level_royalty INTEGER NOT NULL DEFAULT 19530,
+                child_count INTEGER NOT NULL DEFAULT 0,
+                parent_id TEXT,
+                own_finpoint REAL NOT NULL DEFAULT 0,
+                total_finpoint REAL NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 0,
+                js_file_path TEXT,
+                parent_file TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (parent_id) REFERENCES users(id)
+            )
+        `);
+
+        // Create notifications table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                data TEXT,
+                is_read INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `);
+
         console.log('✅ Database schema initialized successfully');
         
     } catch (error) {
