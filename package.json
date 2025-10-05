@@ -9,7 +9,10 @@
     "ios": "expo start --ios --port 19000",
     "web": "expo start --web --port 19000",
     "server": "node server.js",
-    "dev": "concurrently \"npm run server\" \"npm run web\""
+    "server:api": "node api/server.js",
+    "dev": "concurrently \"npm run server:api\" \"npm run web\"",
+    "build:cloud": "node scripts/build-cloud.js",
+    "start:cloud": "node api/server.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^13.0.0",
@@ -20,6 +23,7 @@
     "@supabase/supabase-js": "^2.57.4",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.2.0",
+    "concurrently": "^9.2.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "expo": "~49.0.0",

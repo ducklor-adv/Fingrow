@@ -1,0 +1,45 @@
+# Simple Dockerfile for cloud deployment without user creation
+FROM node:18-slim
+
+# Install system dependencies required for better-sqlite3 (if needed)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY api ./api
+COPY admin ./admin
+COPY mobile ./mobile
+COPY components ./components
+COPY services ./services
+COPY database ./database
+COPY scripts ./scripts
+COPY server.js ./server.js
+COPY App.js ./App.js
+COPY app.json ./app.json
+COPY babel.config.js ./babel.config.js
+COPY index.html ./index.html
+
+# Create necessary directories
+RUN mkdir -p data uploads/profiles uploads/products uploads/qrcodes
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+
+# Start the API server
+CMD ["node", "api/server.js"]

@@ -1,6 +1,6 @@
 // API Client for connecting to real database
 class ApiClient {
-    constructor(baseUrl = 'http://localhost:5000/api') {
+    constructor(baseUrl = 'https://fingrow-g0db.onrender.com/api') {
         this.baseUrl = baseUrl;
     }
 

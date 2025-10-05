@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production API Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 4px solid #10b981;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .loading {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+        }
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+        button:hover {
+            background: #059669;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fingrow Production API Test</h1>
+    
+    <div class="info">
+        <strong>Testing API at:</strong> https://fingrow-g0db.onrender.com/api
+    </div>
+
+    <div class="test-card">
+        <h3>API Health Check</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>Users API</h3>
+        <button onclick="testUsers()">Test Get Users</button>
+        <button onclick="testUserRegistration()">Test Registration</button>
+        <div id="users-result"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>Products API</h3>
+        <button onclick="testProducts()">Test Get Products</button>
+        <div id="products-result"></div>
+    </div>
+
+    <div class="test-card">
+        <h3>Categories API</h3>
+        <button onclick="testCategories()">Test Get Categories</button>
+        <div id="categories-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://fingrow-g0db.onrender.com/api';
+
+        function showResult(elementId, result, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="test-result ${isError ? 'error' : 'success'}">
+                ${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}
+            </div>`;
+        }
+
+        function showLoading(elementId, message = 'Testing...') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="test-result loading">${message}</div>`;
+        }
+
+        async function testHealth() {
+            showLoading('health-result');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                showResult('health-result', data);
+            } catch (error) {
+                showResult('health-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testUsers() {
+            showLoading('users-result', 'Getting users...');
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('users-result', {
+                        success: true,
+                        message: `Found ${data.users?.length || 0} users`,
+                        sample: data.users?.slice(0, 2) // Show first 2 users
+                    });
+                } else {
+                    showResult('users-result', data, true);
+                }
+            } catch (error) {
+                showResult('users-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testUserRegistration() {
+            showLoading('users-result', 'Testing registration...');
+            try {
+                const testUser = {
+                    username: `testuser_${Date.now()}`,
+                    email: `test${Date.now()}@example.com`,
+                    password: 'testpass123',
+                    full_name: 'Test User',
+                    phone: '0812345678'
+                };
+
+                const response = await fetch(`${API_BASE}/users/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUser)
+                });
+                
+                const data = await response.json();
+                showResult('users-result', data);
+            } catch (error) {
+                showResult('users-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testProducts() {
+            showLoading('products-result', 'Getting products...');
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('products-result', {
+                        success: true,
+                        message: `Found ${data.products?.length || 0} products`,
+                        sample: data.products?.slice(0, 2)
+                    });
+                } else {
+                    showResult('products-result', data, true);
+                }
+            } catch (error) {
+                showResult('products-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testCategories() {
+            showLoading('categories-result', 'Getting categories...');
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const data = await response.json();
+                showResult('categories-result', data);
+            } catch (error) {
+                showResult('categories-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        // Auto-run health check on page load
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>
