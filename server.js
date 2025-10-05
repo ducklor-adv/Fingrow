@@ -241,11 +241,11 @@ function createBroadcastNotification(type, title, message, icon) {
     }
 }
 
-// Helper function to generate invite code
-function generateInviteCode(username) {
-    const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    const randomSuffix = Math.random().toString(36).substr(2, 3).toUpperCase();
-    return `${cleanUsername}${randomSuffix}`;
+// Helper function to generate invite code (now uses User ID)
+function generateInviteCode(userId) {
+    // Simply return the user ID as invite code
+    // This makes it easy to track and verify invitations
+    return userId;
 }
 
 // Helper function to generate new format User ID: [ปีค.ศ 2 หลัก][AAA][0000]
@@ -657,11 +657,6 @@ app.post('/api/register', async (req, res) => {
             console.log('✅ Password hashed');
         }
 
-        // Generate invite code
-        console.log('🎫 Generating invite code...');
-        const inviteCode = generateInviteCode(userData.username);
-        console.log('✅ Invite code generated:', inviteCode);
-
         // Resolve invitor (BIC or NIC)
         let invitorId = null;
         let parentId = null;
@@ -681,9 +676,10 @@ app.post('/api/register', async (req, res) => {
             }
         }
 
-        // If no invitor (NIC), use configured target user or root user
+        // If no invitor (NIC), use configured target user (Anatta999 by default)
         if (!invitorId) {
             console.log('🔍 NIC Registration - Finding target user...');
+            registrationType = 'NIC'; // Explicitly set to NIC
 
             // Check if NIC target is configured in settings
             const nicTargetSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('nic_registration_target');
@@ -693,16 +689,18 @@ app.post('/api/register', async (req, res) => {
                 invitorId = nicTargetSetting.value;
                 console.log('✅ NIC target user found (from settings):', invitorId);
             } else {
-                // Fallback to root user
-                const rootUser = db.prepare('SELECT id FROM users WHERE invitor_id IS NULL LIMIT 1').get();
+                // Fallback to Anatta999 (root user)
+                const rootUser = db.prepare('SELECT id, username FROM users WHERE username = ? OR invitor_id IS NULL ORDER BY created_at ASC LIMIT 1').get('Anatta999');
                 if (rootUser) {
                     invitorId = rootUser.id;
-                    console.log('✅ Root user found (default):', invitorId);
+                    console.log('✅ NIC target user (Anatta999/Root):', invitorId, rootUser.username);
                 } else {
                     console.log('❌ No target user found');
                     return res.json({ success: false, message: 'System target user not found' });
                 }
             }
+
+            console.log('✅ NIC Registration - Invitor set to:', invitorId);
         }
 
         // ACF Allocation: find best parent
@@ -728,6 +726,15 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
+        // Generate User ID first
+        const userId = generateUserId();
+        console.log('🆔 Generated user ID:', userId);
+
+        // Generate invite code from User ID
+        console.log('🎫 Generating invite code from User ID...');
+        const inviteCode = generateInviteCode(userId);
+        console.log('✅ Invite code generated:', inviteCode);
+
         // Insert new user with ACF allocation
         console.log('💾 Preparing to insert user into database...');
         const insertUser = db.prepare(`
@@ -738,8 +745,6 @@ app.post('/api/register', async (req, res) => {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
-        const userId = generateUserId();
-        console.log('🆔 Generated user ID:', userId);
         console.log('💾 Inserting user with:');
         console.log('   - ID:', userId);
         console.log('   - Username:', userData.username);
@@ -2445,13 +2450,21 @@ app.get('/api/admin/network-dna', (req, res) => {
 
         let query = `
             SELECT
-                d.*,
+                d.id, d.run_number, d.user_id, d.user_type, d.regist_time, d.regist_type,
+                d.max_follower, d.follower_count, d.follower_full_status, d.max_level_royalty,
+                d.child_count, d.parent_id, d.own_finpoint, d.total_finpoint, d.level,
+                d.js_file_path, d.parent_file, d.created_at, d.updated_at,
                 u.username,
                 u.profile_image_filename,
                 u.avatar_url,
-                u.created_at as user_created_at
+                u.created_at as user_created_at,
+                u.total_invites,
+                u.invitor_id,
+                invitor.username as invitor_name,
+                invitor.full_name as invitor_full_name
             FROM fingrow_dna d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN users invitor ON u.invitor_id = invitor.id
             WHERE 1=1
         `;
 
@@ -2476,10 +2489,20 @@ app.get('/api/admin/network-dna', (req, res) => {
 
         const records = db.prepare(query).all(...params);
 
+        // Calculate network size for each user
+        const recordsWithNetworkSize = records.map(record => {
+            // Calculate network size (all descendants)
+            const networkSize = calculateNetworkSize(record.user_id);
+            return {
+                ...record,
+                network_size: networkSize
+            };
+        });
+
         res.json({
             success: true,
-            data: records,
-            total: records.length
+            data: recordsWithNetworkSize,
+            total: recordsWithNetworkSize.length
         });
 
     } catch (error) {
@@ -2490,6 +2513,33 @@ app.get('/api/admin/network-dna', (req, res) => {
         });
     }
 });
+
+// Helper function to calculate network size
+function calculateNetworkSize(userId) {
+    try {
+        const allUsers = [];
+        const queue = [userId];
+        const visited = new Set();
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+
+            // Get all direct children (using invitor_id - BIC system)
+            const children = db.prepare('SELECT id FROM users WHERE invitor_id = ?').all(currentId);
+            children.forEach(child => {
+                allUsers.push(child.id);
+                queue.push(child.id);
+            });
+        }
+
+        return allUsers.length;
+    } catch (error) {
+        console.error('Error calculating network size for', userId, ':', error);
+        return 0;
+    }
+}
 
 // Get network tree for a specific user (BFS traversal)
 app.get('/api/admin/network-tree/:userId', (req, res) => {
@@ -3560,27 +3610,6 @@ app.post('/api/settings/verify-user', (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 });
-
-// Helper function to calculate network size (total descendants)
-function calculateNetworkSize(userId) {
-    try {
-        // Count all users in the downline
-        const result = db.prepare(`
-            WITH RECURSIVE downline AS (
-                SELECT id FROM users WHERE parent_id = ?
-                UNION ALL
-                SELECT u.id FROM users u
-                INNER JOIN downline d ON u.parent_id = d.id
-            )
-            SELECT COUNT(*) as count FROM downline
-        `).get(userId);
-
-        return result ? result.count : 0;
-    } catch (error) {
-        console.error('Error calculating network size:', error);
-        return 0;
-    }
-}
 
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

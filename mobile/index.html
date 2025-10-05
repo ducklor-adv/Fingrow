@@ -2588,10 +2588,15 @@
                         <!-- No Referrer (default state) -->
                         <div id="noReferrerCard" style="display: none;">
                             <div style="background: #1f2937; border-radius: 12px; padding: 20px; border: 2px dashed #4b5563; text-align: center;">
-                                <div style="color: #9ca3af; font-size: 16px; margin-bottom: 15px;">ไม่มีผู้แนะนำ</div>
-                                <button type="button" id="addReferrerBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
-                                    + เพิ่มรหัสแนะนำ
-                                </button>
+                                <div style="color: #9ca3af; font-size: 16px; margin-bottom: 15px;">ผู้แนะนำ</div>
+                                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                    <button type="button" id="addReferrerBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
+                                        + เพิ่มรหัสแนะนำ
+                                    </button>
+                                    <button type="button" id="registerWithoutReferrerBtn" style="background: #6b7280; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
+                                        สมัครแบบไม่มีผู้แนะนำ
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -7511,6 +7516,16 @@
                 });
             }
 
+            // Button: Register Without Referrer (NIC)
+            const registerWithoutReferrerBtn = document.getElementById('registerWithoutReferrerBtn');
+            if (registerWithoutReferrerBtn) {
+                registerWithoutReferrerBtn.addEventListener('click', async function() {
+                    // Set Anatta999 as invitor for NIC registration
+                    const anatta999Code = '25AAA0000';
+                    await verifyAndShowReferrer(anatta999Code);
+                });
+            }
+
             // Allow Enter key to verify
             if (manualReferralCode) {
                 manualReferralCode.addEventListener('keypress', function(e) {
@@ -7549,6 +7564,40 @@
                 return;
             }
 
+            // Confirmation popup before registration
+            let confirmMessage = '';
+            let registrationType = 'NIC'; // Default
+
+            if (confirmedInviteCode && confirmedInviteCode !== '') {
+                // BIC Registration - Has invitor
+                const referrerInfo = currentReferrerData;
+                const referrerName = referrerInfo ? (referrerInfo.full_name || referrerInfo.username) : 'ไม่ทราบ';
+
+                confirmMessage = `ยืนยันการสมัครสมาชิก\n\n` +
+                                `📝 ชื่อ: ${fullName}\n` +
+                                `👤 Username: ${username}\n` +
+                                `📧 Email: ${email}\n` +
+                                `👥 ผู้แนะนำ: ${referrerName}\n` +
+                                `🔗 รหัส: ${confirmedInviteCode}\n\n` +
+                                `คุณต้องการสมัครสมาชิกใช่หรือไม่?`;
+                registrationType = 'BIC';
+            } else {
+                // NIC Registration - No invitor (will auto-assign to Anatta999)
+                confirmMessage = `ยืนยันการสมัครสมาชิก\n\n` +
+                                `📝 ชื่อ: ${fullName}\n` +
+                                `👤 Username: ${username}\n` +
+                                `📧 Email: ${email}\n\n` +
+                                `⚠️ คุณสมัครโดยไม่มีผู้แนะนำ\n` +
+                                `ระบบจะจัดเชื่อมต่อทีมให้อัตโนมัติ\n\n` +
+                                `คุณต้องการดำเนินการต่อใช่หรือไม่?`;
+                registrationType = 'NIC';
+            }
+
+            // Show confirmation dialog
+            if (!confirm(confirmMessage)) {
+                return; // User cancelled
+            }
+
             const userData = {
                 full_name: fullName,
                 username: username,
@@ -7556,7 +7605,8 @@
                 password: password,
                 phone: phone,
                 province: province,
-                invite_code: confirmedInviteCode
+                invite_code: confirmedInviteCode,
+                registration_type: registrationType
             };
 
             // Debug logging

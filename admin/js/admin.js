@@ -4254,7 +4254,7 @@ function renderDNATable(data) {
     const recordCount = document.getElementById('tableRecordCount');
 
     if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-gray-400">No data found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">No data found</td></tr>';
         if (recordCount) recordCount.textContent = '0';
         return;
     }
@@ -4262,17 +4262,26 @@ function renderDNATable(data) {
     // Update record count
     if (recordCount) recordCount.textContent = data.length;
 
-    tbody.innerHTML = data.map(row => `
+    tbody.innerHTML = data.map(row => {
+        // Format invitor display - show invitor name and ID
+        let invitorDisplay = '-';
+        if (row.invitor_id) {
+            const invitorName = row.invitor_name || row.invitor_full_name || 'Unknown';
+            invitorDisplay = `<div>${invitorName}</div><div class="text-[10px] text-gray-500 font-mono">${row.invitor_id}</div>`;
+        }
+
+        return `
         <tr class="border-b border-gray-800 hover:bg-gray-800/50">
             <td class="px-2 py-2 text-center tabular-nums">${row.run_number || 0}</td>
             <td class="px-2 py-2 font-mono text-xs">${row.user_id}</td>
             <td class="px-2 py-2">${row.username || '-'}</td>
             <td class="px-2 py-2 font-mono text-[10px]">${formatDateTime(row.regist_time)}</td>
             <td class="px-2 py-2">${row.regist_type}</td>
-            <td class="px-2 py-2 font-mono text-xs">${row.invitor || '-'}</td>
-            <td class="px-2 py-2 text-center tabular-nums">${row.follower_count}</td>
-            <td class="px-2 py-2 text-center tabular-nums">${row.child_count}</td>
+            <td class="px-2 py-2 text-xs">${invitorDisplay}</td>
             <td class="px-2 py-2 font-mono text-xs">${row.parent_id || '-'}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.total_invites || 0}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.child_count || 0}</td>
+            <td class="px-2 py-2 text-center tabular-nums">${row.network_size || 0}</td>
             <td class="px-2 py-2 text-right tabular-nums">${Number(row.own_finpoint || 0).toLocaleString()}</td>
             <td class="px-2 py-2 text-right tabular-nums">${Number(row.total_finpoint || 0).toLocaleString()}</td>
             <td class="px-2 py-2 text-center">
@@ -4284,7 +4293,8 @@ function renderDNATable(data) {
             <td class="px-2 py-2 text-center tabular-nums">${row.level}</td>
             <td class="px-2 py-2 text-center tabular-nums">${row.max_follower}</td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Populate user selectors
