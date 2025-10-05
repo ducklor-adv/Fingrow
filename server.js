@@ -290,6 +290,34 @@ function initializeDatabase() {
             )
         `);
 
+        // Create settings table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                description TEXT,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create reviews table
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS reviews (
+                id TEXT PRIMARY KEY,
+                order_id TEXT NOT NULL,
+                product_id TEXT NOT NULL,
+                buyer_id TEXT NOT NULL,
+                seller_id TEXT NOT NULL,
+                rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+                comment TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (order_id) REFERENCES orders(id),
+                FOREIGN KEY (product_id) REFERENCES products(id),
+                FOREIGN KEY (buyer_id) REFERENCES users(id),
+                FOREIGN KEY (seller_id) REFERENCES users(id)
+            )
+        `);
+
         console.log('✅ Database schema initialized successfully');
         
     } catch (error) {
