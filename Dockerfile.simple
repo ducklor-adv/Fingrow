@@ -1,5 +1,5 @@
 # Simple Dockerfile for cloud deployment without user creation
-FROM node:18-slim
+FROM node:20-slim
 
 # Install system dependencies required for better-sqlite3 (if needed)
 RUN apt-get update && apt-get install -y \
@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application code
 COPY admin ./admin

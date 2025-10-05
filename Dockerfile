@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Fingrow API (Debian-based for better compatibility)
 
 # Stage 1: Build stage
-FROM node:18-slim AS builder
+FROM node:20-slim AS builder
 
 # Install build dependencies for native modules
 RUN apt-get update && apt-get install -y \
@@ -23,7 +23,7 @@ RUN npm ci
 COPY . .
 
 # Stage 2: Production stage
-FROM node:18-slim
+FROM node:20-slim
 
 # Install runtime dependencies for native modules
 RUN apt-get update && apt-get install -y \
@@ -39,7 +39,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application code
 COPY --from=builder /app/admin ./admin
