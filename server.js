@@ -137,11 +137,11 @@ app.use((error, req, res, next) => {
 // Database schema initialization function
 function initializeDatabase() {
     console.log('🔄 Initializing database schema...');
-    
-    try {
-        // Create users table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS users (
+
+    const tables = [
+        {
+            name: 'users',
+            sql: `CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 world_id TEXT UNIQUE,
                 username TEXT UNIQUE NOT NULL,
@@ -175,12 +175,11 @@ function initializeDatabase() {
                 address_province TEXT,
                 address_postal_code TEXT,
                 parent_id TEXT
-            )
-        `);
-
-        // Create products table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS products (
+            )`
+        },
+        {
+            name: 'products',
+            sql: `CREATE TABLE IF NOT EXISTS products (
                 id TEXT PRIMARY KEY,
                 seller_id TEXT NOT NULL,
                 title TEXT NOT NULL,
@@ -198,12 +197,11 @@ function initializeDatabase() {
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (seller_id) REFERENCES users(id)
-            )
-        `);
-
-        // Create orders table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS orders (
+            )`
+        },
+        {
+            name: 'orders',
+            sql: `CREATE TABLE IF NOT EXISTS orders (
                 id TEXT PRIMARY KEY,
                 buyer_id TEXT NOT NULL,
                 seller_id TEXT NOT NULL,
@@ -222,12 +220,11 @@ function initializeDatabase() {
                 FOREIGN KEY (buyer_id) REFERENCES users(id),
                 FOREIGN KEY (seller_id) REFERENCES users(id),
                 FOREIGN KEY (product_id) REFERENCES products(id)
-            )
-        `);
-
-        // Create categories table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS categories (
+            )`
+        },
+        {
+            name: 'categories',
+            sql: `CREATE TABLE IF NOT EXISTS categories (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 name_th TEXT,
@@ -236,12 +233,11 @@ function initializeDatabase() {
                 is_active INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Create chat_rooms table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS chat_rooms (
+            )`
+        },
+        {
+            name: 'chat_rooms',
+            sql: `CREATE TABLE IF NOT EXISTS chat_rooms (
                 id TEXT PRIMARY KEY,
                 buyer_id TEXT NOT NULL,
                 seller_id TEXT NOT NULL,
@@ -252,12 +248,11 @@ function initializeDatabase() {
                 FOREIGN KEY (buyer_id) REFERENCES users(id),
                 FOREIGN KEY (seller_id) REFERENCES users(id),
                 FOREIGN KEY (product_id) REFERENCES products(id)
-            )
-        `);
-
-        // Create messages table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS messages (
+            )`
+        },
+        {
+            name: 'messages',
+            sql: `CREATE TABLE IF NOT EXISTS messages (
                 id TEXT PRIMARY KEY,
                 chat_room_id TEXT NOT NULL,
                 sender_id TEXT NOT NULL,
@@ -267,12 +262,11 @@ function initializeDatabase() {
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (chat_room_id) REFERENCES chat_rooms(id),
                 FOREIGN KEY (sender_id) REFERENCES users(id)
-            )
-        `);
-
-        // Create earnings table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS earnings (
+            )`
+        },
+        {
+            name: 'earnings',
+            sql: `CREATE TABLE IF NOT EXISTS earnings (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 source_user_id TEXT NOT NULL,
@@ -287,22 +281,20 @@ function initializeDatabase() {
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (source_user_id) REFERENCES users(id),
                 FOREIGN KEY (order_id) REFERENCES orders(id)
-            )
-        `);
-
-        // Create settings table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS settings (
+            )`
+        },
+        {
+            name: 'settings',
+            sql: `CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT,
                 description TEXT,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Create reviews table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS reviews (
+            )`
+        },
+        {
+            name: 'reviews',
+            sql: `CREATE TABLE IF NOT EXISTS reviews (
                 id TEXT PRIMARY KEY,
                 order_id TEXT NOT NULL,
                 product_id TEXT NOT NULL,
@@ -315,12 +307,11 @@ function initializeDatabase() {
                 FOREIGN KEY (product_id) REFERENCES products(id),
                 FOREIGN KEY (buyer_id) REFERENCES users(id),
                 FOREIGN KEY (seller_id) REFERENCES users(id)
-            )
-        `);
-
-        // Create fingrow_dna table (for MLM network tracking)
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS fingrow_dna (
+            )`
+        },
+        {
+            name: 'fingrow_dna',
+            sql: `CREATE TABLE IF NOT EXISTS fingrow_dna (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 run_number INTEGER UNIQUE,
                 user_id TEXT UNIQUE NOT NULL,
@@ -343,12 +334,11 @@ function initializeDatabase() {
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (parent_id) REFERENCES users(id)
-            )
-        `);
-
-        // Create notifications table
-        db.exec(`
-            CREATE TABLE IF NOT EXISTS notifications (
+            )`
+        },
+        {
+            name: 'notifications',
+            sql: `CREATE TABLE IF NOT EXISTS notifications (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 type TEXT NOT NULL,
@@ -358,15 +348,25 @@ function initializeDatabase() {
                 is_read INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        `);
+            )`
+        }
+    ];
 
-        console.log('✅ Database schema initialized successfully');
-        
-    } catch (error) {
-        console.error('❌ Database schema initialization failed:', error);
-        throw error;
-    }
+    let successCount = 0;
+    let failCount = 0;
+
+    tables.forEach(table => {
+        try {
+            db.exec(table.sql);
+            console.log(`✅ ${table.name} table ready`);
+            successCount++;
+        } catch (error) {
+            console.error(`❌ Error creating ${table.name} table:`, error.message);
+            failCount++;
+        }
+    });
+
+    console.log(`\n📊 Database initialization complete: ${successCount} tables created, ${failCount} failed\n`);
 }
 
 // Initialize database
