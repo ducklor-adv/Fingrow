@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fingrow Database Query Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .quick-queries {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-query-btn {
+            padding: 12px 20px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-align: left;
+        }
+
+        .quick-query-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .query-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .query-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .results-container {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .results-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            border: 2px solid #e0e0e0;
+            border-bottom: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .results-table-container {
+            max-height: 500px;
+            overflow: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 0 0 8px 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #efe;
+            border: 2px solid #cfc;
+            color: #060;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ Fingrow Database Query Tool</h1>
+            <p>Execute SQL queries on your production database</p>
+        </div>
+
+        <div class="content">
+            <!-- Quick Queries -->
+            <div class="section">
+                <div class="section-title">Quick Queries</div>
+                <div class="quick-queries">
+                    <button class="quick-query-btn" onclick="setQuery('SELECT * FROM users ORDER BY created_at DESC LIMIT 10')">Recent Users</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT * FROM products ORDER BY created_at DESC LIMIT 10')">Recent Products</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT * FROM orders ORDER BY created_at DESC LIMIT 10')">Recent Orders</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT * FROM fingrow_dna ORDER BY run_number LIMIT 10')">DNA Records</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 10')">Notifications</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT name FROM sqlite_master WHERE type=\\'table\\'')">List Tables</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT COUNT(*) as count FROM users')">Count Users</button>
+                    <button class="quick-query-btn" onclick="setQuery('SELECT COUNT(*) as count FROM products')">Count Products</button>
+                </div>
+            </div>
+
+            <!-- SQL Query Input -->
+            <div class="section">
+                <div class="section-title">SQL Query</div>
+                <textarea id="queryInput" class="query-area" placeholder="Enter your SQL query here...&#10;Example: SELECT * FROM users LIMIT 10"></textarea>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="executeQuery()">Execute Query</button>
+                    <button class="btn btn-secondary" onclick="clearQuery()">Clear</button>
+                </div>
+            </div>
+
+            <!-- Database Stats -->
+            <div class="section" id="statsSection" style="display: none;">
+                <div class="section-title">Database Statistics</div>
+                <div class="stats" id="statsContainer"></div>
+            </div>
+
+            <!-- Results -->
+            <div class="results-container" id="resultsContainer">
+                <div class="results-header">
+                    <strong>Query Results</strong>
+                    <span id="rowCount"></span>
+                </div>
+                <div class="results-table-container">
+                    <table id="resultsTable"></table>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messageContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:5050'
+            : 'https://fingrow-g0db.onrender.com';
+
+        function setQuery(query) {
+            document.getElementById('queryInput').value = query;
+        }
+
+        function clearQuery() {
+            document.getElementById('queryInput').value = '';
+            document.getElementById('resultsContainer').classList.remove('show');
+            document.getElementById('messageContainer').innerHTML = '';
+        }
+
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+
+            if (!query) {
+                showError('Please enter a SQL query');
+                return;
+            }
+
+            const messageContainer = document.getElementById('messageContainer');
+            messageContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Executing query...</p></div>';
+            document.getElementById('resultsContainer').classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/db-query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Query failed');
+                }
+
+                messageContainer.innerHTML = '';
+
+                if (data.results && data.results.length > 0) {
+                    displayResults(data.results);
+                } else {
+                    showSuccess(`Query executed successfully. Rows affected: ${data.changes || 0}`);
+                }
+
+            } catch (error) {
+                messageContainer.innerHTML = '';
+                showError(error.message);
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('resultsContainer');
+            const table = document.getElementById('resultsTable');
+            const rowCount = document.getElementById('rowCount');
+
+            // Clear previous results
+            table.innerHTML = '';
+
+            // Create header row
+            const headers = Object.keys(results[0]);
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create body rows
+            const tbody = document.createElement('tbody');
+            results.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    const value = row[header];
+                    td.textContent = value !== null && value !== undefined ? value : '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+
+            // Update row count
+            rowCount.textContent = `${results.length} rows`;
+
+            // Show results
+            container.classList.add('show');
+        }
+
+        function showError(message) {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="success"><strong>Success:</strong> ${message}</div>`;
+        }
+
+        async function loadStats() {
+            try {
+                const tables = ['users', 'products', 'orders', 'fingrow_dna'];
+                const statsContainer = document.getElementById('statsContainer');
+                const statsSection = document.getElementById('statsSection');
+
+                statsContainer.innerHTML = '';
+
+                for (const table of tables) {
+                    const response = await fetch(`${API_URL}/api/admin/db-query`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: `SELECT COUNT(*) as count FROM ${table}` })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.results && data.results[0]) {
+                        const card = document.createElement('div');
+                        card.className = 'stat-card';
+                        card.innerHTML = `
+                            <div class="stat-value">${data.results[0].count}</div>
+                            <div class="stat-label">${table}</div>
+                        `;
+                        statsContainer.appendChild(card);
+                    }
+                }
+
+                statsSection.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load stats on page load
+        window.addEventListener('load', loadStats);
+    </script>
+</body>
+</html>

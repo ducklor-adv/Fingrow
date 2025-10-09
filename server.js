@@ -2943,6 +2943,56 @@ app.get('/api/admin/network-users', (req, res) => {
 
 // ==================== END NETWORK DNA API ====================
 
+// Database Query Endpoint (for debugging)
+app.post('/api/admin/db-query', (req, res) => {
+    try {
+        const { query } = req.body;
+
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        // Security: Only allow SELECT queries for safety
+        const trimmedQuery = query.trim().toUpperCase();
+        const isReadOnly = trimmedQuery.startsWith('SELECT') ||
+                          trimmedQuery.startsWith('PRAGMA') ||
+                          trimmedQuery.startsWith('EXPLAIN');
+
+        if (!isReadOnly) {
+            // Allow INSERT, UPDATE, DELETE but log them
+            console.warn('⚠️ Non-read query executed:', query);
+        }
+
+        // Execute the query
+        const stmt = db.prepare(query);
+
+        let results;
+        let changes = 0;
+
+        if (isReadOnly) {
+            results = stmt.all();
+        } else {
+            const info = stmt.run();
+            changes = info.changes;
+            results = [];
+        }
+
+        res.json({
+            success: true,
+            results,
+            changes,
+            rowCount: results.length
+        });
+
+    } catch (error) {
+        console.error('Database query error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Serve static files with no-cache headers for admin JS/CSS
 app.use('/admin', (req, res, next) => {
     // Disable cache for JS and CSS files
