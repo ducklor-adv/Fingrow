@@ -194,6 +194,8 @@ function initializeDatabase() {
                 is_available INTEGER DEFAULT 1,
                 status TEXT DEFAULT 'active',
                 view_count INTEGER DEFAULT 0,
+                community_percentage REAL DEFAULT 2.00,
+                amount_fee REAL DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (seller_id) REFERENCES users(id)
@@ -203,18 +205,35 @@ function initializeDatabase() {
             name: 'orders',
             sql: `CREATE TABLE IF NOT EXISTS orders (
                 id TEXT PRIMARY KEY,
+                order_number TEXT UNIQUE,
                 buyer_id TEXT NOT NULL,
                 seller_id TEXT NOT NULL,
-                product_id TEXT NOT NULL,
+                product_id TEXT,
                 quantity INTEGER DEFAULT 1,
-                total_price_wld REAL NOT NULL,
-                total_price_local REAL NOT NULL,
+                subtotal REAL DEFAULT 0,
+                shipping_cost REAL DEFAULT 0,
+                tax_amount REAL DEFAULT 0,
+                community_fee REAL NOT NULL DEFAULT 0,
+                total_amount REAL NOT NULL DEFAULT 0,
+                total_price_wld REAL DEFAULT 0,
+                total_price_local REAL DEFAULT 0,
                 currency_code TEXT DEFAULT 'THB',
+                wld_rate REAL DEFAULT 0,
+                total_wld REAL DEFAULT 0,
                 status TEXT DEFAULT 'pending',
                 payment_status TEXT DEFAULT 'pending',
                 shipping_address TEXT,
+                shipping_method TEXT,
                 tracking_number TEXT,
                 notes TEXT,
+                buyer_notes TEXT,
+                seller_notes TEXT,
+                admin_notes TEXT,
+                order_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                confirmed_at TEXT,
+                shipped_at TEXT,
+                delivered_at TEXT,
+                completed_at TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (buyer_id) REFERENCES users(id),
@@ -394,6 +413,40 @@ try {
             console.log('🔄 Running migration: Adding parent_id column...');
             db.exec('ALTER TABLE users ADD COLUMN parent_id TEXT');
             console.log('✅ Migration complete: parent_id added');
+        }
+
+        // Add missing columns to orders table
+        const orderColumns = db.prepare("PRAGMA table_info(orders)").all();
+        const orderColumnNames = orderColumns.map(col => col.name);
+        const missingOrderColumns = [
+            { name: 'product_id', sql: 'ALTER TABLE orders ADD COLUMN product_id TEXT' },
+            { name: 'quantity', sql: 'ALTER TABLE orders ADD COLUMN quantity INTEGER DEFAULT 1' },
+            { name: 'total_price_wld', sql: 'ALTER TABLE orders ADD COLUMN total_price_wld REAL DEFAULT 0' },
+            { name: 'total_price_local', sql: 'ALTER TABLE orders ADD COLUMN total_price_local REAL DEFAULT 0' },
+            { name: 'notes', sql: 'ALTER TABLE orders ADD COLUMN notes TEXT' }
+        ];
+
+        for (const col of missingOrderColumns) {
+            if (!orderColumnNames.includes(col.name)) {
+                console.log(`🔄 Adding ${col.name} column to orders table...`);
+                db.exec(col.sql);
+                console.log(`✅ ${col.name} column added`);
+            }
+        }
+
+        // Add missing columns to products table
+        const productColumns = db.prepare("PRAGMA table_info(products)").all();
+        const productColumnNames = productColumns.map(col => col.name);
+        const missingProductColumns = [
+            { name: 'price_wld', sql: 'ALTER TABLE products ADD COLUMN price_wld REAL DEFAULT 0' }
+        ];
+
+        for (const col of missingProductColumns) {
+            if (!productColumnNames.includes(col.name)) {
+                console.log(`🔄 Adding ${col.name} column to products table...`);
+                db.exec(col.sql);
+                console.log(`✅ ${col.name} column added`);
+            }
         }
 
         // Create indices
