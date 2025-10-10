@@ -2993,6 +2993,27 @@ app.post('/api/admin/db-query', (req, res) => {
     }
 });
 
+// Version Info Endpoint
+app.get('/api/version', (req, res) => {
+    try {
+        const packageJsonPath = path.join(__dirname, 'package.json');
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+        res.json({
+            success: true,
+            version: packageJson.version,
+            name: packageJson.name,
+            environment: process.env.NODE_ENV || 'development'
+        });
+    } catch (error) {
+        console.error('Error reading package.json:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to read version info'
+        });
+    }
+});
+
 // Serve static files with no-cache headers for admin JS/CSS
 app.use('/admin', (req, res, next) => {
     // Disable cache for JS and CSS files
