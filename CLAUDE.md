@@ -15,7 +15,7 @@ npm start
 
 # Run specific platforms
 npm run android  # Android emulator/device
-npm run ios      # iOS simulator/device  
+npm run ios      # iOS simulator/device
 npm run web      # Web browser
 
 # Start backend server
@@ -24,6 +24,22 @@ npm run server      # Runs Node.js server on port 5050
 # Run both server and web app concurrently
 npm run dev
 ```
+
+### Docker Deployment (Using Bun for Performance)
+All Dockerfiles have been updated to use Bun runtime for faster performance:
+```bash
+# Build and run with Docker
+docker build -t fingrow .
+docker run -p 5050:5050 -p 8080:8080 fingrow
+
+# Or use docker-compose
+docker-compose up
+
+# Production build
+docker-compose -f docker-compose.prod.yml up
+```
+
+**Note:** Bun is used in Docker containers only. Local development uses Node.js due to native module compatibility. Docker containers will build native modules correctly with Bun's ABI.
 
 ### Database Management
 ```bash

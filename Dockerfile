@@ -1,7 +1,7 @@
-# Multi-stage Dockerfile for Fingrow API (Debian-based for better compatibility)
+# Multi-stage Dockerfile for Fingrow API (Using Bun for faster performance)
 
 # Stage 1: Build stage
-FROM node:20-slim AS builder
+FROM oven/bun:1-debian AS builder
 
 # Install build dependencies for native modules
 RUN apt-get update && apt-get install -y \
@@ -15,15 +15,16 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY bun.lock* ./
 
 # Install all dependencies (including devDependencies for building)
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Stage 2: Production stage
-FROM node:20-slim
+FROM oven/bun:1-debian
 
 # Install runtime dependencies for native modules
 RUN apt-get update && apt-get install -y \
@@ -37,9 +38,10 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY bun.lock* ./
 
 # Install production dependencies only
-RUN npm ci --omit=dev
+RUN bun install --production --frozen-lockfile
 
 # Copy application code
 COPY --from=builder /app/admin ./admin
@@ -72,7 +74,7 @@ EXPOSE 5050 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5050/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+  CMD bun -e "require('http').get('http://localhost:5050/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
 
 # Start the server
-CMD ["node", "server.js"]
+CMD ["bun", "run", "server.js"]
