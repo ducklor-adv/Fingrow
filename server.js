@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import fs from 'fs';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -3975,6 +3976,43 @@ app.post('/api/settings/verify-user', (req, res) => {
 
 app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Initialize SQLite GUI (enabled by default, runs on port 8080)
+const ENABLE_DB_GUI = process.env.ENABLE_DB_GUI !== 'false'; // Enabled by default
+if (ENABLE_DB_GUI) {
+    (async () => {
+        try {
+            const sqlite3 = (await import('sqlite3')).default;
+            const { SqliteGuiNode } = await import('sqlite-gui-node');
+
+            const guiDb = new sqlite3.Database(dbPath);
+            await SqliteGuiNode(guiDb);
+
+            console.log('🗄️  SQLite GUI available at: http://localhost:8080/home');
+
+            // Add proxy middleware to expose GUI on /db-gui path
+            app.use('/db-gui', createProxyMiddleware({
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/db-gui': '' // Remove /db-gui prefix when forwarding
+                },
+                onError: (err, req, res) => {
+                    console.error('Proxy error:', err.message);
+                    res.status(500).json({
+                        success: false,
+                        error: 'Database GUI is not available'
+                    });
+                }
+            }));
+
+            console.log(`🌐 Database GUI proxy available at: http://localhost:${PORT}/db-gui/home`);
+        } catch (error) {
+            console.error('❌ Failed to initialize SQLite GUI:', error.message);
+        }
+    })();
+}
+
 app.use('/', express.static(__dirname));
 
 // Start server
@@ -3982,4 +4020,7 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📱 Mobile app: http://localhost:${PORT}/mobile/`);
     console.log(`🔧 Admin panel: http://localhost:${PORT}/admin/`);
+    if (ENABLE_DB_GUI) {
+        console.log(`🗄️  Database GUI: http://localhost:${PORT}/db-gui/home`);
+    }
 });

@@ -33,6 +33,21 @@ node scripts/seed-dna-from-csv.js         # Seed data from CSV
 node scripts/dev-seed.js                  # Development seed data
 ```
 
+### Database GUI Tools
+The server includes two web-based database management tools:
+
+1. **SQLite GUI (sqlite-gui-node)** - Full database management interface
+   - Enabled by default (set `ENABLE_DB_GUI=false` to disable)
+   - Accessible at: `http://localhost:5050/db-gui/home`
+   - Production: `https://your-domain.com/db-gui/home`
+   - Features: CRUD operations, custom SQL queries, query code generation
+
+2. **Database Query Tool** - Custom SQL query interface
+   - Accessible at: `http://localhost:5050/db-query.html`
+   - Production: `https://your-domain.com/db-query.html`
+   - Features: Quick queries, custom SQL editor, results table, database stats
+   - API endpoint: `POST /api/admin/db-query`
+
 ## High-Level Architecture
 
 ### 1. **Hybrid Application Structure**
