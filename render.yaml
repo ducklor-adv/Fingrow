@@ -10,9 +10,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        value: 5050
       - key: RENDER
         value: true
+      - key: ENABLE_DB_GUI
+        value: true  # Enable SQLite GUI (set to 'false' to disable for security)
     disk:
       name: fingrow-data
       mountPath: /opt/render/project/src/data
