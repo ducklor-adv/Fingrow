@@ -53,6 +53,8 @@ COPY --from=builder /app/App.js ./App.js
 COPY --from=builder /app/app.json ./app.json
 COPY --from=builder /app/babel.config.js ./babel.config.js
 COPY --from=builder /app/index.html ./index.html
+COPY --from=builder /app/db-query.html ./db-query.html
+COPY --from=builder /app/version-footer.js ./version-footer.js
 
 # Create necessary directories
 RUN mkdir -p data uploads/profiles uploads/products uploads/qrcodes
@@ -65,8 +67,8 @@ RUN chown -R nodejs:nodejs /app
 
 USER nodejs
 
-# Expose port
-EXPOSE 5050
+# Expose ports (5050 for main server, 8080 for SQLite GUI)
+EXPOSE 5050 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

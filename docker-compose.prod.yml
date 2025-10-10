@@ -9,11 +9,13 @@ services:
     container_name: fingrow-api-prod
     restart: always
     ports:
-      - "5050:5050"
+      - "5050:5050"  # Main API server
+      - "8080:8080"  # SQLite GUI (accessible via /db-gui proxy)
     environment:
       - NODE_ENV=production
       - PORT=5050
       - DATABASE_PATH=/app/data/fingrow.db
+      - ENABLE_DB_GUI=true  # Enable SQLite GUI (set to 'false' in production for security)
     volumes:
       # Only mount data and uploads in production (no source code)
       - fingrow-data:/app/data
