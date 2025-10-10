@@ -1,0 +1,1509 @@
+</head>
+<body>
+    <!-- Notification Bell -->
+    <div class="notification-bell" onclick="goToNotifications()">
+        <div class="icon">🔔</div>
+        <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
+    </div>
+
+    <!-- Marketplace Page -->
+    <div id="marketplace" class="page active">
+        <div class="container">
+            <div class="header">
+                <div class="logo">🌱 Fingrow</div>
+            </div>
+
+            <div class="search-container">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="ค้นหาสินค้า..." onkeyup="handleSearch()">
+            </div>
+
+            <div class="filters">
+                <h2 class="section-title">กรองสินค้า</h2>
+
+                <div class="filter-row" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 150px;">
+                        <select class="form-input" id="categoryFilter" onchange="filterProducts()" style="font-size: 14px; padding: 8px 12px;">
+                            <option value="">ทุกหมวดหมู่</option>
+                            <option value="electronics">📱 อิเล็กทรอนิกส์</option>
+                            <option value="gaming">🎮 เกมมิ่ง</option>
+                            <option value="camera">📷 กล้อง</option>
+                            <option value="fashion">👕 แฟชั่น</option>
+                            <option value="music">🎵 เครื่องดนตรี</option>
+                            <option value="books">📚 หนังสือ</option>
+                            <option value="home">🏠 บ้านและสวน</option>
+                            <option value="sports">⚽ กีฬา</option>
+                            <option value="automotive">🚗 ยานยนต์</option>
+                            <option value="toys">🎲 ของเล่น</option>
+                            <option value="beauty">💄 ความงาม</option>
+                            <option value="collectibles">💎 ของสะสม</option>
+                            <option value="business">💼 ธุรกิจ</option>
+                        </select>
+                    </div>
+
+                    <div style="flex: 1; min-width: 120px;">
+                        <select class="form-input" id="conditionFilter" onchange="filterProducts()" style="font-size: 14px; padding: 8px 12px;">
+                            <option value="">ทุกสภาพ</option>
+                            <option value="new">ใหม่</option>
+                            <option value="like-new">เหมือนใหม่</option>
+                            <option value="excellent">ดีมาก</option>
+                            <option value="good">ดี</option>
+                            <option value="fair">ปานกลาง</option>
+                            <option value="poor">เก่า</option>
+                        </select>
+                    </div>
+
+                    <div style="flex: 1; min-width: 100px;">
+                        <select class="form-input" id="sortFilter" onchange="filterProducts()" style="font-size: 14px; padding: 8px 12px;">
+                            <option value="newest">ใหม่ล่าสุด</option>
+                            <option value="price-low">ราคาต่ำ-สูง</option>
+                            <option value="price-high">ราคาสูง-ต่ำ</option>
+                            <option value="popular">ยอดนิยม</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Price Range Filter -->
+                <div class="filter-row" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: end;">
+                    <div style="flex: 0 0 90px; min-width: 90px;">
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 4px; display: block; color: #9ca3af;">สกุลเงิน</label>
+                        <select class="form-input" id="currencyFilter" onchange="filterProducts()" style="font-size: 14px; padding: 8px 12px;">
+                            <option value="THB">THB (฿)</option>
+                        </select>
+                    </div>
+
+                    <div style="flex: 1; min-width: 120px;">
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 4px; display: block; color: #9ca3af;">ราคาต่ำสุด</label>
+                        <input type="number" class="form-input" id="minPriceFilter" placeholder="0" onchange="filterProducts()" oninput="filterProducts()" style="font-size: 14px; padding: 8px 12px;" min="0" step="0.01">
+                    </div>
+
+                    <div style="flex: 1; min-width: 120px;">
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 4px; display: block; color: #9ca3af;">ราคาสูงสุด</label>
+                        <input type="number" class="form-input" id="maxPriceFilter" placeholder="∞" onchange="filterProducts()" oninput="filterProducts()" style="font-size: 14px; padding: 8px 12px;" min="0" step="0.01">
+                    </div>
+
+                    <div style="flex: 0 0 auto;">
+                        <button class="btn-clear-price" onclick="clearPriceFilter()" style="background: #374151; color: #9ca3af; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#4b5563'" onmouseout="this.style.background='#374151'">
+                            ล้างราคา
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="products">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2 class="section-title" id="productsSectionTitle">สินค้าทั้งหมด</h2>
+                    <div style="font-size: 12px; color: #a1a1aa;" id="productsCount">กำลังโหลด...</div>
+                </div>
+
+                <!-- Filter Toggle Buttons -->
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <button id="filterAvailable" onclick="toggleProductFilter('available')"
+                            style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: #10b981; color: white; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                        พร้อมขาย
+                    </button>
+                    <button id="filterAll" onclick="toggleProductFilter('all')"
+                            style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: rgba(30, 41, 59, 0.8); color: #a1a1aa; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                        ทั้งหมด
+                    </button>
+                </div>
+
+                <div class="product-grid" id="productGrid">
+                    <!-- Products will be loaded dynamically -->
+                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #a1a1aa;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📦</div>
+                        <div>กำลังโหลดสินค้า...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Listing Page -->
+    <!-- Listings Page (Combined Create + Orders + My Products) -->
+    <div id="listings" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">📋 รายการของฉัน</div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #374151; overflow-x: auto;">
+                <button id="myProductsTab" class="tab-button active" onclick="showListingsTab('myProducts')" style="flex: 1; padding: 12px; border: none; background: none; color: #10b981; font-weight: bold; border-bottom: 2px solid #10b981; white-space: nowrap;">
+                    🛍️ สินค้าของฉัน
+                </button>
+                <button id="ordersTab" class="tab-button" onclick="showListingsTab('orders')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold; white-space: nowrap;">
+                    📦 คำสั่งซื้อ
+                </button>
+                <button id="notificationsTab" class="tab-button" onclick="showListingsTab('notifications')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold; white-space: nowrap;">
+                    🔔 แจ้งเตือน
+                </button>
+            </div>
+
+            <!-- Sell Product Tab Content -->
+            <div id="sellTabContent" class="tab-content">
+
+            <form id="createListingForm">
+                <!-- Fin Fee Card - MOVED TO TOP -->
+                <div class="form-section" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <h3 class="form-section-title" style="color: #10b981; display: flex; align-items: center; gap: 10px;">
+                        💰 ค่าธรรมเนียมระบบ (Fin Fee)
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label" style="color: #d1fae5;">เปอร์เซ็นต์ค่าธรรมเนียม (1-7%)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input
+                                type="range"
+                                class="form-input"
+                                id="finFeePercent"
+                                min="1"
+                                max="7"
+                                step="0.5"
+                                value="2"
+                                style="flex: 1;"
+                                oninput="updateFinFeeCalculation()">
+                            <span id="finFeePercentDisplay" style="color: #10b981; font-weight: bold; font-size: 20px; min-width: 60px; text-align: right;">2.0%</span>
+                        </div>
+                        <small class="form-help" style="color: #6ee7b7;">ลากเพื่อปรับค่าธรรมเนียมที่จะจ่ายให้ระบบ (ค่าเริ่มต้น 2%)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="color: #d1fae5;">จำนวนเงินค่าธรรมเนียม</label>
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; border: 1px solid #10b981;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: #86efac; font-size: 14px;">ราคาสินค้า:</span>
+                                <span id="productPriceDisplay" style="color: white; font-weight: 500;"><span id="priceValue">0.00</span> <span id="priceCurrencyDisplay">THB</span></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: #86efac; font-size: 14px;">ค่าธรรมเนียม (<span id="feePercentText">2.0</span>%):</span>
+                                <span id="amountFeeDisplay" style="color: #10b981; font-weight: bold; font-size: 18px;"><span id="feeValue">0.00</span> <span id="feeCurrencyDisplay">THB</span></span>
+                            </div>
+                            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #d1fae5; font-size: 14px; font-weight: 500;">คุณจะได้รับ:</span>
+                                    <span id="sellerReceiveDisplay" style="color: #10b981; font-weight: bold; font-size: 20px;"><span id="receiveValue">0.00</span> <span id="receiveCurrencyDisplay">THB</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="form-help" style="color: #6ee7b7;">💡 ค่าธรรมเนียมจะถูกหักอัตโนมัติเมื่อมีการขายสินค้า</small>
+                    </div>
+
+                    <!-- Hidden inputs to store fee data -->
+                    <input type="hidden" id="finFeePercentValue" value="2.0">
+                    <input type="hidden" id="amountFeeValue" value="0">
+                </div>
+
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h3 class="form-section-title">ข้อมูลพื้นฐาน</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">ชื่อสินค้า *</label>
+                        <input type="text" class="form-input" id="productTitle" placeholder="เช่น iPhone 14 Pro สีทอง 128GB" required>
+                        <small class="form-help">กรอกชื่อสินค้าที่ชัดเจนและครบถ้วน</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">หมวดหมู่ *</label>
+                        <select class="form-input" id="productCategory" required onchange="updateSubCategories()">
+                            <option value="">เลือกหมวดหมู่</option>
+                            <option value="electronics">อิเล็กทรอนิกส์</option>
+                            <option value="fashion">แฟชั่น</option>
+                            <option value="home">บ้านและสวน</option>
+                            <option value="sports">กีฬาและนันทนาการ</option>
+                            <option value="automotive">ยานยนต์</option>
+                            <option value="books">หนังสือและสื่อ</option>
+                            <option value="toys">ของเล่นและเกม</option>
+                            <option value="beauty">ความงามและสุขภาพ</option>
+                            <option value="collectibles">ของสะสม</option>
+                            <option value="business">อุปกรณ์ธุรกิจ</option>
+                            <option value="other">อื่นๆ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">หมวดหมู่ย่อย</label>
+                        <select class="form-input" id="productSubCategory">
+                            <option value="">เลือกหมวดหมู่หลักก่อน</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">แบรนด์</label>
+                        <input type="text" class="form-input" id="productBrand" placeholder="เช่น Apple, Samsung, Nike">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">รุ่น/โมเดล</label>
+                        <input type="text" class="form-input" id="productModel" placeholder="เช่น iPhone 14 Pro, Galaxy S23">
+                    </div>
+                </div>
+
+                <!-- Condition & Details -->
+                <div class="form-section">
+                    <h3 class="form-section-title">สภาพและรายละเอียด</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">สภาพสินค้า *</label>
+                        <select class="form-input" id="productCondition" required>
+                            <option value="">เลือกสภาพสินค้า</option>
+                            <option value="new">ใหม่ - ยังไม่เคยใช้งาน</option>
+                            <option value="like-new">เหมือนใหม่ - ใช้งานน้อยมาก</option>
+                            <option value="excellent">ดีมาก - ใช้งานเล็กน้อย ไม่มีรอยเสียหาย</option>
+                            <option value="good">ดี - ใช้งานปกติ มีร่องรอยการใช้งานเล็กน้อย</option>
+                            <option value="fair">ปานกลาง - มีร่องรอยการใช้งานชัดเจน</option>
+                            <option value="poor">เก่า - มีร่องรอยการใช้งานมาก หรือมีข้อบกพร่อง</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">คำอธิบายสินค้า *</label>
+                        <textarea class="form-input" id="productDescription" rows="5" placeholder="อธิบายรายละเอียด คุณสมบัติ สภาพการใช้งาน และสิ่งที่รวมอยู่ในกล่อง..." required></textarea>
+                        <small class="form-help">อธิบายให้ละเอียดเพื่อช่วยให้ผู้ซื้อเข้าใจสินค้ามากขึ้น</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">สี</label>
+                        <input type="text" class="form-input" id="productColor" placeholder="เช่น ทอง, ดำ, ขาว">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ขนาด/ไซส์</label>
+                        <input type="text" class="form-input" id="productSize" placeholder="เช่น M, L, XL หรือขนาดเฉพาะ">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">น้ำหนัก (กรัม)</label>
+                        <input type="number" class="form-input" id="productWeight" placeholder="0">
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="form-section">
+                    <h3 class="form-section-title">ราคาและการจัดส่ง</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">รูปแบบการขาย *</label>
+                        <select class="form-input" id="listingType" required onchange="toggleAuctionFields()">
+                            <option value="fixed">ราคาคงที่ (Buy It Now)</option>
+                            <option value="auction">ประมูล (Auction)</option>
+                            <option value="both">ทั้งสองแบบ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">สกุลเงิน *</label>
+                        <select class="form-input" id="priceCurrency" required onchange="updateCurrencyLabel()">
+                            <option value="THB">บาทไทย (THB)</option>
+                            <option value="USD">ดอลลาร์สหรัฐ (USD)</option>
+                            <option value="EUR">ยูโร (EUR)</option>
+                            <option value="JPY">เยน (JPY)</option>
+                            <option value="GBP">ปอนด์ (GBP)</option>
+                            <option value="CNY">หยวน (CNY)</option>
+                            <option value="KRW">วอน (KRW)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ราคา *</label>
+                        <div class="price-input-container">
+                            <input type="number" class="form-input" id="productPrice" step="0.01" placeholder="0.00" required>
+                            <span class="currency-label" id="currencyLabel">THB</span>
+                        </div>
+                    </div>
+
+
+                    <div id="auctionFields" class="auction-fields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">ราคาเริ่มต้น</label>
+                            <div class="price-input-container">
+                                <input type="number" class="form-input" id="startingPrice" step="0.01" placeholder="0.00">
+                                <span class="currency-label" id="auctionStartCurrencyLabel">THB</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">ราคา Buy It Now</label>
+                            <div class="price-input-container">
+                                <input type="number" class="form-input" id="buyItNowPrice" step="0.01" placeholder="0.00">
+                                <span class="currency-label" id="auctionBuyNowCurrencyLabel">THB</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">ระยะเวลาประมูล</label>
+                            <select class="form-input" id="auctionDuration">
+                                <option value="1">1 วัน</option>
+                                <option value="3">3 วัน</option>
+                                <option value="5">5 วัน</option>
+                                <option value="7">7 วัน</option>
+                                <option value="10">10 วัน</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">จำนวน *</label>
+                        <input type="number" class="form-input" id="productQuantity" min="1" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ค่าจัดส่ง</label>
+                        <select class="form-input" id="shippingType" onchange="toggleShippingPrice()">
+                            <option value="free">จัดส่งฟรี</option>
+                            <option value="flat">อัตราคงที่</option>
+                            <option value="calculated">คำนวณตามระยะทาง</option>
+                            <option value="pickup">รับสินค้าเอง</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="shippingPriceGroup" style="display: none;">
+                        <label class="form-label">ราคาค่าจัดส่ง</label>
+                        <div class="price-input-container">
+                            <input type="number" class="form-input" id="shippingPrice" step="0.01" placeholder="0.00">
+                            <span class="currency-label" id="shippingCurrencyLabel">THB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location & Policies -->
+                <div class="form-section">
+                    <h3 class="form-section-title">ที่ตั้งและนโยบาย</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">จังหวัด *</label>
+                        <select class="form-input" id="productLocation" required>
+                            <option value="">เลือกจังหวัด</option>
+                            <option value="bangkok">กรุงเทพมหานคร</option>
+                            <option value="chiangmai">เชียงใหม่</option>
+                            <option value="phuket">ภูเก็ต</option>
+                            <option value="chonburi">ชลบุรี</option>
+                            <option value="nonthaburi">นนทบุรี</option>
+                            <!-- เพิ่มจังหวัดอื่นๆ -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">เงื่อนไขการคืนสินค้า</label>
+                        <select class="form-input" id="returnPolicy">
+                            <option value="no-returns">ไม่รับคืน</option>
+                            <option value="14-days">รับคืนภายใน 14 วัน</option>
+                            <option value="30-days">รับคืนภายใน 30 วัน</option>
+                            <option value="60-days">รับคืนภายใน 60 วัน</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ระยะเวลาในการจัดส่ง</label>
+                        <select class="form-input" id="handlingTime">
+                            <option value="1">1 วันทำการ</option>
+                            <option value="2">2 วันทำการ</option>
+                            <option value="3">3 วันทำการ</option>
+                            <option value="5">5 วันทำการ</option>
+                            <option value="7">7 วันทำการ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="form-section">
+                    <h3 class="form-section-title">รูปภาพสินค้า</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">อัปโหลดรูปภาพ (สูงสุด 12 รูป)</label>
+                        <div class="image-upload-container">
+                            <input type="file" id="productImages" accept="image/*" multiple style="display: none;">
+                            <div class="image-upload-button" onclick="document.getElementById('productImages').click()">
+                                <div class="upload-icon">📸</div>
+                                <div>เลือกรูปภาพ</div>
+                                <small>JPG, PNG ขนาดไม่เกิน 10MB ต่อรูป</small>
+                            </div>
+                        </div>
+                        <small class="form-help">💡 คลิกที่ดาว (☆) เพื่อเลือกรูปหลักที่จะแสดงในหน้าตลาด</small>
+                        <div id="imagePreview" class="image-preview-container"></div>
+                    </div>
+                </div>
+
+                <!-- Additional Options -->
+                <div class="form-section">
+                    <h3 class="form-section-title">ตัวเลือกเพิ่มเติม</h3>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="immediatePayment">
+                            <span class="checkmark"></span>
+                            ต้องการการชำระเงินทันที
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="bestOffer">
+                            <span class="checkmark"></span>
+                            รับข้อเสนอราคา (Best Offer)
+                        </label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="privateAuction">
+                            <span class="checkmark"></span>
+                            ประมูลแบบส่วนตัว (ไม่แสดงชื่อผู้เสนอราคา)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="saveDraft()">บันทึกแบบร่าง</button>
+                    <button type="button" class="btn-secondary" onclick="previewListing()">ดูตัวอย่าง</button>
+                    <button type="submit" class="btn">✅ ลงขายสินค้า</button>
+                </div>
+            </form>
+            </div>
+
+            <!-- My Products Tab Content -->
+            <div id="myProductsTabContent" class="tab-content">
+                <!-- Add Product Button -->
+                <div style="margin-bottom: 20px;">
+                    <button onclick="showCreateProductForm()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                        ➕ ลงขายสินค้า
+                    </button>
+                </div>
+
+                <!-- Create Product Form (Hidden by default) -->
+                <div id="createProductForm" style="display: none;">
+                    <form id="createListingFormInProducts">
+                        <!-- Fin Fee Card - MOVED TO TOP -->
+                        <div class="form-section" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border: 2px solid #10b981; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                            <h3 class="form-section-title" style="color: #10b981; display: flex; align-items: center; gap: 10px;">
+                                💰 ค่าธรรมเนียมระบบ (Fin Fee)
+                            </h3>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: #d1fae5;">เปอร์เซ็นต์ค่าธรรมเนียม (1-7%)</label>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input
+                                        type="range"
+                                        class="form-input"
+                                        id="finFeePercent2"
+                                        min="1"
+                                        max="7"
+                                        step="0.5"
+                                        value="2"
+                                        style="flex: 1;"
+                                        oninput="updateFinFeeCalculation2()">
+                                    <span id="finFeePercentDisplay2" style="color: #10b981; font-weight: bold; font-size: 20px; min-width: 60px; text-align: right;">2.0%</span>
+                                </div>
+                                <small class="form-help" style="color: #6ee7b7;">ลากเพื่อปรับค่าธรรมเนียมที่จะจ่ายให้ระบบ (ค่าเริ่มต้น 2%)</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" style="color: #d1fae5;">จำนวนเงินค่าธรรมเนียม</label>
+                                <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; border: 1px solid #10b981;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="color: #86efac; font-size: 14px;">ราคาสินค้า:</span>
+                                        <span id="productPriceDisplay2" style="color: white; font-weight: 500;"><span id="priceValue2">0.00</span> <span id="priceCurrencyDisplay2">THB</span></span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="color: #86efac; font-size: 14px;">ค่าธรรมเนียม (<span id="feePercentText2">2.0</span>%):</span>
+                                        <span id="amountFeeDisplay2" style="color: #10b981; font-weight: bold; font-size: 18px;"><span id="feeValue2">0.00</span> <span id="feeCurrencyDisplay2">THB</span></span>
+                                    </div>
+                                    <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 8px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: #d1fae5; font-size: 14px; font-weight: 500;">คุณจะได้รับ:</span>
+                                            <span id="sellerReceiveDisplay2" style="color: #10b981; font-weight: bold; font-size: 20px;"><span id="receiveValue2">0.00</span> <span id="receiveCurrencyDisplay2">THB</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="form-help" style="color: #6ee7b7;">💡 ค่าธรรมเนียมจะถูกหักอัตโนมัติเมื่อมีการขายสินค้า</small>
+                            </div>
+
+                            <!-- Hidden inputs to store fee data -->
+                            <input type="hidden" id="finFeePercentValue2" value="2.0">
+                            <input type="hidden" id="amountFeeValue2" value="0">
+                        </div>
+
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">ข้อมูลพื้นฐาน</h3>
+
+                            <div class="form-group">
+                                <label class="form-label">ชื่อสินค้า *</label>
+                                <input type="text" class="form-input" id="productTitle2" placeholder="เช่น iPhone 14 Pro สีทอง 128GB" required>
+                                <small class="form-help">กรอกชื่อสินค้าที่ชัดเจนและครบถ้วน</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">หมวดหมู่ *</label>
+                                <select class="form-input" id="productCategory2" required onchange="updateSubCategories2()">
+                                    <option value="">เลือกหมวดหมู่</option>
+                                    <option value="electronics">อิเล็กทรอนิกส์</option>
+                                    <option value="fashion">แฟชั่น</option>
+                                    <option value="home">บ้านและสวน</option>
+                                    <option value="sports">กีฬาและนันทนาการ</option>
+                                    <option value="automotive">ยานยนต์</option>
+                                    <option value="books">หนังสือและสื่อ</option>
+                                    <option value="toys">ของเล่นและเกม</option>
+                                    <option value="beauty">ความงามและสุขภาพ</option>
+                                    <option value="collectibles">ของสะสม</option>
+                                    <option value="business">อุปกรณ์ธุรกิจ</option>
+                                    <option value="other">อื่นๆ</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">หมวดหมู่ย่อย</label>
+                                <select class="form-input" id="productSubCategory2">
+                                    <option value="">เลือกหมวดหมู่หลักก่อน</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">แบรนด์</label>
+                                <input type="text" class="form-input" id="productBrand2" placeholder="เช่น Apple, Samsung, Nike">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">รุ่น/โมเดล</label>
+                                <input type="text" class="form-input" id="productModel2" placeholder="เช่น iPhone 14 Pro, Galaxy S23">
+                            </div>
+                        </div>
+
+                        <!-- Condition & Details -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">สภาพและรายละเอียด</h3>
+
+                            <div class="form-group">
+                                <label class="form-label">สภาพสินค้า *</label>
+                                <select class="form-input" id="productCondition2" required>
+                                    <option value="">เลือกสภาพสินค้า</option>
+                                    <option value="new">ใหม่ - ยังไม่เคยใช้งาน</option>
+                                    <option value="like-new">เหมือนใหม่ - ใช้งานน้อยมาก</option>
+                                    <option value="excellent">ดีมาก - ใช้งานเล็กน้อย ไม่มีรอยเสียหาย</option>
+                                    <option value="good">ดี - ใช้งานปกติ มีร่องรอยการใช้งานเล็กน้อย</option>
+                                    <option value="fair">ปานกลาง - มีร่องรอยการใช้งานชัดเจน</option>
+                                    <option value="poor">เก่า - มีร่องรอยการใช้งานมาก หรือมีข้อบกพร่อง</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">คำอธิบายสินค้า *</label>
+                                <textarea class="form-input" id="productDescription2" rows="5" placeholder="อธิบายรายละเอียด คุณสมบัติ สภาพการใช้งาน และสิ่งที่รวมอยู่ในกล่อง..." required></textarea>
+                                <small class="form-help">อธิบายให้ละเอียดเพื่อช่วยให้ผู้ซื้อเข้าใจสินค้ามากขึ้น</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">สี</label>
+                                <input type="text" class="form-input" id="productColor2" placeholder="เช่น ทอง, ดำ, ขาว">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">ขนาด/ไซส์</label>
+                                <input type="text" class="form-input" id="productSize2" placeholder="เช่น M, L, XL หรือขนาดเฉพาะ">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">น้ำหนัก (กรัม)</label>
+                                <input type="number" class="form-input" id="productWeight2" placeholder="0">
+                            </div>
+                        </div>
+
+                        <!-- Pricing -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">ราคาและการจัดส่ง</h3>
+
+                            <div class="form-group">
+                                <label class="form-label">รูปแบบการขาย *</label>
+                                <select class="form-input" id="listingType2" required onchange="toggleAuctionFields2()">
+                                    <option value="fixed">ราคาคงที่ (Buy It Now)</option>
+                                    <option value="auction">ประมูล (Auction)</option>
+                                    <option value="both">ทั้งสองแบบ</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">สกุลเงิน *</label>
+                                <select class="form-input" id="priceCurrency2" required onchange="updateCurrencyLabel2()">
+                                    <option value="THB">บาทไทย (THB)</option>
+                                    <option value="USD">ดอลลาร์สหรัฐ (USD)</option>
+                                    <option value="EUR">ยูโร (EUR)</option>
+                                    <option value="JPY">เยน (JPY)</option>
+                                    <option value="GBP">ปอนด์ (GBP)</option>
+                                    <option value="CNY">หยวน (CNY)</option>
+                                    <option value="KRW">วอน (KRW)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">ราคา *</label>
+                                <div class="price-input-container">
+                                    <input type="number" class="form-input" id="productPrice2" step="0.01" placeholder="0.00" required oninput="updateFinFeeCalculation2()">
+                                    <span class="currency-label" id="currencyLabel2">THB</span>
+                                </div>
+                            </div>
+
+
+                            <div id="auctionFields2" class="auction-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">ราคาเริ่มต้น</label>
+                                    <div class="price-input-container">
+                                        <input type="number" class="form-input" id="startingPrice2" step="0.01" placeholder="0.00">
+                                        <span class="currency-label" id="auctionStartCurrencyLabel2">THB</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">ราคา Buy It Now</label>
+                                    <div class="price-input-container">
+                                        <input type="number" class="form-input" id="buyItNowPrice2" step="0.01" placeholder="0.00">
+                                        <span class="currency-label" id="auctionBuyNowCurrencyLabel2">THB</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">ระยะเวลาประมูล</label>
+                                    <select class="form-input" id="auctionDuration2">
+                                        <option value="1">1 วัน</option>
+                                        <option value="3">3 วัน</option>
+                                        <option value="5">5 วัน</option>
+                                        <option value="7">7 วัน</option>
+                                        <option value="10">10 วัน</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">จำนวน *</label>
+                                <input type="number" class="form-input" id="productQuantity2" min="1" value="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">ค่าจัดส่ง</label>
+                                <select class="form-input" id="shippingType2" onchange="toggleShippingPrice2()">
+                                    <option value="free">จัดส่งฟรี</option>
+                                    <option value="flat">อัตราคงที่</option>
+                                    <option value="calculated">คำนวณตามระยะทาง</option>
+                                    <option value="pickup">รับสินค้าเอง</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="shippingPriceGroup2" style="display: none;">
+                                <label class="form-label">ราคาค่าจัดส่ง</label>
+                                <div class="price-input-container">
+                                    <input type="number" class="form-input" id="shippingPrice2" step="0.01" placeholder="0.00">
+                                    <span class="currency-label" id="shippingCurrencyLabel2">THB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location & Policies -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">ที่ตั้งและนโยบาย</h3>
+
+                            <div class="form-group">
+                                <label class="form-label">จังหวัด *</label>
+                                <select class="form-input" id="productLocation2" required>
+                                    <option value="">เลือกจังหวัด</option>
+                                    <option value="bangkok">กรุงเทพมหานคร</option>
+                                    <option value="chiangmai">เชียงใหม่</option>
+                                    <option value="phuket">ภูเก็ต</option>
+                                    <option value="chonburi">ชลบุรี</option>
+                                    <option value="nonthaburi">นนทบุรี</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">เงื่อนไขการคืนสินค้า</label>
+                                <select class="form-input" id="returnPolicy2">
+                                    <option value="no-returns">ไม่รับคืน</option>
+                                    <option value="14-days">รับคืนภายใน 14 วัน</option>
+                                    <option value="30-days">รับคืนภายใน 30 วัน</option>
+                                    <option value="60-days">รับคืนภายใน 60 วัน</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">ระยะเวลาในการจัดส่ง</label>
+                                <select class="form-input" id="handlingTime2">
+                                    <option value="1">1 วันทำการ</option>
+                                    <option value="2">2 วันทำการ</option>
+                                    <option value="3">3 วันทำการ</option>
+                                    <option value="5">5 วันทำการ</option>
+                                    <option value="7">7 วันทำการ</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Images -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">รูปภาพสินค้า</h3>
+
+                            <div class="form-group">
+                                <label class="form-label">อัปโหลดรูปภาพ (สูงสุด 12 รูป)</label>
+                                <div class="image-upload-container">
+                                    <input type="file" id="productImages2" accept="image/*" multiple style="display: none;">
+                                    <div class="image-upload-button" onclick="document.getElementById('productImages2').click()">
+                                        <div class="upload-icon">📸</div>
+                                        <div>เลือกรูปภาพ</div>
+                                        <small>JPG, PNG ขนาดไม่เกิน 10MB ต่อรูป</small>
+                                    </div>
+                                </div>
+                                <small class="form-help">💡 คลิกที่ดาว (☆) เพื่อเลือกรูปหลักที่จะแสดงในหน้าตลาด</small>
+                                <div id="imagePreview2" class="image-preview-container"></div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Options -->
+                        <div class="form-section">
+                            <h3 class="form-section-title">ตัวเลือกเพิ่มเติม</h3>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="immediatePayment2">
+                                    <span class="checkmark"></span>
+                                    ต้องการการชำระเงินทันที
+                                </label>
+                            </div>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="bestOffer2">
+                                    <span class="checkmark"></span>
+                                    รับข้อเสนอราคา (Best Offer)
+                                </label>
+                            </div>
+
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="privateAuction2">
+                                    <span class="checkmark"></span>
+                                    ประมูลแบบส่วนตัว (ไม่แสดงชื่อผู้เสนอราคา)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="hideCreateProductForm()">ยกเลิก</button>
+                            <button type="submit" class="btn">✅ ลงขายสินค้า</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Products List -->
+                <div id="myProductsList">
+                    <!-- User's products will be loaded here -->
+                    <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                        <div>กำลังโหลดสินค้าของคุณ...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Tab Content -->
+            <div id="ordersTabContent" class="tab-content" style="display: none;">
+                <!-- Order Type Tabs -->
+                <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #374151;">
+                    <button id="buyOrdersBtn" class="tab-button active" onclick="showOrderType('buy')" style="flex: 1; padding: 12px; border: none; background: none; color: #10b981; font-weight: bold; border-bottom: 2px solid #10b981;">
+                        🛒 คำสั่งซื้อของฉัน
+                    </button>
+                    <button id="sellOrdersBtn" class="tab-button" onclick="showOrderType('sell')" style="flex: 1; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: bold;">
+                        💰 คำสั่งขาย
+                    </button>
+                </div>
+
+                <!-- Buy Orders Container -->
+                <div id="buyOrdersContainer"></div>
+
+                <!-- Sell Orders Container -->
+                <div id="sellOrdersContainer" style="display: none;"></div>
+            </div>
+
+            <!-- Notifications Tab Content -->
+            <div id="notificationsTabContent" class="tab-content" style="display: none;">
+                <div id="fullNotificationsList">
+                    <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referrals Page -->
+    <div id="referrals" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">🤝 เครือข่าย</div>
+            </div>
+
+            <!-- Network Stats -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+                <!-- Follower -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.4); text-align: center;">
+                    <div style="color: #e9d5ff; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Follower</div>
+                    <div style="color: #c084fc; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkFollowerCount">0</span></div>
+                    <div style="color: #e9d5ff; font-size: 11px; opacity: 0.8;">คน</div>
+                </div>
+                <!-- Child -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.4); text-align: center;">
+                    <div style="color: #e9d5ff; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Child</div>
+                    <div style="color: #c084fc; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkChildCount">0</span></div>
+                    <div style="color: #e9d5ff; font-size: 11px; opacity: 0.8;">คน</div>
+                </div>
+                <!-- Network -->
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 20px 12px; border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.4); text-align: center;">
+                    <div style="color: #67e8f9; font-size: 12px; margin-bottom: 8px; font-weight: 500;">Network</div>
+                    <div style="color: #06b6d4; font-size: 32px; font-weight: bold; margin-bottom: 4px;"><span id="networkNetworkSize">0</span></div>
+                    <div style="color: #67e8f9; font-size: 11px; opacity: 0.8;">คน</div>
+                </div>
+            </div>
+
+            <!-- Referral Code Section -->
+            <div class="referral-section">
+                <h3 class="section-title">🎯 รหัสแนะนำของคุณ</h3>
+                <div class="referral-code-card">
+                    <div class="form-group">
+                        <label class="form-label">รหัสแนะนำ</label>
+                        <div class="referral-code-input">
+                            <input type="text" id="myReferralCode" class="form-input" value="" readonly>
+                            <button class="copy-code-btn" onclick="copyMyReferralCode()">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ลิงค์แนะนำ</label>
+                        <div class="referral-link-input">
+                            <input type="text" id="myReferralLink" class="form-input" value="" readonly>
+                            <button class="copy-link-btn" onclick="copyMyReferralLink()">🔗</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Who Invited You Section -->
+            <div class="invited-users-section">
+                <h3 class="section-title">🙋 ผู้ที่เชิญคุณมา</h3>
+                <div id="myInviterInfo" class="invited-users-list">
+                    <!-- Inviter info will be loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Invited Users Section -->
+            <div class="invited-users-section">
+                <h3 class="section-title">👥 คนที่คุณชวนมา</h3>
+                <div id="invitedUsersList" class="invited-users-list">
+                    <!-- Users will be loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="referral-actions">
+                <button class="btn" onclick="generateQRCode()">📱 สร้าง QR Code</button>
+                <button class="btn-secondary" onclick="shareReferralLink()">📤 แชร์ลิงค์</button>
+                <button class="btn-secondary" onclick="showReferralDetails()">📊 ดูรายละเอียด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login" class="page">
+        <div class="container">
+            <div class="auth-container">
+                <div class="auth-form">
+                    <div class="auth-form-title">🔐 เข้าสู่ระบบ</div>
+
+                    <div class="form-group">
+                        <label class="form-label">Username หรือ Email</label>
+                        <input type="text" id="loginUsername" class="auth-input" placeholder="กรอก username หรือ email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">รหัสผ่าน</label>
+                        <input type="password" id="loginPassword" class="auth-input" placeholder="กรอกรหัสผ่าน">
+                    </div>
+
+                    <button class="auth-btn primary" onclick="handleLogin()">เข้าสู่ระบบ</button>
+
+                    <div class="auth-footer">
+                        <p>ยังไม่มีบัญชี? <span class="auth-link" onclick="showPage('register')">สมัครสมาชิก</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="register" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">📝 สมัครสมาชิก</div>
+            </div>
+
+            <div class="auth-container">
+                <div class="auth-form">
+                    <!-- Referrer Card Section - MOVED TO TOP -->
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label class="form-label">ผู้แนะนำ</label>
+
+                        <!-- Referrer Info Card (shown when referrer is found) -->
+                        <div id="referrerInfoCard" style="display: none;">
+                            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 12px; padding: 20px; border: 2px solid #10b981; position: relative;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="flex-shrink: 0;">
+                                        <img id="referrerProfileImage" src="" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; display: none;">
+                                        <div id="referrerAvatarFallback" style="width: 70px; height: 70px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; border: 3px solid #34d399;">
+                                            <span id="referrerAvatar" style="color: white; font-weight: bold; font-size: 28px;">?</span>
+                                        </div>
+                                    </div>
+                                    <div style="flex-grow: 1;">
+                                        <div id="referrerDisplayName" style="color: white; font-size: 18px; font-weight: bold; margin-bottom: 5px;">@username</div>
+                                        <div style="color: #86efac; font-size: 14px; margin-bottom: 3px;">รหัส: <span id="referrerCodeDisplay"></span></div>
+                                        <div style="color: #6ee7b7; font-size: 12px;">✓ ผู้แนะนำได้รับการยืนยันแล้ว</div>
+                                    </div>
+                                </div>
+                                <button type="button" id="changeReferrerBtn" style="position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s;">
+                                    🔄 เปลี่ยนผู้แนะนำ
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Manual Referral Code Input (shown when changing referrer) -->
+                        <div id="manualReferralInput" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 15px; border: 2px solid #4b5563;">
+                                <label style="color: #d1d5db; font-size: 14px; display: block; margin-bottom: 8px;">กรอกรหัสแนะนำใหม่</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="manualReferralCode" class="auth-input" placeholder="เช่น TEST6DNT" style="flex-grow: 1;">
+                                    <button type="button" id="verifyReferralBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; white-space: nowrap; font-weight: 500;">
+                                        ตรวจสอบ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- No Referrer (default state) -->
+                        <div id="noReferrerCard" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 20px; border: 2px dashed #4b5563; text-align: center;">
+                                <div style="color: #9ca3af; font-size: 16px; margin-bottom: 15px;">ผู้แนะนำ</div>
+                                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                    <button type="button" id="addReferrerBtn" style="background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
+                                        + เพิ่มรหัสแนะนำ
+                                    </button>
+                                    <button type="button" id="registerWithoutReferrerBtn" style="background: #6b7280; color: white; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500;">
+                                        สมัครแบบไม่มีผู้แนะนำ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="referrerLoadingCard" style="display: none;">
+                            <div style="background: #1f2937; border-radius: 12px; padding: 20px; border: 2px solid #4b5563; text-align: center;">
+                                <div style="color: #9ca3af; font-size: 16px;">🔍 กำลังตรวจสอบผู้แนะนำ...</div>
+                            </div>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="referrerErrorCard" style="display: none;">
+                            <div style="background: #7f1d1d; border-radius: 12px; padding: 20px; border: 2px solid #dc2626;">
+                                <div style="color: #fca5a5; font-size: 14px; margin-bottom: 10px;">❌ ไม่พบรหัสแนะนำ: <span id="errorReferralCode"></span></div>
+                                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                    <button type="button" id="retryReferralBtn" style="background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; flex: 1; font-size: 14px;">
+                                        ลองอีกครั้ง
+                                    </button>
+                                    <button type="button" id="skipReferralBtn" style="background: #6b7280; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; flex: 1; font-size: 14px;">
+                                        ข้าม
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden input to store invite code for registration -->
+                        <input type="hidden" id="confirmedInviteCode" value="">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ชื่อ-นามสกุล *</label>
+                        <input type="text" id="registerFullName" class="auth-input" placeholder="กรอกชื่อ-นามสกุล">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Username *</label>
+                        <input type="text" id="registerUsername" class="auth-input" placeholder="กรอก username">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <input type="email" id="registerEmail" class="auth-input" placeholder="กรอก email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">รหัสผ่าน *</label>
+                        <input type="password" id="registerPassword" class="auth-input" placeholder="กรอกรหัสผ่าน">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">เบอร์โทร</label>
+                        <input type="tel" id="registerPhone" class="auth-input" placeholder="081-234-5678">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">จังหวัด</label>
+                        <select id="registerProvince" class="auth-input">
+                            <option value="">เลือกจังหวัด</option>
+                            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
+                            <option value="กระบี่">กระบี่</option>
+                            <option value="กาญจนบุรี">กาญจนบุรี</option>
+                            <option value="กาฬสินธุ์">กาฬสินธุ์</option>
+                            <option value="กำแพงเพชร">กำแพงเพชร</option>
+                            <option value="ขอนแก่น">ขอนแก่น</option>
+                            <option value="จันทบุรี">จันทบุรี</option>
+                            <option value="ฉะเชิงเทรา">ฉะเชิงเทรา</option>
+                            <option value="ชลบุรี">ชลบุรี</option>
+                            <option value="ชัยนาท">ชัยนาท</option>
+                            <option value="ชัยภูมิ">ชัยภูมิ</option>
+                            <option value="ชุมพร">ชุมพร</option>
+                            <option value="เชียงราย">เชียงราย</option>
+                            <option value="เชียงใหม่">เชียงใหม่</option>
+                            <option value="ตรัง">ตรัง</option>
+                            <option value="ตราด">ตราด</option>
+                            <option value="ตาก">ตาก</option>
+                            <option value="นครนายก">นครนายก</option>
+                            <option value="นครปฐม">นครปฐม</option>
+                            <option value="นครพนม">นครพนม</option>
+                            <option value="นครราชสีมา">นครราชสีมา</option>
+                            <option value="นครศรีธรรมราช">นครศรีธรรมราช</option>
+                            <option value="นครสวรรค์">นครสวรรค์</option>
+                            <option value="นนทบุรี">นนทบุรี</option>
+                            <option value="นราธิวาส">นราธิวาส</option>
+                            <option value="น่าน">น่าน</option>
+                            <option value="บุรีรัมย์">บุรีรัมย์</option>
+                            <option value="ปทุมธานี">ปทุมธานี</option>
+                            <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์</option>
+                            <option value="ปราจีนบุรี">ปราจีนบุรี</option>
+                            <option value="ปัตตานี">ปัตตานี</option>
+                            <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา</option>
+                            <option value="พะเยา">พะเยา</option>
+                            <option value="พังงา">พังงา</option>
+                            <option value="พัทลุง">พัทลุง</option>
+                            <option value="พิจิตร">พิจิตร</option>
+                            <option value="พิษณุโลก">พิษณุโลก</option>
+                            <option value="เพชรบุรี">เพชรบุรี</option>
+                            <option value="เพชรบูรณ์">เพชรบูรณ์</option>
+                            <option value="แพร่">แพร่</option>
+                            <option value="ภูเก็ต">ภูเก็ต</option>
+                            <option value="มหาสารคาม">มหาสารคาม</option>
+                            <option value="มุกดาหาร">มุกดาหาร</option>
+                            <option value="แม่ฮ่องสอน">แม่ฮ่องสอน</option>
+                            <option value="ยโซธร">ยโซธร</option>
+                            <option value="ยะลา">ยะลา</option>
+                            <option value="ร้อยเอ็ด">ร้อยเอ็ด</option>
+                            <option value="ระนอง">ระนอง</option>
+                            <option value="ระยอง">ระยอง</option>
+                            <option value="ราชบุรี">ราชบุรี</option>
+                            <option value="ลพบุรี">ลพบุรี</option>
+                            <option value="ลำปาง">ลำปาง</option>
+                            <option value="ลำพูน">ลำพูน</option>
+                            <option value="เลย">เลย</option>
+                            <option value="ศรีสะเกษ">ศรีสะเกษ</option>
+                            <option value="สกลนคร">สกลนคร</option>
+                            <option value="สงขลา">สงขลา</option>
+                            <option value="สตูล">สตูล</option>
+                            <option value="สมุทรปราการ">สมุทรปราการ</option>
+                            <option value="สมุทรสงคราม">สมุทรสงคราม</option>
+                            <option value="สมุทรสาคร">สมุทรสาคร</option>
+                            <option value="สระแก้ว">สระแก้ว</option>
+                            <option value="สระบุรี">สระบุรี</option>
+                            <option value="สิงห์บุรี">สิงห์บุรี</option>
+                            <option value="สุโขทัย">สุโขทัย</option>
+                            <option value="สุพรรณบุรี">สุพรรณบุรี</option>
+                            <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
+                            <option value="สุรินทร์">สุรินทร์</option>
+                            <option value="หนองคาย">หนองคาย</option>
+                            <option value="หนองบัวลำภู">หนองบัวลำภู</option>
+                            <option value="อ่างทอง">อ่างทอง</option>
+                            <option value="อำนาจเจริญ">อำนาจเจริญ</option>
+                            <option value="อุดรธานี">อุดรธานี</option>
+                            <option value="อุตรดิตถ์">อุตรดิตถ์</option>
+                            <option value="อุทัยธานี">อุทัยธานี</option>
+                            <option value="อุบลราชธานี">อุบลราชธานี</option>
+                        </select>
+                    </div>
+
+                    <button class="auth-btn primary" onclick="handleRegister()">สมัครสมาชิก</button>
+
+                    <div class="auth-footer">
+                        <p>มีบัญชีแล้ว? <span class="auth-link" onclick="showPage('login')">เข้าสู่ระบบ</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Earnings Page -->
+    <div id="earnings" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">💰 รายได้</div>
+            </div>
+
+            <!-- Consumer Network Bonus (CNB) -->
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 2px solid #10b981;">
+                <div style="color: #86efac; font-size: 12px; margin-bottom: 4px; text-align: center; font-weight: 500;">✨ Consumer Network Bonus (CNB)</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 28px; font-weight: bold; margin-bottom: 2px;">
+                        <span id="loyaltyFee">0.00</span>
+                    </div>
+                    <div style="color: #10b981; font-size: 13px; font-weight: 600;">FP</div>
+                </div>
+                <div style="color: #6ee7b7; font-size: 10px; text-align: center; margin-top: 6px; opacity: 0.8;">รายได้จากเครือข่าย (14% ของ Network Fees)</div>
+            </div>
+
+            <!-- Your Network Bonus -->
+            <div style="background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 2px solid #06b6d4;">
+                <div style="color: #67e8f9; font-size: 12px; margin-bottom: 4px; text-align: center; font-weight: 500;">💎 Your Network Bonus</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 28px; font-weight: bold; margin-bottom: 2px;">
+                        <span id="networkFees">0.00</span>
+                    </div>
+                    <div style="color: #06b6d4; font-size: 13px; font-weight: 600;">THB</div>
+                </div>
+                <div style="color: #67e8f9; font-size: 10px; text-align: center; margin-top: 6px; opacity: 0.8;">ยอด Network Fees ที่สร้างได้จากเครือข่ายทั้งหมด</div>
+            </div>
+
+            <!-- Network Sales -->
+            <div style="background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%); border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 2px solid #f97316;">
+                <div style="color: #fed7aa; font-size: 12px; margin-bottom: 4px; text-align: center; font-weight: 500;">📊 Network Sales</div>
+                <div style="text-align: center;">
+                    <div style="color: white; font-size: 28px; font-weight: bold; margin-bottom: 2px;">
+                        <span id="networkSales">0.00</span>
+                    </div>
+                    <div style="color: #fb923c; font-size: 13px; font-weight: 600;">THB</div>
+                </div>
+                <div style="color: #fed7aa; font-size: 10px; text-align: center; margin-top: 6px; opacity: 0.8;">ยอดขายรวมจากเครือข่าย (ACF 5×7)</div>
+            </div>
+
+            <!-- เครือข่าย Section -->
+            <div class="form-section">
+                <h3 class="form-section-title">🤝 เครือข่าย</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                    <!-- Follower -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                        <div style="color: #e9d5ff; font-size: 11px; margin-bottom: 4px;">Follower</div>
+                        <div style="color: #c084fc; font-size: 24px; font-weight: bold;"><span id="followerCount">0</span></div>
+                        <div style="color: #e9d5ff; font-size: 10px;">คน</div>
+                    </div>
+                    <!-- Child -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                        <div style="color: #e9d5ff; font-size: 11px; margin-bottom: 4px;">Child</div>
+                        <div style="color: #c084fc; font-size: 24px; font-weight: bold;"><span id="childCount">0</span></div>
+                        <div style="color: #e9d5ff; font-size: 10px;">คน</div>
+                    </div>
+                    <!-- Network Size -->
+                    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                        <div style="color: #67e8f9; font-size: 11px; margin-bottom: 4px;">Network</div>
+                        <div style="color: #06b6d4; font-size: 24px; font-weight: bold;"><span id="networkSize">0</span></div>
+                        <div style="color: #67e8f9; font-size: 10px;">คน</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Page -->
+    <div id="profile" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">👤 โปรไฟล์</div>
+            </div>
+
+            <!-- User Profile Header -->
+            <div style="text-align: center; margin-bottom: 32px;">
+                <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 16px;">
+                    <div id="profileImage" style="width: 100px; height: 100px; background: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden;">👤</div>
+                    <button class="edit-btn profile-image-edit" onclick="editProfileImage()" style="position: absolute; bottom: 0; right: 0; border-radius: 50%; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">📷</button>
+                </div>
+                <h2 id="profileUsername">@user_demo</h2>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <p id="profileFullName" style="color: #94a3b8; font-size: 16px; margin: 4px 0;">Charlie Wilson</p>
+                    <button class="edit-btn small" onclick="editFullName()">✏️</button>
+                </div>
+                <p id="profileRating" style="color: #a1a1aa;">⭐ 4.85 คะแนน</p>
+            </div>
+
+            <!-- Account Information Section -->
+            <div class="profile-section">
+                <h3 class="section-title">💼 ข้อมูลบัญชี</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">🆔 รหัสผู้ใช้:</span>
+                        <span id="profileUserId" class="info-value">24GHI000003</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">📧 อีเมล:</span>
+                        <span id="profileEmail" class="info-value">charlie@example.com</span>
+                        <button class="edit-btn" onclick="editEmail()">✏️</button>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">📱 เบอร์โทร:</span>
+                        <span id="profilePhone" class="info-value">081-234-5673</span>
+                        <button class="edit-btn" onclick="editPhone()">✏️</button>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">🏠 ที่อยู่ในการส่งสินค้า:</span>
+                        <span id="profileShippingAddress" class="info-value">321/12 หาดป่าตอง ตำบลป่าตอง อำเภอกะทู้ ภูเก็ต 83150</span>
+                        <button class="edit-btn" onclick="editShippingAddress()">✏️</button>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">📅 สมัครเมื่อ:</span>
+                        <span id="profileCreatedAt" class="info-value">1 ก.พ. 2567</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">🕐 เข้าใช้งานล่าสุด:</span>
+                        <span id="profileLastLogin" class="info-value">19 ก.ย. 2567</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Referral System Section -->
+            <div class="profile-section" id="referralSection" style="display: none;">
+                <h3 class="section-title">👥 ผู้แนะนำ</h3>
+                <div class="referrer-card">
+                    <div class="referrer-info">
+                        <div class="referrer-avatar">
+                            <img id="referrerImage" src="" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">
+                        </div>
+                        <div class="referrer-details">
+                            <div class="referrer-name" id="referrerName"></div>
+                            <div class="referrer-code" id="referrerCode"></div>
+                            <div class="referrer-date" id="referrerDate"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="profile-section">
+                <h3 class="section-title">⚙️ การตั้งค่า</h3>
+                <div class="settings-grid">
+                    <div class="setting-item clickable" onclick="toggleNotifications()">
+                        <span class="setting-icon">🔔</span>
+                        <span class="setting-label">การแจ้งเตือน</span>
+                        <div id="notificationToggle" class="setting-toggle active">เปิด</div>
+                    </div>
+                    <div class="setting-item clickable" onclick="changeLanguage()">
+                        <span class="setting-icon">🌍</span>
+                        <span class="setting-label">ภาษา</span>
+                        <div id="languageSetting" class="setting-value">ไทย</div>
+                    </div>
+                    <div class="setting-item clickable" onclick="changeCurrency()">
+                        <span class="setting-icon">💱</span>
+                        <span class="setting-label">สกุลเงินหลัก</span>
+                        <div id="currencySetting" class="setting-value">THB</div>
+                    </div>
+                    <div class="setting-item clickable" onclick="toggleSecurity()">
+                        <span class="setting-icon">🔒</span>
+                        <span class="setting-label">การรักษาความปลอดภัย</span>
+                        <div id="securityToggle" class="setting-toggle active">เปิด</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="profile-actions">
+                <button class="btn-secondary" onclick="showWalletDetails()">💰 จัดการกระเป๋าเงิน</button>
+                <button class="btn-secondary" onclick="showSettings()">⚙️ ตั้งค่าเพิ่มเติม</button>
+                <button class="btn-secondary" onclick="contactSupport()">📞 ติดต่อเรา</button>
+                <button class="btn-danger" onclick="logout()" style="margin-top: 16px;">🚪 ออกจากระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Management Page -->
+    <div id="walletManagement" class="page">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showPage('profile')">←</button>
+                <div class="logo">💰 จัดการกระเป๋าเงิน</div>
+            </div>
+
+            <!-- Payment Methods List -->
+            <div id="paymentMethodsList" class="mb-4">
+                <p class="text-gray-400 text-center py-8">กำลังโหลด...</p>
+            </div>
+
+            <!-- Add Payment Method Button -->
+            <button class="btn" onclick="showAddPaymentMethodForm()" style="width: 100%; margin-top: 16px;">
+                ➕ เพิ่มบัญชี/Wallet ใหม่
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Payment Method Form -->
+    <div id="addPaymentMethodForm" class="page">
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="showPage('walletManagement')">←</button>
+                <div class="logo" id="formTitle">➕ เพิ่มบัญชี/Wallet</div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="form-section-title">ประเภท</h3>
+                <select id="paymentType" class="form-input" onchange="updatePaymentFormFields()">
+                    <option value="bank">🏦 บัญชีธนาคาร</option>
+                    <option value="promptpay">📱 พร้อมเพย์</option>
+                    <option value="crypto">₿ Crypto Wallet</option>
+                    <option value="other">📋 อื่นๆ</option>
+                </select>
+            </div>
+
+            <!-- Bank Fields -->
+            <div id="bankFields" class="form-section">
+                <h3 class="form-section-title">ข้อมูลบัญชี</h3>
+
+                <label class="form-label">ชื่อบัญชี</label>
+                <input type="text" id="accountName" class="form-input" placeholder="ชื่อ-นามสกุล" required>
+
+                <label class="form-label" style="margin-top: 12px;">ธนาคาร</label>
+                <select id="bankName" class="form-input">
+                    <option value="">เลือกธนาคาร</option>
+                    <option value="ธนาคารกสิกรไทย">ธนาคารกสิกรไทย</option>
+                    <option value="ธนาคารกรุงเทพ">ธนาคารกรุงเทพ</option>
+                    <option value="ธนาคารไทยพาณิชย์">ธนาคารไทยพาณิชย์</option>
+                    <option value="ธนาคารกรุงไทย">ธนาคารกรุงไทย</option>
+                    <option value="ธนาคารทหารไทยธนชาต">ธนาคารทหารไทยธนชาต</option>
+                    <option value="ธนาคารกรุงศรีอยุธยา">ธนาคารกรุงศรีอยุธยา</option>
+                    <option value="ธนาคารเกียรตินาคินภัทร">ธนาคารเกียรตินาคินภัทร</option>
+                </select>
+
+                <label class="form-label" style="margin-top: 12px;">เลขที่บัญชี</label>
+                <input type="text" id="accountNumber" class="form-input" placeholder="xxx-x-xxxxx-x">
+            </div>
+
+            <!-- Crypto Fields -->
+            <div id="cryptoFields" class="form-section" style="display: none;">
+                <h3 class="form-section-title">ข้อมูล Wallet</h3>
+
+                <label class="form-label">ชื่อ Wallet</label>
+                <input type="text" id="cryptoName" class="form-input" placeholder="เช่น My USDT Wallet">
+
+                <label class="form-label" style="margin-top: 12px;">Network</label>
+                <select id="cryptoNetwork" class="form-input">
+                    <option value="">เลือก Network</option>
+                    <option value="ETH">Ethereum (ERC20)</option>
+                    <option value="BSC">Binance Smart Chain (BEP20)</option>
+                    <option value="TRC20">TRON (TRC20)</option>
+                    <option value="Polygon">Polygon</option>
+                    <option value="Solana">Solana</option>
+                </select>
+
+                <label class="form-label" style="margin-top: 12px;">Wallet Address</label>
+                <input type="text" id="walletAddress" class="form-input" placeholder="0x...">
+            </div>
+
+            <!-- QR Code Upload -->
+            <div class="form-section">
+                <h3 class="form-section-title">QR Code รับเงิน (ถ้ามี)</h3>
+                <input type="file" id="qrCodeFile" accept="image/*" class="form-input" style="padding: 8px;" onchange="previewQRCode(event)">
+                <p class="text-gray-400 text-sm" style="margin-top: 8px;">อัพโหลด QR Code สำหรับให้ลูกค้าสแกนจ่ายเงิน</p>
+                <div id="qrPreview" style="margin-top: 12px; display: none;">
+                    <img id="qrPreviewImage" src="" style="max-width: 200px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                </div>
+            </div>
+
+            <!-- Set as Default -->
+            <div class="form-section">
+                <label style="display: flex; align-items: center; color: white;">
+                    <input type="checkbox" id="setAsDefault" style="margin-right: 8px;">
+                    ตั้งเป็นบัญชีหลัก
+                </label>
+            </div>
+
+            <button class="btn" id="saveButton" onclick="savePaymentMethod()" style="width: 100%; margin-top: 16px;">
+                💾 บันทึก
+            </button>
+        </div>
+    </div>
+
+    <!-- Orders Page -->
+    <div id="orders" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">📦 คำสั่งซื้อของฉัน</div>
+            </div>
+
+            <div id="ordersContainer" style="margin-top: 20px;">
+                <p style="text-align: center; color: #9ca3af; padding: 40px 20px;">กำลังโหลด...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chats List Page -->
+    <div id="chatsList" class="page">
+        <div class="container">
+            <div class="header">
+                <div class="logo">💬 แชท</div>
+            </div>
+
+            <div id="chatsListContainer">
+                <!-- Chat list will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Page -->
+    <div id="chat" class="page">
+        <div class="container">
+            <div class="header">
+                <button class="back-btn" onclick="goBackFromChat()">←</button>
+                <div class="chat-header-info">
+                    <img id="chatSellerAvatar" class="chat-avatar" src="" alt="Profile">
+                    <div>
+                        <div id="chatSellerName" class="chat-seller-name"></div>
+                        <div id="chatProductName" class="chat-product-name"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be dynamically loaded here -->
+            </div>
+
+            <div class="chat-input-container">
+                <input type="text" id="chatMessageInput" class="chat-input" placeholder="พิมพ์ข้อความ..." maxlength="500">
+                <button class="send-btn" onclick="sendMessage()">📤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active" onclick="showPage('marketplace')">
+            <div class="icon">🏪</div>
+            <div>ตลาด</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('listings')">
+            <div class="icon">📋</div>
+            <div>รายการ</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('chatsList')">
+            <div class="icon">💬</div>
+            <div>แชท</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('referrals')">
+            <div class="icon">🤝</div>
+            <div>เครือข่าย</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('earnings')">
+            <div class="icon">💰</div>
+            <div>รายได้</div>
+        </a>
+        <a href="#" class="nav-item" onclick="showPage('profile')">
+            <div class="icon">👤</div>
+            <div>โปรไฟล์</div>
+        </a>
+    </div>
+
+    <!-- Load API Client -->
+    <script src="js/api-client.js"></script>
+

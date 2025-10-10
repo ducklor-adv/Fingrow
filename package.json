@@ -9,8 +9,11 @@
     "ios": "expo start --ios --port 19000",
     "web": "expo start --web --port 19000",
     "server": "PORT=5050 node server.js",
-    "dev": "concurrently \"npm run server\" \"npm run web\"",
-    "build:cloud": "node scripts/build-cloud.js",
+    "dev": "concurrently \"npm run server\" \"npm run mobile:dev\"",
+    "mobile:dev": "vite mobile --port 3000",
+    "mobile:build": "vite build mobile",
+    "mobile:preview": "vite preview mobile",
+    "build:cloud": "npm run mobile:build && node scripts/build-cloud.js",
     "start:cloud": "node server.js"
   },
   "dependencies": {
@@ -46,7 +49,10 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "@vitejs/plugin-legacy": "^7.2.1",
+    "vite": "^7.1.9",
+    "vite-plugin-html": "^3.2.2"
   },
   "private": true
 }

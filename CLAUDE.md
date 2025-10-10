@@ -25,6 +25,22 @@ npm run server      # Runs Node.js server on port 5050
 npm run dev
 ```
 
+### Mobile Web Development (Vite)
+The `/mobile` directory now uses Vite for modern, fast development:
+```bash
+# Development server with HMR (Hot Module Replacement)
+npm run mobile:dev          # Starts Vite dev server on port 3000
+
+# Production build
+npm run mobile:build        # Builds optimized bundle to mobile/dist/
+
+# Preview production build locally
+npm run mobile:preview      # Serves built files for testing
+
+# Run both backend + mobile dev servers
+npm run dev                 # Runs server + Vite dev concurrently
+```
+
 ### Docker Deployment (Using Bun for Performance)
 All Dockerfiles have been updated to use Bun runtime for faster performance:
 ```bash

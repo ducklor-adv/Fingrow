@@ -3974,7 +3974,11 @@ app.post('/api/settings/verify-user', (req, res) => {
     }
 });
 
-app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
+// Serve mobile app (dist folder in production, src in development via Vite proxy)
+const mobileDir = fs.existsSync(path.join(__dirname, 'mobile/dist'))
+  ? 'mobile/dist'
+  : 'mobile';
+app.use('/mobile', express.static(path.join(__dirname, mobileDir)));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize SQLite GUI (enabled by default, runs on port 8080)
