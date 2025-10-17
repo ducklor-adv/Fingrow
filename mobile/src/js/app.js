@@ -1,5 +1,6 @@
 // Wrap app.js in IIFE to avoid duplicate declarations
 (function() {
+    'use strict';
         // Initialize Database (using API Client instead of MockDatabase)
         let database = null;
         let allProducts = [];
@@ -889,8 +890,11 @@
 
         // Initialize exchange rate section
         setTimeout(() => {
-            const initialCurrency = document.getElementById('priceCurrency').value;
-            updateExchangeRateSection(initialCurrency);
+            const priceCurrencyEl = document.getElementById('priceCurrency');
+            if (priceCurrencyEl) {
+                const initialCurrency = priceCurrencyEl.value;
+                updateExchangeRateSection(initialCurrency);
+            }
         }, 100);
 
         // Exchange Rates (will be updated from API)
@@ -1336,9 +1340,11 @@
         // Image handling
         let primaryImageIndex = 0; // Track which image is the primary
 
-        document.getElementById('productImages').addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            const previewContainer = document.getElementById('imagePreview');
+        const productImagesEl = document.getElementById('productImages');
+        if (productImagesEl) {
+            productImagesEl.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                const previewContainer = document.getElementById('imagePreview');
 
             files.forEach((file, index) => {
                 if (file.type.startsWith('image/')) {
@@ -1366,6 +1372,7 @@
                 }
             });
         });
+        }
 
         function setPrimaryImage(imageIndex) {
             primaryImageIndex = imageIndex;
@@ -1938,9 +1945,11 @@
         if (refreshRateBtn) refreshRateBtn.addEventListener('click', refreshExchangeRate);
 
         // Image handling for form 2
-        document.getElementById('productImages2').addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            const previewContainer = document.getElementById('imagePreview2');
+        const productImages2El = document.getElementById('productImages2');
+        if (productImages2El) {
+            productImages2El.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                const previewContainer = document.getElementById('imagePreview2');
 
             files.forEach((file, index) => {
                 if (file.type.startsWith('image/')) {
@@ -1968,9 +1977,12 @@
                 }
             });
         });
+        }
 
         // Form submission for form 2 (in My Products tab)
-        document.getElementById('createListingFormInProducts').addEventListener('submit', async function(e) {
+        const createListingFormInProductsEl = document.getElementById('createListingFormInProducts');
+        if (createListingFormInProductsEl) {
+            createListingFormInProductsEl.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             // Collect form data from form 2
@@ -2081,9 +2093,12 @@
                 alert('❌ เกิดข้อผิดพลาดในการลงขายสินค้า');
             }
         });
+        }
 
         // Form submission
-        document.getElementById('createListingForm').addEventListener('submit', async function(e) {
+        const createListingFormEl = document.getElementById('createListingForm');
+        if (createListingFormEl) {
+            createListingFormEl.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             // Collect form data
@@ -2204,6 +2219,7 @@
                 alert('❌ เกิดข้อผิดพลาดในการลงขายสินค้า');
             }
         });
+        }
 
         console.log('🌱 Fingrow Mobile App Loaded');
         console.log('📱 Features: Marketplace, Create Listing, Orders, Referrals, Profile');
@@ -5889,4 +5905,16 @@
                 referralSection.style.display = 'none';
             }
         }
+
+    // Export functions to global scope for onclick handlers
+    if (typeof window !== 'undefined') {
+        window.showPage = showPage;
+        if (typeof viewProduct !== 'undefined') window.viewProduct = viewProduct;
+        if (typeof prevImage !== 'undefined') window.prevImage = prevImage;
+        if (typeof nextImage !== 'undefined') window.nextImage = nextImage;
+        if (typeof contactSeller !== 'undefined') window.contactSeller = contactSeller;
+        if (typeof removeImage !== 'undefined') window.removeImage = removeImage;
+        if (typeof setPrimaryImage !== 'undefined') window.setPrimaryImage = setPrimaryImage;
+        if (typeof sendMessage !== 'undefined') window.sendMessage = sendMessage;
+    }
 })();

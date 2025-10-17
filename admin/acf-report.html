@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACF Report - Fingrow Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-default {
+            background-color: rgba(229, 231, 235, 0.1);
+            color: #d1d5db;
+            border: 1px solid rgba(229, 231, 235, 0.2);
+        }
+        .badge-ok {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .badge-warn {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .badge-crit {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .slot-bar {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .slot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 0.125rem;
+        }
+        .slot-filled {
+            background-color: #2563eb;
+        }
+        .slot-empty {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100 p-6">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <a href="index.html" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <h1 class="text-3xl font-extrabold tracking-tight">ACF System Report</h1>
+                </div>
+                <p class="text-sm text-gray-400">Auto-Connect Follower - Fair Distribution System</p>
+            </div>
+            <button onclick="location.reload()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors">
+                <i class="fas fa-sync mr-2"></i>Refresh
+            </button>
+        </header>
+
+        <!-- ACF Settings -->
+        <section class="card rounded-2xl p-5 shadow">
+            <h2 class="text-xl font-semibold mb-3">ACF Settings</h2>
+            <div class="grid md:grid-cols-3 gap-4 text-sm">
+                <div class="space-y-2">
+                    <div class="text-xs text-gray-400">System Root</div>
+                    <div class="px-3 py-2 rounded-lg bg-slate-900 font-mono text-emerald-400" id="systemRoot">Loading...</div>
+                </div>
+                <div class="space-y-2">
+                    <div class="text-xs text-gray-400">Total Users</div>
+                    <div class="px-3 py-2 rounded-lg bg-slate-900 font-bold text-2xl" id="totalUsers">0</div>
+                </div>
+                <div class="space-y-2">
+                    <div class="text-xs text-gray-400">ACF Policy</div>
+                    <div class="px-3 py-2 rounded-lg bg-slate-900">
+                        <div class="text-emerald-400 font-semibold">Fair Distribution</div>
+                        <div class="text-xs text-gray-400 mt-1">Layer-first → childCount → created_at</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Table -->
+        <section class="card rounded-2xl p-5 shadow">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-semibold">Users Table (Child 1–5)</h2>
+                <div class="text-xs text-gray-400">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Shows ACF structure with child allocation
+                </div>
+            </div>
+
+            <div class="overflow-auto rounded-xl">
+                <table class="min-w-full text-sm border-separate border-spacing-0">
+                    <thead class="bg-slate-800 sticky top-0 z-10">
+                        <tr class="text-left">
+                            <th class="px-3 py-2 text-gray-300">#</th>
+                            <th class="px-3 py-2 text-gray-300">User ID</th>
+                            <th class="px-3 py-2 text-gray-300">Username</th>
+                            <th class="px-3 py-2 text-gray-300">Parent</th>
+                            <th class="px-3 py-2 text-gray-300">Level</th>
+                            <th class="px-3 py-2 text-gray-300">Slots</th>
+                            <th class="px-3 py-2 text-gray-300">Count</th>
+                            <th class="px-3 py-2 text-gray-300">ACF</th>
+                            <th class="px-3 py-2 text-gray-300">Max</th>
+                            <th class="px-3 py-2 text-gray-300" colspan="5">Child #1–#5</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="text-gray-300">
+                        <tr>
+                            <td colspan="14" class="text-center py-8 text-gray-400">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Loading users data...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Statistics -->
+        <section class="grid md:grid-cols-4 gap-4">
+            <div class="card rounded-lg p-4">
+                <div class="text-gray-400 text-sm mb-1">NIC Registrations</div>
+                <div class="text-2xl font-bold" id="nicCount">0</div>
+                <div class="text-xs text-emerald-400 mt-1">No Invite Code</div>
+            </div>
+            <div class="card rounded-lg p-4">
+                <div class="text-gray-400 text-sm mb-1">BIC Registrations</div>
+                <div class="text-2xl font-bold" id="bicCount">0</div>
+                <div class="text-xs text-blue-400 mt-1">By Invite Code</div>
+            </div>
+            <div class="card rounded-lg p-4">
+                <div class="text-gray-400 text-sm mb-1">Max Level Reached</div>
+                <div class="text-2xl font-bold" id="maxLevel">0</div>
+                <div class="text-xs text-gray-400 mt-1">/ 7 levels</div>
+            </div>
+            <div class="card rounded-lg p-4">
+                <div class="text-gray-400 text-sm mb-1">Users at Full Capacity</div>
+                <div class="text-2xl font-bold" id="fullUsers">0</div>
+                <div class="text-xs text-amber-400 mt-1">5/5 children</div>
+            </div>
+        </section>
+
+        <footer class="text-xs text-gray-500 text-center pb-6">
+            ACF Fair Distribution System • Layer-first → childCount → created_at → level
+        </footer>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/acf-report.js"></script>
+</body>
+</html>

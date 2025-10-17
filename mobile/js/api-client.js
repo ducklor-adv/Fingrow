@@ -87,3 +87,8 @@ class ApiClient {
         }
     }
 }
+
+// Make ApiClient available globally for non-module scripts
+if (typeof window !== 'undefined') {
+    window.ApiClient = ApiClient;
+}

@@ -578,13 +578,20 @@ function generateUserId() {
 }
 
 /**
- * ACF (Auto-Connect Follower) Allocation Logic
+ * ACF (Auto-Connect Follower) Allocation Logic - NEW FAIR DISTRIBUTION
  * Finds the best parent for a new user within the invitor's network
  * Rules:
- * - Max 5 direct children per user
+ * - Max 5 direct children per user (Anatta999 = 1 child only)
  * - Max 7 levels depth
- * - Layer-first (closest to invitor) → Earliest-first → Lowest childCount → Lowest runNumber
+ * - Layer-first (closest to invitor) → Fair Distribution (childCount) → Earliest registration
+ * - Fair Distribution: Distribute children evenly across all candidates in the same layer
+ *   instead of filling one person to 5 first (round-robin style)
  * - If invitor's direct slot is full, search in invitor's child subtree only
+ *
+ * Sorting Priority (within same layer):
+ * 1. childCount (ascending) - users with fewer children get priority
+ * 2. created_at (ascending) - earlier registration gets priority when childCount is equal
+ * 3. level (ascending) - closer to invitor when all else is equal
  */
 function allocateParent(invitorId) {
     const MAX_DEPTH = 7;
@@ -683,12 +690,21 @@ function allocateParent(invitorId) {
         throw new Error('No available slot in network (5×7 constraint reached)');
     }
 
-    // Sort candidates: earliest created_at → lowest childCount
+    // Sort candidates: NEW ACF Logic (Fair Distribution)
+    // Priority: childCount → created_at → level
+    // This ensures fair distribution across all candidates in the same layer
+    // Instead of filling one person to 5 first, we distribute evenly (round-robin style)
     candidates.sort((a, b) => {
+        // 1. Prioritize users with fewer children (fair distribution)
+        if (a.childCount !== b.childCount) return a.childCount - b.childCount;
+
+        // 2. If same childCount, earlier registration gets priority
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         if (dateA !== dateB) return dateA - dateB;
-        return a.childCount - b.childCount;
+
+        // 3. If still tied, closer to invitor (shallower level)
+        return a.level - b.level;
     });
 
     const bestCandidate = candidates[0];
@@ -724,13 +740,15 @@ app.get('/api/users', async (req, res) => {
         const query = `
             SELECT
                 u.id, u.username, u.email, u.full_name, u.phone,
-                u.invite_code, u.invitor_id as invited_by,
+                u.invite_code, u.invitor_id as invited_by, u.invitor_id,
                 u.created_at, u.last_login, u.is_active, u.avatar_url as profile_image,
                 u.trust_score as seller_rating, u.total_sales, u.location as province,
 
-                -- Get follower_count and child_count from fingrow_dna table
+                -- Get follower_count, child_count, and parent_id from fingrow_dna table
                 COALESCE(dna.follower_count, 0) as follower_count,
                 COALESCE(dna.child_count, 0) as child_count,
+                dna.parent_id,
+                COALESCE(dna.level, 0) as level,
 
                 -- Purchase stats (as buyer)
                 (SELECT COUNT(*) FROM orders WHERE buyer_id = u.id) as purchase_count,

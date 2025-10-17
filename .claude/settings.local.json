@@ -1,25 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(start http://localhost:19002)",
-      "Bash(npx expo start:*)",
-      "Bash(npx expo install:*)",
-      "Bash(taskkill:*)",
-      "Bash(npm install:*)",
-      "Bash(python:*)",
-      "Bash(start:*)",
-      "Bash(npm start)",
+      "Bash(git clone:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(npm install)",
+      "Bash(python -m http.server:*)",
+      "Bash(npx http-server -p 8000)",
+      "Bash(npm run server:*)",
       "Bash(node:*)",
-      "Bash(curl:*)",
-      "Bash(sqlite3:*)",
-      "Bash(tasklist)",
-      "Bash(findstr:*)",
-      "Bash(del test_invite_system.js)",
-      "Bash(del rename_referral_fields.js)",
-      "Bash(git add:*)",
-      "Bash(git push:*)",
-      "Bash(git commit:*)",
-      "Bash(netstat:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm run mobile:dev:*)"
     ],
     "deny": [],
     "ask": []

@@ -37,6 +37,47 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(148, 163, 184, 0.2);
         }
+        /* ACF Report Styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-default {
+            background-color: rgba(229, 231, 235, 0.1);
+            color: #d1d5db;
+            border: 1px solid rgba(229, 231, 235, 0.2);
+        }
+        .badge-ok {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        .badge-warn {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        .badge-crit {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .slot-bar {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .slot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 0.125rem;
+        }
+        .slot-filled {
+            background-color: #2563eb;
+        }
+        .slot-empty {
+            background-color: #374151;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
@@ -124,6 +165,10 @@
                 <a href="#earnings" class="nav-item flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
                     <i class="fas fa-network-wired mr-3"></i>
                     <span>Network</span>
+                </a>
+                <a href="#acf-report" class="nav-item flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="fas fa-sitemap mr-3"></i>
+                    <span>ACF Report</span>
                 </a>
                 <a href="#reviews" class="nav-item flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
                     <i class="fas fa-star mr-3"></i>
@@ -405,6 +450,138 @@
                     </section>
 
                 </div>
+
+                <!-- ACF Report Content -->
+                <div id="acf-report-content" style="display: none;">
+                    <div class="space-y-6">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-3xl font-bold text-white mb-2">ACF System Report</h2>
+                                <p class="text-gray-400">Auto-Connect Follower - Fair Distribution System</p>
+                            </div>
+                            <button onclick="loadACFData()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors">
+                                <i class="fas fa-sync mr-2"></i>Refresh
+                            </button>
+                        </div>
+
+                        <!-- ACF Settings -->
+                        <section class="card rounded-2xl p-5 shadow">
+                            <h2 class="text-xl font-semibold mb-3">ACF Settings</h2>
+                            <div class="grid md:grid-cols-3 gap-4 text-sm mb-4">
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-400">System Root</div>
+                                    <div class="px-3 py-2 rounded-lg bg-slate-900 font-mono text-emerald-400" id="acfSystemRoot">Loading...</div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-400">Total Users</div>
+                                    <div class="px-3 py-2 rounded-lg bg-slate-900 font-bold text-2xl" id="acfTotalUsers">0</div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-400">ACF Policy</div>
+                                    <div class="px-3 py-2 rounded-lg bg-slate-900">
+                                        <div class="text-emerald-400 font-semibold">Fair Distribution</div>
+                                        <div class="text-xs text-gray-400 mt-1">Layer-first → childCount → created_at</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Change ACF Root Section -->
+                            <div class="border-t border-gray-700 pt-4 mt-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h3 class="font-semibold text-white flex items-center gap-2">
+                                            <i class="fas fa-user-cog text-emerald-500"></i>
+                                            Change ACF Root (NIC Target)
+                                        </h3>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            ผู้ใช้ที่สมัครโดยไม่ใส่ Invite Code จะถูกกำหนดให้อยู่ภายใต้ ACF Root อัตโนมัติ
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex gap-2">
+                                        <input type="text"
+                                               id="acfRootSearch"
+                                               placeholder="กรอก Username หรือ User ID..."
+                                               class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500"
+                                               onkeypress="if(event.key === 'Enter') verifyACFRoot()">
+                                        <button onclick="verifyACFRoot()"
+                                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors text-sm">
+                                            <i class="fas fa-search mr-2"></i>ค้นหา
+                                        </button>
+                                    </div>
+
+                                    <!-- Result Display -->
+                                    <div id="acfRootResult" class="hidden"></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Users Table -->
+                        <section class="card rounded-2xl p-5 shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <h2 class="text-xl font-semibold">Users Table (Child 1–5)</h2>
+                                <div class="text-xs text-gray-400">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Shows ACF structure with child allocation
+                                </div>
+                            </div>
+
+                            <div class="overflow-auto rounded-xl">
+                                <table class="min-w-full text-sm border-separate border-spacing-0">
+                                    <thead class="bg-slate-800 sticky top-0 z-10">
+                                        <tr class="text-left">
+                                            <th class="px-3 py-2 text-gray-300">#</th>
+                                            <th class="px-3 py-2 text-gray-300">User ID</th>
+                                            <th class="px-3 py-2 text-gray-300">Username</th>
+                                            <th class="px-3 py-2 text-gray-300">Parent</th>
+                                            <th class="px-3 py-2 text-gray-300">Level</th>
+                                            <th class="px-3 py-2 text-gray-300">Slots</th>
+                                            <th class="px-3 py-2 text-gray-300">Count</th>
+                                            <th class="px-3 py-2 text-gray-300">ACF</th>
+                                            <th class="px-3 py-2 text-gray-300">Max</th>
+                                            <th class="px-3 py-2 text-gray-300" colspan="5">Child #1–#5</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="acfUsersTableBody" class="text-gray-300">
+                                        <tr>
+                                            <td colspan="14" class="text-center py-8 text-gray-400">
+                                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                                <p>Loading users data...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Statistics -->
+                        <section class="grid md:grid-cols-4 gap-4">
+                            <div class="card rounded-lg p-4">
+                                <div class="text-gray-400 text-sm mb-1">NIC Registrations</div>
+                                <div class="text-2xl font-bold" id="acfNicCount">0</div>
+                                <div class="text-xs text-emerald-400 mt-1">No Invite Code</div>
+                            </div>
+                            <div class="card rounded-lg p-4">
+                                <div class="text-gray-400 text-sm mb-1">BIC Registrations</div>
+                                <div class="text-2xl font-bold" id="acfBicCount">0</div>
+                                <div class="text-xs text-blue-400 mt-1">By Invite Code</div>
+                            </div>
+                            <div class="card rounded-lg p-4">
+                                <div class="text-gray-400 text-sm mb-1">Max Level Reached</div>
+                                <div class="text-2xl font-bold" id="acfMaxLevel">0</div>
+                                <div class="text-xs text-gray-400 mt-1">/ 7 levels</div>
+                            </div>
+                            <div class="card rounded-lg p-4">
+                                <div class="text-gray-400 text-sm mb-1">Users at Full Capacity</div>
+                                <div class="text-2xl font-bold" id="acfFullUsers">0</div>
+                                <div class="text-xs text-amber-400 mt-1">5/5 children</div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -611,6 +788,7 @@
         document.write('<script src="js/config.js?v=' + timestamp + '"><\/script>');
         document.write('<script src="js/database-connector.js?v=' + timestamp + '"><\/script>');
         document.write('<script src="js/admin.js?v=' + timestamp + '"><\/script>');
+        document.write('<script src="js/acf-report.js?v=' + timestamp + '"><\/script>');
     </script>
 
     <script>

@@ -87,3 +87,9 @@ class ApiClient {
         }
     }
 }
+
+// Make ApiClient available globally
+if (typeof window !== 'undefined') {
+    window.ApiClient = ApiClient;
+    console.log('✅ ApiClient loaded and available globally');
+}

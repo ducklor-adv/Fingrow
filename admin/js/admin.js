@@ -822,6 +822,35 @@ class FingrowAdmin {
                         }
                     }, 100);
                     break;
+                case 'acf-report':
+                    console.log('[Admin] Loading ACF Report section');
+                    let acfReportElement = document.getElementById('acf-report-content');
+                    console.log('[Admin] ACF Report element found:', !!acfReportElement);
+
+                    if (acfReportElement) {
+                        console.log('[Admin] Showing ACF Report content');
+                        acfReportElement.style.display = 'block';
+
+                        // Initialize ACF Report when showing the page
+                        setTimeout(() => {
+                            console.log('[Admin] Initializing ACF Report...');
+                            if (typeof window.initACFReport === 'function') {
+                                console.log('[Admin] Calling window.initACFReport()');
+                                window.initACFReport();
+                            } else if (typeof loadACFData === 'function') {
+                                console.log('[Admin] Calling loadACFData() fallback');
+                                loadACFData();
+                            } else {
+                                console.error('[Admin] No ACF initialization function found!');
+                            }
+                        }, 100);
+                    } else {
+                        console.error('acf-report-content element not found!');
+                        // Try to find it in a different way
+                        const allDivs = document.querySelectorAll('div[id]');
+                        console.log('All divs with IDs:', Array.from(allDivs).map(d => d.id));
+                    }
+                    break;
                 case 'users':
                 case 'products':
                 case 'orders':
@@ -2732,41 +2761,24 @@ class FingrowAdmin {
                     </div>
                 </div>
 
-                <!-- NIC Registration Target -->
+                <!-- NIC Registration Target - Moved to ACF Report page -->
                 <div class="card p-6 rounded-lg">
                     <h3 class="text-xl font-semibold text-white mb-4">
                         <i class="fas fa-user-plus mr-2"></i>NIC Registration Target
                     </h3>
 
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-gray-300 text-sm font-medium mb-2">
-                                ผู้ใช้เป้าหมายสำหรับการสมัครแบบไม่มี Invite Code (NIC)
-                            </label>
-                            <p class="text-gray-400 text-xs mb-3">
-                                เมื่อผู้ใช้สมัครโดยไม่ใส่ Invite Code ระบบจะกำหนดให้ผู้ใช้ที่เลือกเป็น invitor อัตโนมัติ
-                            </p>
-
-                            <div class="flex gap-2">
-                                <input type="text" id="nicTargetSearch" placeholder="กรอก Username หรือ User ID..."
-                                       class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                                       onkeypress="if(event.key === 'Enter') admin.verifyNICTarget()">
-                                <button onclick="admin.verifyNICTarget()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
-                                    <i class="fas fa-search mr-2"></i>ตรวจสอบ
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Current NIC Target Display -->
-                        <div id="nicTargetCurrent" class="bg-gray-800 border border-emerald-700 rounded-lg p-4">
-                            <div class="flex justify-center items-center py-4">
-                                <i class="fas fa-spinner fa-spin text-emerald-500 text-2xl"></i>
-                            </div>
-                        </div>
-
-                        <!-- Verification Result Display -->
-                        <div id="nicTargetResult" class="hidden">
-                        </div>
+                    <div class="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-4 text-center">
+                        <i class="fas fa-info-circle text-blue-400 text-2xl mb-2"></i>
+                        <p class="text-gray-300 mb-3">
+                            ฟีเจอร์นี้ถูกย้ายไปที่หน้า <strong class="text-emerald-400">ACF Report</strong> แล้ว
+                        </p>
+                        <p class="text-gray-400 text-sm mb-4">
+                            คุณสามารถตั้งค่า ACF Root (NIC Target) ได้ที่หน้า ACF Report เพื่อความสะดวกในการจัดการระบบ ACF
+                        </p>
+                        <a href="#acf-report" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-sitemap"></i>
+                            ไปที่หน้า ACF Report
+                        </a>
                     </div>
                 </div>
             </div>
